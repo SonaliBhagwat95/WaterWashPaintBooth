@@ -1,0 +1,1021 @@
+/* ============================================================
+   Bullows PaintBooth Pro — proposal.css
+   Proposal Approval — Index + Create pages
+   ============================================================ */
+
+/* ── Shared helpers ──────────────────────────────────────────── */
+.prop-row.hidden {
+    display: none;
+}
+
+.form-btn-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 4px;
+}
+
+/* ── Button spinner ──────────────────────────────────────────── */
+.btn-spinner {
+    display: none;
+    width: 15px;
+    height: 15px;
+    border: 2px solid rgba(255,255,255,.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    vertical-align: middle;
+    margin-right: 5px;
+}
+
+.btn-pb-primary.loading .btn-spinner {
+    display: inline-block;
+}
+
+.btn-pb-primary.loading .btn-text {
+    display: none;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ── pb-card ─────────────────────────────────────────────────── */
+.pb-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+}
+
+/* ── form-section-title ──────────────────────────────────────── */
+.form-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+    .form-section-title i {
+        color: var(--accent);
+        font-size: 15px;
+    }
+
+/* ── pb-label / pb-input ─────────────────────────────────────── */
+.pb-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+    display: block;
+}
+
+.pb-input {
+    width: 100%;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    transition: border-color var(--transition);
+    outline: none;
+}
+
+    .pb-input:focus {
+        border-color: var(--accent);
+    }
+
+    .pb-input::placeholder {
+        color: var(--text-muted);
+    }
+
+/* ── INDEX: toolbar ──────────────────────────────────────────── */
+.setting-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.setting-search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 0 14px;
+    height: 40px;
+    width: 300px;
+    transition: border-color var(--transition), width var(--transition);
+}
+
+    .setting-search-wrap:focus-within {
+        border-color: var(--accent);
+        width: 360px;
+    }
+
+    .setting-search-wrap i {
+        color: var(--text-muted);
+        font-size: 14px;
+    }
+
+.setting-search {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-family: var(--font-body);
+    width: 100%;
+}
+
+    .setting-search::placeholder {
+        color: var(--text-muted);
+    }
+
+.setting-count {
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+    .setting-count span {
+        font-weight: 600;
+        color: var(--accent);
+    }
+
+.setting-table-wrap {
+    overflow-x: auto;
+}
+
+.setting-sr {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.setting-code {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.setting-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.setting-btn-edit,
+.setting-btn-delete {
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all var(--transition);
+    border: 1px solid var(--border);
+    background: var(--bg-hover);
+    text-decoration: none;
+}
+
+.setting-btn-edit {
+    color: var(--accent-2);
+}
+
+    .setting-btn-edit:hover {
+        background: rgba(61,142,255,.1);
+        border-color: rgba(61,142,255,.3);
+    }
+
+.setting-btn-delete {
+    color: var(--danger);
+    border: none;
+}
+
+    .setting-btn-delete:hover {
+        background: rgba(240,72,72,.1);
+    }
+
+.setting-empty {
+    text-align: center;
+    padding: 48px 0;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+    .setting-empty i {
+        font-size: 36px;
+        display: block;
+        margin-bottom: 12px;
+        opacity: .4;
+    }
+
+.setting-empty-sub {
+    font-size: 12px;
+    margin-top: 6px;
+    color: var(--text-muted);
+}
+
+.pb-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+    .pb-table thead tr {
+        background: var(--bg-hover);
+        border-bottom: 2px solid var(--border);
+    }
+
+    .pb-table thead th {
+        padding: 10px 14px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: .4px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        white-space: nowrap;
+        text-align: left;
+    }
+
+    .pb-table tbody tr {
+        border-bottom: 1px solid var(--border);
+        transition: background .12s;
+    }
+
+        .pb-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .pb-table tbody tr:hover {
+            background: var(--bg-hover);
+        }
+
+    .pb-table tbody td {
+        padding: 9px 14px;
+        color: var(--text-primary);
+        white-space: nowrap;
+    }
+
+/* ── pb-alert ────────────────────────────────────────────────── */
+.pb-alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.pb-alert-success {
+    background: rgba(34,201,126,.1);
+    border: 1px solid rgba(34,201,126,.25);
+    color: var(--success);
+}
+
+.pb-alert-danger {
+    background: rgba(240,72,72,.1);
+    border: 1px solid rgba(240,72,72,.25);
+    color: var(--danger);
+}
+
+/* ── CREATE: Autocomplete ────────────────────────────────────── */
+.prop-autocomplete-wrap {
+    position: relative;
+}
+
+.prop-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 200;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.18);
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+    margin-top: 4px;
+}
+
+.prop-dropdown-item {
+    padding: 9px 14px;
+    font-size: 13px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background .15s;
+    border-bottom: 1px solid var(--border);
+}
+
+    .prop-dropdown-item:last-child {
+        border-bottom: none;
+    }
+
+    .prop-dropdown-item:hover {
+        background: var(--bg-hover);
+        color: var(--accent);
+    }
+
+/* ── CREATE: Proposal document wrapper ───────────────────────── */
+.prop-doc {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding-top: 12px !important;
+    font-size: 13px;
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+/* ── Company header ──────────────────────────────────────────── */
+.prop-company-header {
+    padding-bottom: 10px !important;
+    margin-bottom: 14px !important;
+}
+
+    .prop-company-header .prop-ref-line {
+        margin-top: 8px !important;
+    }
+
+.prop-company-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: #E73C25;
+    font-family: var(--font-display);
+}
+
+.prop-company-address {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.prop-ref-line {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* ── Section headings inside document ───────────────────────── */
+.prop-section {
+    margin-bottom: 28px;
+}
+
+.prop-section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: var(--font-display);
+    border-bottom: 2px solid var(--border-accent);
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+/* ── Proposal data table ─────────────────────────────────────── */
+.prop-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 16px;
+}
+
+    .prop-table th,
+    .prop-table td {
+        padding: 9px 14px;
+        border: 1px solid var(--border);
+        text-align: left;
+        vertical-align: middle;
+    }
+
+    .prop-table thead th {
+        background: var(--bg-hover);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .4px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+    }
+
+    .prop-table tbody th {
+        background: var(--bg-hover);
+        font-weight: 600;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        width: 220px;
+    }
+
+    .prop-table tbody tr:nth-child(even) td {
+        background: rgba(255,255,255,.02);
+    }
+
+    .prop-table tbody tr:hover td {
+        background: var(--bg-hover);
+    }
+
+    .prop-table td ol {
+        margin: 4px 0 4px 0;
+        padding-left: 20px;
+    }
+
+        .prop-table td ol li {
+            margin: 2px 0;
+        }
+
+/* ── Inline editable input inside proposal table ─────────────── */
+.prop-input {
+    width: 100%;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 12px;
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    outline: none;
+    transition: border-color .15s;
+}
+
+    .prop-input:focus {
+        border-color: var(--accent);
+    }
+
+/* ── Radio toggle group ──────────────────────────────────────── */
+.prop-radio-group {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+    .prop-radio-group label {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12px;
+        cursor: pointer;
+        color: var(--text-secondary);
+    }
+
+    .prop-radio-group input[type="radio"] {
+        accent-color: var(--accent);
+        cursor: pointer;
+    }
+
+/* ── Checklist inside proposal ───────────────────────────────── */
+.prop-checklist {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+    .prop-checklist li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 7px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 13px;
+        color: var(--text-primary);
+    }
+
+        .prop-checklist li:last-child {
+            border-bottom: none;
+        }
+
+    .prop-checklist input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: var(--accent);
+        cursor: pointer;
+    }
+
+/* ── Payment terms mini table inside doc ─────────────────────── */
+.prop-payment-table {
+    border: none;
+    margin: 0;
+    font-size: 13px;
+}
+
+    .prop-payment-table td {
+        border: none;
+        padding: 4px 8px;
+        color: var(--text-primary);
+    }
+
+        .prop-payment-table td:last-child {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+/* ── Document footer ─────────────────────────────────────────── */
+.prop-doc-footer {
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 24px;
+    text-align: center;
+}
+
+/* ── Signature block ─────────────────────────────────────────── */
+.prop-signature {
+    margin-top: 32px;
+    text-align: left;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.prop-signature-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-top: 24px;
+}
+
+/* ── CC block ────────────────────────────────────────────────── */
+.prop-cc-block {
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 12px;
+}
+
+/* ── Price summary in doc ────────────────────────────────────── */
+.prop-price-total-row td {
+    background: var(--bg-hover);
+    font-weight: 700;
+    color: var(--accent);
+}
+
+/* ── Download button ─────────────────────────────────────────── */
+.prop-download-bar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+/* ── Exclusions table — bordered grid style, theme-aware ─────── */
+.prop-exclusions {
+    border: 1px solid var(--border);
+    border-collapse: collapse;
+}
+
+    .prop-exclusions th,
+    .prop-exclusions td {
+        border: 1px solid var(--border);
+        padding: 7px 12px;
+        vertical-align: middle;
+    }
+
+    .prop-exclusions .excl-title {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+        text-align: center;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: .5px;
+        text-transform: none;
+    }
+
+    .prop-exclusions thead tr:last-child th {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+        font-weight: 700;
+        font-size: 12px;
+        text-transform: none;
+        letter-spacing: 0;
+    }
+
+    .prop-exclusions tbody tr:nth-child(even) td,
+    .prop-exclusions tbody tr:hover td {
+        background: transparent;
+    }
+
+/* ── Word download button accent ─────────────────────────────── */
+#btnDownloadWord {
+    border-color: rgba(31,112,218,.4);
+    color: #1f70da;
+}
+
+    #btnDownloadWord:hover {
+        background: rgba(31,112,218,.08);
+        border-color: rgba(31,112,218,.6);
+    }
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .setting-search-wrap {
+        width: 100%;
+    }
+
+    .setting-toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .prop-doc {
+        padding: 16px;
+    }
+
+    .prop-table tbody th {
+        width: auto;
+    }
+}
+
+
+/* ============================================================
+   PDF PAGE-BREAK RULES  —  SINGLE SOURCE OF TRUTH
+   (do not add page-break rules anywhere else in this file)
+   ============================================================ */
+
+/* 1. The FIRST section flows directly under the company header on page 1.
+      Mark it in the .cshtml with:  class="prop-section prop-section-first"  */
+.prop-section-first {
+    page-break-before: auto !important;
+    break-before: auto !important;
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+}
+
+/* 2. Every OTHER section starts on a fresh page */
+.prop-section + .prop-section:not(.prop-section-first) {
+    page-break-before: always;
+    break-before: page;
+}
+
+/* 3. Sections and tables MUST be splittable so tall tables
+      (Technical Spec, Control Panel) flow instead of being sliced */
+.prop-section,
+.prop-table,
+.prop-page1,
+.prop-flow {
+    page-break-inside: auto;
+    break-inside: auto;
+}
+
+/* 4. Only rows are protected from being cut across a page boundary */
+tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+/* 5. Keep column header with body when a table continues */
+thead {
+    display: table-header-group;
+}
+
+/* 6. Keep a section title with the content below it */
+.prop-section-title {
+    page-break-after: avoid;
+    break-after: avoid;
+}
+
+/* 7. Company header: never split it, but never reserve the page either */
+.prop-company-header {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    page-break-after: auto;
+    break-after: auto;
+}
+
+/* 8. Small blocks kept intact (moved as a unit, not split) */
+.prop-signature,
+.prop-cc-block,
+.prop-payment-table,
+.prop-doc-footer,
+.prop-price-total-row {
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+/* Optional manual page break helper */
+.prop-page-start {
+    page-break-before: always;
+    break-before: page;
+}
+
+/* ── Compact page-1 spacing so the letter fits on one page ───── */
+.prop-page1,
+.prop-flow {
+    margin: 0 !important;
+}
+
+    .prop-page1 .prop-table {
+        margin-bottom: 12px !important;
+    }
+
+        .prop-page1 .prop-table th,
+        .prop-page1 .prop-table td {
+            padding: 5px 10px !important;
+        }
+
+    .prop-page1 p {
+        margin: 5px 0 !important;
+    }
+
+    .prop-page1 .prop-checklist li {
+        padding: 3px 0 !important;
+    }
+
+    .prop-page1 .prop-signature {
+        margin-top: 16px !important;
+    }
+
+    .prop-page1 .prop-signature-name {
+        margin-top: 12px !important;
+    }
+    /* Tighter page-1 letter so it fits with the client table */
+    .prop-page1 .prop-flow {
+        margin: 0 !important;
+    }
+
+    .prop-page1 p {
+        margin: 3px 0 !important;
+        line-height: 1.4 !important;
+    }
+
+    .prop-page1 br {
+        line-height: 1 !important;
+    }
+
+    .prop-page1 .prop-checklist li {
+        padding: 2px 0 !important;
+    }
+
+    .prop-page1 .prop-signature {
+        margin-top: 8px !important;
+    }
+
+    .prop-page1 .prop-signature-name {
+        margin-top: 8px !important;
+    }
+
+    .prop-page1 .prop-cc-block {
+        margin-top: 8px !important;
+        padding: 8px 12px !important;
+    }
+
+/* the section wrapper itself shouldn't add its 28px bottom gap on page 1 */
+.prop-section-first {
+    margin-bottom: 0 !important;
+}
+
+/* Right-align the numbers inside price inputs */
+.prop-input.price-input,
+#totalPrice,
+#discountAmount,
+#finalPrice,
+#gstAmount,
+#grossAmount {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+/* ── PDF export: always white page ───────────────────── */
+#proposalContent.pdf-export {
+    --bg-body: #ffffff;
+    --bg-surface: #ffffff;
+    --bg-card: #ffffff;
+    --bg-elevated: #f5f6fa;
+    --bg-muted: #f0f2f8;
+    --text-primary: #12151f;
+    --text-secondary: #3a3f55;
+    --text-muted: #5a5f78;
+    --border: #d0d4e0;
+    background: #ffffff !important;
+    color: #12151f !important;
+}
+
+    #proposalContent.pdf-export * {
+        color: inherit;
+        border-color: #d0d4e0 !important;
+        box-shadow: none !important;
+    }
+
+    #proposalContent.pdf-export table,
+    #proposalContent.pdf-export td {
+        background: #ffffff !important;
+        color: #12151f !important;
+    }
+
+        /* Label column in client/spec tables (Client Name, Address, etc.) */
+        #proposalContent.pdf-export th,
+        #proposalContent.pdf-export td:first-child {
+            background: #f0f2f8 !important;
+            color: #3a3f55 !important;
+        }
+
+    /* Keep the brand colours */
+    #proposalContent.pdf-export .prop-company-name,
+    #proposalContent.pdf-export a {
+        color: #e73c25 !important;
+    }
+/* ── Terms & Conditions: compact, fits on one page ─────── */
+.prop-tc {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+    .prop-tc .prop-table th,
+    .prop-tc .prop-table td {
+        padding: 4px 10px !important;
+        font-size: 11.5px;
+        line-height: 1.35;
+    }
+
+    .prop-tc .tc-muted {
+        font-size: 11px !important;
+        color: var(--text-muted);
+    }
+
+    .prop-tc .tc-note div {
+        margin-top: 3px;
+    }
+
+    /* Payment terms inner table */
+    .prop-tc .prop-payment-table {
+        margin: 0;
+    }
+
+        .prop-tc .prop-payment-table td {
+            padding: 1px 6px !important;
+            font-size: 11px;
+            line-height: 1.3;
+            border: none !important;
+        }
+
+/* ── Terms & Conditions: balanced spacing, fits on one page ── */
+.prop-tc {
+    margin-bottom: 0 !important;
+    padding: 6px 0 0 0 !important;
+}
+
+    .prop-tc .prop-table th,
+    .prop-tc .prop-table td {
+        padding: 7px 12px !important;
+        font-size: 12.5px;
+        line-height: 1.5;
+    }
+
+    .prop-tc .prop-table thead th {
+        padding: 9px 12px !important;
+    }
+
+    .prop-tc .tc-muted {
+        font-size: 12px !important;
+        color: var(--text-muted);
+    }
+
+    .prop-tc .tc-note div {
+        margin-top: 6px;
+    }
+
+    /* Payment terms inner table */
+    .prop-tc .prop-payment-table {
+        margin: 0;
+    }
+
+        .prop-tc .prop-payment-table td {
+            padding: 3px 8px !important;
+            font-size: 12px;
+            line-height: 1.45;
+            border: none !important;
+        }
+
+    /* Signature block */
+    .prop-tc .prop-signature {
+        margin-top: 18px !important;
+        padding: 0 !important;
+    }
+
+        .prop-tc .prop-signature p {
+            margin: 0 0 6px;
+            font-size: 13px;
+        }
+
+    .prop-tc .prop-signature-name {
+        margin: 0 0 28px;
+        font-size: 13px;
+    }
+
+    .prop-tc .tc-engineer {
+        font-size: 12px;
+        line-height: 1.55;
+        color: var(--text-muted);
+    }
+
+    .prop-tc .prop-cc-block {
+        text-align: left;
+        margin-top: 12px !important;
+        padding: 6px 12px !important;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+    /* No trailing space after the last element, so nothing spills onto the next page */
+    .prop-tc,
+    .prop-tc .prop-signature,
+    .prop-tc .prop-cc-block {
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+    }
+
+        .prop-tc .prop-cc-block {
+            padding-bottom: 8px !important; /* keep the CC box's own inner padding */
+        }
+
+        .prop-tc .prop-table {
+            margin-bottom: 0 !important;
+        }
+/* ── Control Panel spec: balanced rows, fits on 2 pages ── */
+.prop-cp .prop-table {
+    margin-bottom: 0 !important;
+}
+
+    .prop-cp .prop-table th,
+    .prop-cp .prop-table td {
+        padding: 7px 12px !important;
+        font-size: 12.5px;
+        line-height: 1.45;
+    }
+
+    .prop-cp .prop-table thead th {
+        padding: 9px 12px !important;
+        font-size: 13px !important;
+    }
+
+    /* Inner HP / Kw / Qty / Total Kw tables keep their own tight padding */
+    .prop-cp .prop-table td td {
+        padding: 0 4px !important;
+        border: none !important;
+        line-height: 1.45;
+    }
+
+/* Radio buttons in "Degree Of Protection" row */
+.prop-cp .prop-radio-group {
+    gap: 12px;
+}
+
+    .prop-cp .prop-radio-group label {
+        font-size: 12.5px;
+    }
+
+    .prop-cp .prop-radio-group input[type="radio"] {
+        width: 13px;
+        height: 13px;
+        margin: 0;
+    }
+/* Keep a heading row together with the row(s) after it */
+.pb-keep {
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+/* No trailing space after the Control Panel section,
+   so the next section doesn't get pushed one page too far */
+.prop-cp {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+/* 2b. Small sections that continue on the same page as the previous one */
+.prop-section + .prop-section.prop-no-break:not(.prop-section-first) {
+    page-break-before: auto !important;
+    break-before: auto !important;
+    margin-top: 0 !important;
+}
+
+/* Keep the small block together, so it moves to the next page whole
+   if it ever doesn't fit (e.g. when Basis of Design grows) */
+.prop-no-break {
+    page-break-inside: avoid;
+    break-inside: avoid;
+}

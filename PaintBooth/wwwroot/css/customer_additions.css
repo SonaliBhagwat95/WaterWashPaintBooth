@@ -1,0 +1,16 @@
+/* ============================================================
+   ADD THESE AT THE BOTTOM OF YOUR customer.css
+   ============================================================ */
+
+/* Required field star */
+.req-star {
+    color      : var(--danger);
+    font-size  : 13px;
+    margin-left: 2px;
+}
+
+/* Edit page - company name in subtitle */
+.page-header-sub strong {
+    color       : var(--text-primary);
+    font-weight : 600;
+}

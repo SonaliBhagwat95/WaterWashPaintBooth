@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Bullows PaintBooth</title>
+
+    <!-- ══════════════════════════════════════════════════════
+         CRITICAL — Apply saved theme BEFORE page renders
+         This prevents white flash when theme is light mode
+         Must be the FIRST script in <head>
+    ══════════════════════════════════════════════════════ -->
+    <script>
+        (function () {
+            var saved = localStorage.getItem('bullows-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', saved);
+        })();
+    </script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- Site CSS -->
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+
+    @RenderSection("Styles", required: false)
+</head>
+
+@{
+    var ctx      = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    var fullName = Context.Session.GetString("FullName") ?? "Admin";
+    var roleName = Context.Session.GetString("RoleName") ?? "Administrator";
+    var initials = fullName.Length >= 2
+                   ? fullName.Substring(0, 2).ToUpper()
+                   : fullName.ToUpper();
+
+                       // Define action groups for each nav item
+            var rmCostingActions = new[] { "Index", "Create", "Edit", "SaveCosting", "SearchByEnquiryID", "ExportFISheet" };
+        var boCostingActions = new[] { "BOCalculations_Index", "BOCalculations_Create", "SavePriceDetails" };
+        var priceBidActions = new[] { "PriceBID_Index", "PriceBID_Create", "FetchPriceBIDData", "UpdatePriceDetails" };
+        var proposalActions = new[] { "ProposalIndex", "ProposalCreate", "ShowProposalForm" };
+}
+}
+
+<body>
+
+    <!-- Sidebar Overlay (mobile) -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- ── SIDEBAR ──────────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+
+        <!-- ADD THIS -->
+        <a class="sidebar-logo" asp-controller="Dashboard" asp-action="Index">
+            <img src="~/img/logo.png" alt="Bullows" class="sidebar-logo-img" />
+        </a>
+        <div class="nav-section">
+
+            <div class="nav-label">Main</div>
+
+            <a asp-controller="Dashboard" asp-action="Index"
+               class="nav-item @(ctx == "Dashboard" ? "active" : "")">
+                <div class="nav-icon"><i class="bi bi-grid-1x2"></i></div>
+                Dashboard
+            </a>
+
+            <div class="nav-label">Pre-Order</div>
+
+            <a asp-controller="Enquiry" asp-action="Index"
+               class="nav-item @(ctx == "Enquiry" ? "active" : "")">
+                <div class="nav-icon"><i class="bi bi-clipboard2-text"></i></div>
+                Enquiry
+            </a>
+            <a asp-controller="PanelSetting" asp-action="Index"
+               class="nav-item @(ctx == "PanelSetting" ? "active" : "")">
+                <div class="nav-icon"><i class="bi bi-gear"></i></div>
+                Setting
+            </a>
+            <a asp-controller="PaintBoothDesign" asp-action="Index"
+               class="nav-item @(ctx == "PaintBoothDesign" ? "active" : "")">
+                <div class="nav-icon"><i class="bi bi-palette"></i></div>
+                Design
+            </a>
+@* 
+            <a asp-controller="Costing" asp-action="Index"
+               class="nav-item @(ctx == "Costing" && action == "Index" ? "active" : "")">
+                <div class="nav-icon"><i class="bi bi-boxes"></i></div>
+                R M Costing
+            </a>
+
+            <a asp-controller="Costing" asp-action="BOCalculations_Index"
+               class="nav-item @(ctx == "Costing" && action == "BOCalculations_Index" ? "active" : "")">
+                <div class="nav-icon"><i class="bi bi-calculator"></i></div>
+                B O Costing
+            </a>
+
+            <a asp-controller="Costing" asp-action="PriceBID_Index"
+               class="nav-item @(ctx == "Costing" && action == "PriceBID_Index" ? "active" : "")">
+                <div class="nav-icon"><i class="bi bi-cash-coin"></i></div>
+                Price BID
+            </a>
+             <a asp-controller="Costing" asp-action="ProposalIndex"
+               class="nav-item @(ctx == "ProposalApproval" ? "active" : "")">
+              
+                <div class="nav-icon"><i class="bi bi-patch-check"></i></div>
+                Proposal
+            </a> *@
+            <a asp-controller="Costing" asp-action="Index"
+               class="nav-item @(ctx == "Costing" && rmCostingActions.Contains(action) ? "active" : "")">
+                <div class="nav-icon"><i class="bi bi-boxes"></i></div>
+                R M Costing
+            </a>
+
+            <a asp-controller="Costing" asp-action="BOCalculations_Index"
+               class="nav-item @(ctx == "Costing" && boCostingActions.Contains(action) ? "active" : "")">
+                <div class="nav-icon"><i class="bi bi-calculator"></i></div>
+                B O Costing
+            </a>
+
+            <a asp-controller="Costing" asp-action="PriceBID_Index"
+               class="nav-item @(ctx == "Costing" && priceBidActions.Contains(action) ? "active" : "")">
+                <div class="nav-icon"><i class="bi bi-cash-coin"></i></div>
+                Price BID
+            </a>
+
+            <a asp-controller="Costing" asp-action="ProposalIndex"
+               class="nav-item @(ctx == "Costing" && proposalActions.Contains(action) ? "active" : "")">
+                <div class="nav-icon"><i class="bi bi-patch-check"></i></div>
+                Proposal
+            </a>
+            <div class="nav-label">Post-Order</div>
+
+            <a asp-controller="Project" asp-action="Index"
+               class="nav-item @(ctx == "Project" ? "active" : "")">
+                <div class="nav-icon"><i class="bi bi-building-gear"></i></div>
+                Project
+            </a>
+
+           @*  <div class="nav-label">Master</div>
+
+            <a asp-controller="CustomerDetails" asp-action="Index"
+               class="nav-item @(ctx == "CustomerDetails" ? "active" : "")">
+                <div class="nav-icon"><i class="bi bi-people"></i></div>
+                Customer
+            </a> *@
+
+           @*  <a asp-controller="Costing" asp-action="Material"
+                class="nav-item @(ctx == "Costing" && action == "Material" ? "active" : "")">
+                <div class="nav-icon"><i class="bi bi-box-seam"></i></div>
+                Material
+            </a> *@
+
+           @*  <div class="nav-label">System</div> *@
+        </div>
+
+        <div class="sidebar-bottom">
+            <div class="user-card">
+                <div class="user-avatar">@initials</div>
+                <div class="user-info">
+                    <div class="user-name">@fullName</div>
+                    <div class="user-role">@roleName</div>
+                </div>
+                <a asp-controller="Account" asp-action="Logout"
+                   class="logout-btn" title="Logout">
+                    <i class="bi bi-power"></i>
+                </a>
+            </div>
+        </div>
+
+    </aside>
+
+    <!-- ── TOPBAR ────────────────────────────────────────────────── -->
+    <nav class="topbar">
+        
+        <button class="hamburger" id="hamburgerBtn" type="button">
+            <i class="bi bi-list"></i>
+        </button>
+
+        <div class="topbar-title">@(ViewData["Title"] ?? "Dashboard")</div>
+
+        <div class="topbar-search">
+            <i class="bi bi-search"></i>
+            <input type="text" id="topbarSearch" placeholder="Search enquiries, projects..." />
+        </div>
+
+        <div class="topbar-actions">
+
+            <div class="theme-toggle" id="themeToggle" title="Toggle theme">
+                @* Icon set correctly by site.js on load *@
+                <i class="bi bi-sun-fill" id="themeIcon"></i>
+            </div>
+
+            <div class="topbar-btn" title="Notifications">
+                <i class="bi bi-bell"></i>
+                <span class="notif-dot"></span>
+            </div>
+
+        </div>
+    </nav>
+
+    <!-- ── MAIN CONTENT ──────────────────────────────────────────── -->
+    <main class="main-wrap">
+        @RenderBody()
+    </main>
+
+    <!-- jQuery -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Site JS -->
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @RenderSection("Scripts", required: false)
+
+</body>
+</html>

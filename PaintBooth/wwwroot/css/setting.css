@@ -1,0 +1,266 @@
+/* ============================================================
+   Bullows PaintBooth Pro — setting.css
+   Styles for PanelSetting Index and Create pages
+   ============================================================ */
+
+/* ── Shared ──────────────────────────────────────────────────── */
+.req-star             { color: var(--danger); font-size: 13px; margin-left: 2px; }
+.form-section-title   {
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--font-display); font-size: 13px; font-weight: 600;
+    color: var(--text-primary); margin-bottom: 18px;
+    padding-bottom: 12px; border-bottom: 1px solid var(--border);
+}
+.form-section-title i { color: var(--accent); font-size: 15px; }
+.form-field-error     { display: block; font-size: 11px; color: var(--danger); margin-top: 5px; }
+.form-btn-row         { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+
+/* Accent label */
+.setting-label-accent { color: var(--accent) !important; }
+
+/* Button spinner */
+.btn-spinner {
+    display: none; width: 15px; height: 15px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff; border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+.btn-pb-primary.loading .btn-spinner { display: inline-block; }
+.btn-pb-primary.loading .btn-text    { display: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============================================================
+   INDEX PAGE
+   ============================================================ */
+.setting-toolbar {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px; gap: 12px; flex-wrap: wrap;
+}
+
+.setting-search-wrap {
+    display: flex; align-items: center; gap: 9px;
+    background: var(--bg-hover); border: 1px solid var(--border);
+    border-radius: 9px; padding: 0 14px; height: 40px; width: 300px;
+    transition: border-color var(--transition), width var(--transition);
+}
+.setting-search-wrap:focus-within { border-color: var(--accent); width: 360px; }
+.setting-search-wrap i { color: var(--text-muted); font-size: 14px; }
+
+.setting-search {
+    background: none; border: none; outline: none;
+    color: var(--text-primary); font-size: 13px;
+    font-family: var(--font-body); width: 100%;
+}
+.setting-search::placeholder { color: var(--text-muted); }
+
+.setting-count       { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+.setting-count span  { font-weight: 600; color: var(--accent); }
+
+.setting-table-wrap  { overflow-x: auto; }
+.setting-sr          { color: var(--text-muted); font-size: 12px; }
+.setting-code        { font-weight: 600; color: var(--text-primary); }
+
+.setting-actions {
+    display: flex; align-items: center;
+    justify-content: flex-end; gap: 6px;
+}
+
+/*.setting-btn-edit,
+.setting-btn-delete {
+    width: 30px; height: 30px; border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; cursor: pointer;
+    transition: all var(--transition);
+    border: 1px solid var(--border);
+    background: var(--bg-hover); text-decoration: none;
+}
+.setting-btn-edit  { color: var(--accent-2); }
+.setting-btn-edit:hover {
+    background: rgba(61,142,255,0.1);
+    border-color: rgba(61,142,255,0.3); color: var(--accent-2);
+}
+.setting-btn-delete { color: var(--danger); border: none; }
+.setting-btn-delete:hover {
+    background: rgba(240,72,72,0.1);
+    border-color: rgba(240,72,72,0.3);
+}*/
+
+.setting-empty {
+    text-align: center; padding: 48px 0;
+    color: var(--text-muted); font-size: 14px;
+}
+.setting-empty i     { font-size: 36px; display: block; margin-bottom: 12px; opacity: 0.4; }
+.setting-empty-sub   { font-size: 12px; margin-top: 6px; color: var(--text-muted); }
+.setting-row.hidden  { display: none; }
+
+
+
+/* In setting.css — replace your existing setting-btn-edit */
+
+.setting-btn-edit,
+.setting-btn-delete {
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all var(--transition);
+    border: none; /* ← remove border so both match */
+}
+
+/* Edit — blue filled (not just outline) */
+.setting-btn-edit {
+    background: rgba(61,142,255,0.15);
+    border: 1px solid rgba(61,142,255,0.3);
+    color: var(--accent-2);
+    text-decoration: none;
+}
+
+    .setting-btn-edit:hover {
+        background: var(--accent-2);
+        border-color: var(--accent-2);
+        color: #fff;
+    }
+
+/* Delete — red filled */
+.setting-btn-delete {
+    background: rgba(240,72,72,0.15);
+    border: 1px solid rgba(240,72,72,0.3);
+    color: var(--danger);
+}
+
+    .setting-btn-delete:hover {
+        background: var(--danger);
+        border-color: var(--danger);
+        color: #fff;
+    }
+/* ============================================================
+   CREATE PAGE — AUTOCOMPLETE
+   ============================================================ */
+.setting-autocomplete-wrap { position: relative; }
+
+.setting-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    z-index: 100;
+    display: none;
+    max-height: 180px;
+    overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+.setting-dropdown-item {
+    padding: 9px 14px; font-size: 13px; color: var(--text-primary);
+    cursor: pointer; transition: background var(--transition);
+    border-bottom: 1px solid var(--border);
+}
+.setting-dropdown-item:last-child { border-bottom: none; }
+.setting-dropdown-item:hover      { background: var(--bg-hover); color: var(--accent); }
+
+/* ============================================================
+   CREATE PAGE — BEND DIAGRAM
+   ============================================================ */
+.setting-diagram-card {
+    background: var(--bg-hover); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 10px;
+    min-height: 220px; justify-content: center;
+    transition: border-color var(--transition);
+}
+.setting-diagram-card:hover { border-color: var(--border-accent); }
+
+.setting-diagram-label {
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    color: var(--accent); background: var(--accent-glow);
+    border: 1px solid var(--border-accent);
+    border-radius: 20px; padding: 3px 12px;
+    display: flex; align-items: center; gap: 5px;
+}
+
+.setting-diagram-img {
+    max-width: 100%; max-height: 180px;
+    object-fit: contain; border-radius: 6px;
+}
+
+/* Toggle button for diagram */
+.setting-img-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--bg-hover); border: 1px solid var(--border);
+    border-radius: 8px; padding: 5px 12px;
+    font-size: 11px; font-weight: 500;
+    color: var(--text-secondary); cursor: pointer;
+    transition: all var(--transition); font-family: var(--font-body);
+}
+.setting-img-btn.active,
+.setting-img-btn:hover {
+    background: var(--accent-glow);
+    border-color: var(--border-accent);
+    color: var(--accent);
+}
+
+/* ============================================================
+   CREATE PAGE — ADD ROW
+   ============================================================ */
+.setting-add-row {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+
+.setting-add-hint {
+    font-size: 12px; color: var(--text-muted);
+    display: flex; align-items: center; gap: 5px;
+}
+.setting-add-hint i { color: var(--accent-2); font-size: 13px; }
+
+/* ============================================================
+   CREATE PAGE — IN-MEMORY TABLE ACTION BUTTONS
+   ============================================================ */
+.setting-tbl-edit {
+    font-size: 11px; font-weight: 500; padding: 4px 10px;
+    border-radius: 6px; cursor: pointer;
+    background: rgba(61,142,255,0.1); border: 1px solid rgba(61,142,255,0.25);
+    color: var(--accent-2); transition: all var(--transition);
+}
+.setting-tbl-edit:hover { background: var(--accent-2); color: #fff; }
+
+.setting-tbl-remove {
+    font-size: 11px; font-weight: 500; padding: 4px 10px;
+    border-radius: 6px; cursor: pointer;
+    background: rgba(240,72,72,0.1); border: 1px solid rgba(240,72,72,0.25);
+    color: var(--danger); transition: all var(--transition);
+}
+.setting-tbl-remove:hover { background: var(--danger); color: #fff; }
+
+/* Row remove animation */
+.setting-removing {
+    opacity: 0; transform: translateX(12px);
+    transition: all 0.2s ease;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .setting-search-wrap { width: 100%; }
+    .setting-toolbar     { flex-direction: column; align-items: flex-start; }
+    #bendDiagramCol      { display: none; }
+}
+input.pb-input-error,
+select.pb-input-error {
+    border-color: var(--danger) !important;
+    box-shadow: 0 0 0 3px rgba(240, 72, 72, 0.15) !important;
+}
+.pb-field-msg {
+    margin-top: 4px;
+    font-size: 0.78rem;
+    color: var(--danger);
+    line-height: 1.3;
+}

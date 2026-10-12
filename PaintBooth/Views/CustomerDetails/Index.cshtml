@@ -1,0 +1,187 @@
+@model List<PaintBooth.Models.CustomerListViewModel>
+@{
+    ViewData["Title"] = "Customer Details";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/customer.css" asp-append-version="true" />
+}
+
+<!-- ── PAGE HEADER ──────────────────────────────────────────── -->
+<div class="page-header">
+    <div>
+        <div class="page-header-title">Customer Details</div>
+        <div class="page-header-sub">
+            Manage all company customers —
+            <strong>@Model.Count</strong> record(s) found
+        </div>
+    </div>
+    <a asp-controller="CustomerDetails" asp-action="Create"
+       class="btn-pb-primary">
+        <i class="bi bi-plus-lg"></i> Add Customer
+    </a>
+</div>
+
+<!-- ── ALERTS ───────────────────────────────────────────────── -->
+@if (TempData["Success"] != null)
+{
+    <div class="pb-alert pb-alert-success mb-3" data-auto-dismiss>
+        <i class="bi bi-check-circle-fill"></i>
+        @TempData["Success"]
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="pb-alert pb-alert-danger mb-3" data-auto-dismiss>
+        <i class="bi bi-exclamation-circle-fill"></i>
+        @TempData["Error"]
+    </div>
+}
+
+<!-- ── TABLE CARD ────────────────────────────────────────────── -->
+<div class="pb-card">
+
+    <!-- Search bar -->
+    <div class="cust-toolbar">
+        <div class="cust-search-wrap">
+            <i class="bi bi-search"></i>
+            <input type="text"
+                   id="customerSearch"
+                   class="cust-search"
+                   placeholder="Search by company, city, state..." />
+        </div>
+        <div class="cust-count">
+            <span id="visibleCount">@Model.Count</span> customers
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="cust-table-wrap">
+        <table class="pb-table" id="customerTable">
+            <thead>
+                <tr>
+                    <th style="width:50px;">Sr.</th>
+                    <th>Company Name</th>
+                    <th>Address</th>
+                    <th>State / City</th>
+                    <th style="width:70px;">PIN</th>
+                    <th style="width:110px;">Contacts</th>
+                    <th style="width:90px;">Status</th>
+                    <th style="width:90px; text-align:right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="8">
+                            <div class="cust-empty">
+                                <i class="bi bi-people"></i>
+                                No customers found
+                                <div class="cust-empty-sub">
+                                    Click "Add Customer" to get started
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    int sr = 1;
+                    @foreach (var c in Model)
+                    {
+                        <tr class="cust-row">
+
+                            <td class="cust-sr">@sr</td>
+
+                            <td class="cust-company">@c.CompanyName</td>
+
+                            <td class="cust-address">@c.CustomerAddress</td>
+
+                            <td class="cust-location">
+                                @c.CityName
+                                @if (!string.IsNullOrEmpty(c.StateName))
+                                {
+                                    <span>, @c.StateName</span>
+                                }
+                            </td>
+
+                            <td style="font-size:12px; color:var(--text-secondary);">
+                                @c.Pin
+                            </td>
+
+                            <!-- ContactCount — replaces old ContactPerson + Mobile -->
+                            <td>
+                                @if (c.ContactCount > 0)
+                                {
+                                    <span class="cust-contact-count">
+                                        <i class="bi bi-person-fill"></i>
+                                        @c.ContactCount contact@(c.ContactCount > 1 ? "s" : "")
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span style="font-size:12px; color:var(--text-muted);">
+                                        None
+                                    </span>
+                                }
+                            </td>
+
+                            <td>
+                                @if (c.IsActive)
+                                {
+                                    <span class="badge-status badge-active">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-status badge-cancelled">Inactive</span>
+                                }
+                            </td>
+
+                            <td>
+                                <div class="cust-actions">
+
+                                    <!-- Edit -->
+                                    <a asp-controller="CustomerDetails"
+                                       asp-action="Edit"
+                                       asp-route-id="@c.CustomerID"
+                                       class="cust-btn-edit"
+                                       title="Edit @c.CompanyName">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+
+                                    <!-- Delete -->
+                                   @*  <form asp-controller="CustomerDetails"
+                                          asp-action="Delete"
+                                          method="post"
+                                          style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@c.CustomerID" />
+                                        <button type="button"
+                                                class="cust-btn-delete"
+                                                title="Delete @c.CompanyName"
+                                                data-confirm="Delete @c.CompanyName? This action cannot be undone."
+                                                data-url="/CustomerDetails/Delete/@c.CustomerID">
+                                            <i class="bi bi-trash3"></i>
+                                        </button>
+                                    </form> *@
+
+                                </div>
+                            </td>
+
+                        </tr>
+                        sr++;
+                    }
+                }
+
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+@section Scripts {
+    <script src="~/js/customer.js" asp-append-version="true"></script>
+}

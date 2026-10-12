@@ -1,0 +1,216 @@
+@model PaintBooth.Models.CustomerFormViewModel
+@{
+    ViewData["Title"] = "Edit Customer";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/customer.css" asp-append-version="true" />
+}
+
+<!-- ── PAGE HEADER ──────────────────────────────────────────── -->
+<div class="page-header">
+    <div>
+        <div class="page-header-title">Edit Customer</div>
+        <div class="page-header-sub">
+            Updating — <strong>@Model.CompanyName</strong>
+        </div>
+    </div>
+    <a asp-controller="CustomerDetails" asp-action="Index" class="btn-pb-secondary">
+        <i class="bi bi-arrow-left"></i> Back to List
+    </a>
+</div>
+
+<form asp-action="Edit" asp-controller="CustomerDetails"
+      method="post" id="customerForm" novalidate>
+
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="CustomerID" />
+
+    <!-- ── SECTION 1: Company Info ──────────────────────────── -->
+    <div class="pb-card mb-3">
+        <div class="form-section-title">
+            <i class="bi bi-building"></i>
+            Company Information
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="pb-form-group">
+                    <label class="pb-label">Company Name <span class="req-star">*</span></label>
+                    <input asp-for="CompanyName" class="pb-input"
+                           placeholder="Enter company name" autocomplete="off" />
+                    <span asp-validation-for="CompanyName" class="form-field-error"></span>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="pb-form-group">
+                    <label class="pb-label">Company Address <span class="req-star">*</span></label>
+                    <input asp-for="CustomerAddress" class="pb-input"
+                           placeholder="Enter full address" />
+                    <span asp-validation-for="CustomerAddress" class="form-field-error"></span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">State <span class="req-star">*</span></label>
+                    <select asp-for="StateId" asp-items="Model.StateList"
+                            class="pb-select" id="stateSelect">
+                        <option value="">-- Select State --</option>
+                    </select>
+                    <span asp-validation-for="StateId" class="form-field-error"></span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">City <span class="req-star">*</span></label>
+                    @* <select asp-for="CityId" asp-items="Model.CityList"
+                            class="pb-select" id="citySelect">
+                        <option value="">-- Select City --</option>
+                    </select> *@
+                    <select asp-for="CityId" asp-items="Model.CityList" class="pb-select" id="citySelect"
+                            data-selected="@Model.CityId">
+                        <option value="">-- Select City --</option>
+                    </select>
+                    <span asp-validation-for="CityId" class="form-field-error"></span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">PIN Code <span class="req-star">*</span></label>
+                    <input asp-for="Pin" class="pb-input" type="number"
+                           placeholder="6-digit PIN" />
+                    <span asp-validation-for="Pin" class="form-field-error"></span>
+                </div>
+            </div>
+            @* <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Designation <span class="req-star">*</span></label>
+                    <input asp-for="Designation" class="pb-input"
+                           placeholder="e.g. Manager" />
+                    <span asp-validation-for="Designation" class="form-field-error"></span>
+                </div>
+            </div> *@
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Designation <span class="req-star">*</span></label>
+                    <input asp-for="Designation" class="pb-input"
+                           placeholder="e.g. Manager" />
+                    <span asp-validation-for="Designation" class="form-field-error"></span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Email<span class="req-star">*</span></label>
+                    <input asp-for="Email" class="pb-input" />
+                    <span asp-validation-for="Email" class="form-field-error"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── SECTION 2: Contact Persons ───────────────────────── -->
+    <div class="pb-card mb-3">
+        <div class="form-section-title">
+            <i class="bi bi-person-badge"></i>
+            Contact Persons
+            <span class="contact-count-badge" id="contactCountBadge">
+                @Model.ContactPersons.Count
+            </span>
+            <button type="button" class="btn-add-contact" id="btnAddContact">
+                <i class="bi bi-plus-lg"></i> Add Contact
+            </button>
+        </div>
+
+        <div class="contact-table-head">
+            <div class="ct-col ct-name">Contact Person</div>
+            <div class="ct-col ct-desig">Designation</div>
+            <div class="ct-col ct-mobile">Mobile</div>
+            <div class="ct-col ct-email">Email ID</div>
+            <div class="ct-col ct-pan">PAN</div>
+            <div class="ct-col ct-action"></div>
+        </div>
+
+        <div id="contactsContainer">
+            @for (int i = 0; i < Model.ContactPersons.Count; i++)
+            {
+                <div class="contact-row" data-index="@i">
+                    <input type="hidden"
+                           name="ContactPersons[@i].ContactId"
+                           value="@Model.ContactPersons[i].ContactId" />
+                    <div class="ct-col ct-name">
+                        <input type="text"
+                               name="ContactPersons[@i].ContactPerson"
+                               class="pb-input ct-input"
+                               placeholder="Full name"
+                               value="@Model.ContactPersons[i].ContactPerson" />
+                    </div>
+                    <div class="ct-col ct-desig">
+                        <input type="text"
+                               name="ContactPersons[@i].Designation"
+                               class="pb-input ct-input"
+                               placeholder="Designation"
+                               value="@Model.ContactPersons[i].Designation" />
+                    </div>
+                    <div class="ct-col ct-mobile">
+                        <input type="text"
+                               name="ContactPersons[@i].Mobile"
+                               class="pb-input ct-input ct-mobile-input"
+                               placeholder="10-digit number"
+                               maxlength="10"
+                               value="@Model.ContactPersons[i].Mobile" />
+                    </div>
+                    <div class="ct-col ct-email">
+                        <input type="email"
+                               name="ContactPersons[@i].EmailId"
+                               class="pb-input ct-input"
+                               placeholder="email@company.com"
+                               value="@Model.ContactPersons[i].EmailId" />
+                    </div>
+                    <div class="ct-col ct-pan">
+                        <input type="text"
+                               name="ContactPersons[@i].PAN"
+                               class="pb-input ct-input ct-pan-input"
+                               placeholder="ABCDE1234F"
+                               maxlength="10"
+                               value="@Model.ContactPersons[i].PAN" />
+                    </div>
+                    <div class="ct-col ct-action">
+                        @if (i == 0)
+                        {
+                            <div style="width:32px;"></div>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn-remove-contact"
+                                    title="Remove this contact">
+                                <i class="bi bi-trash3"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- ── BUTTONS ───────────────────────────────────────────── -->
+    <div class="form-btn-row">
+        <button type="submit" class="btn-pb-primary" id="submitBtn">
+            <div class="btn-spinner"></div>
+            <span class="btn-text">
+                <i class="bi bi-check-lg"></i> Update Customer
+            </span>
+        </button>
+        <a asp-controller="CustomerDetails" asp-action="Index"
+           class="btn-pb-secondary">
+            <i class="bi bi-x-lg"></i> Cancel
+        </a>
+    </div>
+
+</form>
+
+@section Scripts {
+    <script src="~/js/customer.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,1645 @@
+﻿@model PaintBooth.Models.ProposalPriceBIDViewModel
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+@{
+    ViewData["Title"] = "Proposal";
+    ViewBag.ActivePage = "Proposal";
+    bool hasData = Model?.ProposalDetails != null;
+
+    string FormatPct(decimal? v)
+    {
+        if (v == null) return "0";
+        return v.Value == Math.Floor(v.Value)
+            ? ((int)v.Value).ToString()
+            : v.Value.ToString("G29");
+    }
+
+
+    // Value as entered, or "Not Specified" if empty
+    string NS(object value)
+    {
+        var s = value?.ToString();
+        return string.IsNullOrWhiteSpace(s) ? "Not Specified" : s.Trim();
+    }
+
+    // L × W × H — "Not Specified" only if all three are empty
+    string NSDim(object l, object w, object h)
+    {
+        if (string.IsNullOrWhiteSpace(l?.ToString()) &&
+            string.IsNullOrWhiteSpace(w?.ToString()) &&
+            string.IsNullOrWhiteSpace(h?.ToString()))
+            return "Not Specified";
+
+        return $"{NS(l)} mm (L) × {NS(w)} mm (W) × {NS(h)} mm (H)";
+    }
+
+
+    double tubeLightKwEach = 0.06;
+    double blowerKwEach = Math.Round((double)(Model.MaterialList?.MotorCapacity ?? 0m) * 0.746, 2);
+    double blowerTotalKw = Math.Round(blowerKwEach * (double)(Model.ProposalDetails?.NoOfBlowers ?? 0), 2);
+    double tubeLightTotalKw = Math.Round((double)(Model.MaterialList?.TubelightQuantity ?? 0) * tubeLightKwEach, 2);
+    double totalElectricalKw = Math.Round(blowerTotalKw + tubeLightTotalKw, 2);
+    var isFrontOpen = Model.ProposalDetails?.SubTypeOfDraftType == "Front Open";
+
+    // Serial number counter for Technical Specification table
+    int sr = 0;
+
+    // Door line (computed here to keep Razor markup simple)
+    var doorKind = (Model.ProposalDetails?.DoorSubType ?? "").Trim();
+    string doorLine = string.IsNullOrEmpty(doorKind)
+        ? "No Door Selected / Not Required"
+        : doorKind == "Hinged" ? "Hinge Door will be provided"
+        : doorKind == "Sliding" ? "Sliding Door will be provided"
+        : doorKind + " Door will be provided";
+    bool showDoorSize = !string.IsNullOrEmpty(doorKind)
+                        && (Model.ProposalDetails?.DoorWidth ?? 0) > 0
+                        && (Model.ProposalDetails?.DoorHeight ?? 0) > 0;
+
+    // Image/Photo/Drawing (Basis of Design row 3)
+    var imgPath = (Model.ProposalDetails?.ImagePath ?? "").Trim();
+    bool hasImg = !string.IsNullOrEmpty(imgPath);
+    var imgExt = hasImg ? System.IO.Path.GetExtension(imgPath).ToLowerInvariant() : "";
+    bool isPicture = imgExt == ".png" || imgExt == ".jpg" || imgExt == ".jpeg"
+                  || imgExt == ".gif" || imgExt == ".webp" || imgExt == ".bmp";
+}
+
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/proposal.css" asp-append-version="true" />
+}
+
+<!-- ── PAGE HEADER ──────────────────────────────────────────── -->
+<div class="page-header">
+    <div>
+        <div class="page-header-title">Proposal</div>
+        <div class="page-header-sub">Generate and download proposal document</div>
+    </div>
+    <a asp-controller="Costing" asp-action="ProposalIndex" class="btn-pb-secondary">
+        <i class="bi bi-arrow-left"></i> Back to List
+    </a>
+</div>
+
+<!-- ── ALERTS ───────────────────────────────────────────────── -->
+@if (TempData["Error"] != null)
+{
+    <div class="pb-alert pb-alert-danger mb-3" data-auto-dismiss>
+        <i class="bi bi-exclamation-circle-fill"></i> @TempData["Error"]
+    </div>
+}
+
+<!-- ══════════════════════════════════════════════════════
+     SECTION 1 — SEARCH
+══════════════════════════════════════════════════════ -->
+<div class="pb-card mb-3">
+    <div class="form-section-title">
+        <i class="bi bi-search"></i> Enquiry Selection
+    </div>
+    <form method="post"
+          asp-controller="Costing"
+          asp-action="ShowProposalForm"
+          id="searchForm">
+        @Html.AntiForgeryToken()
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <div class="pb-form-group mb-0">
+                    <label class="pb-label">Enquiry / Sales No.</label>
+                    <div class="prop-autocomplete-wrap">
+                        <input type="text" class="pb-input" id="txtSalesNO"
+                               name="SalesNO"
+                               placeholder="Type enquiry code..."
+                               autocomplete="off"
+                               value="@Model?.ProposalDetails?.SalesNO" />
+                        <div id="propDropdown" class="prop-dropdown"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" id="btnSearch" class="btn-pb-primary">
+                    <i class="bi bi-search"></i> Load Proposal
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+@if (hasData)
+{
+    <!-- ── DOWNLOAD BAR ────────────────────────────────── -->
+    <div class="prop-download-bar">
+        <button type="button" id="btnDownloadPDF" class="btn-pb-primary">
+            <i class="bi bi-file-pdf"></i> Download PDF
+        </button>
+        @*  <button type="button" id="btnDownloadWord" class="btn-pb-secondary">
+            <i class="bi bi-file-word"></i> Download Word
+        </button> *@
+    </div>
+
+    <!-- ══════════════════════════════════════════════════
+         PROPOSAL DOCUMENT
+    ══════════════════════════════════════════════════ -->
+    <div class="prop-doc" id="proposalContent">
+
+        <!-- ── COMPANY HEADER ────────────────────────── -->
+        <div class="prop-company-header">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <img src="~/img/logo.png" alt="Bullows"
+                     style="max-height:50px; object-fit:contain;" />
+                <div style="flex:1;">
+                    <div class="prop-company-name">
+                        Bullows Paint Equipment Private Limited
+                    </div>
+                    <div class="prop-company-address"
+                         style="display:flex; justify-content:space-between; gap:24px;">
+
+                        <!-- LEFT column -->
+                        <div style="font-weight:bold;">
+                            Office: Unit No. 404, Lodha Supremus 2, Plot no. F4 &amp; F4/1 MIDC,
+                            Wagle Industrial Area, Thane 400 604<br />
+                            Email: bullowsho@bullows.com | sales@bullows.com
+                        </div>
+
+                        <!-- RIGHT column -->
+                        <div style="text-align:right; white-space:nowrap; font-weight:bold;">
+                            Mob No.: +91 84339 30782<br />
+                            CIN: U29221MH1963PTC012756<br />
+                            <a href="http://www.bullows.com" style="color:#E73C25;">www.bullows.com</a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="prop-ref-line" style="display: flex; justify-content: space-between;">
+                <span>BP/AVG/@Model.ProposalDetails.SalesNO/R@(Model.PriceBIDDetails?.RevisionNo ?? 0)</span>
+                <span>@DateTime.Now.ToString("dd/MM/yyyy")</span>
+            </div>
+        </div>
+        <!-- ── CLIENT INFO ───────────────────────────── -->
+
+        <div class="prop-section prop-section-first">
+            <!-- ── CLIENT INFO ───────────────────────────── -->
+            <div class="prop-page1">
+
+                <div class="prop-flow">
+                    <table class="prop-table prop-client-table">
+                        <tr><th style="width:170px;">Client Name</th><td>M/S. @Model.ProposalDetails.CompanyName</td></tr>
+                        <tr><th>Address</th><td>@Model.ProposalDetails.CompAddress</td></tr>
+                        <tr><th>Kind Attention</th><td>@Model.ProposalDetails.ContactPerson &nbsp;|&nbsp; @Model.ProposalDetails.Designation &nbsp;|&nbsp; Mob: @Model.ProposalDetails.MobileNo</td></tr>
+                        <tr><th>Email Id</th><td>@Model.ProposalDetails.CompEmail</td></tr>
+                        <tr><th>Subject</th><td>Requirement of @Model.ProposalDetails.DraftType &nbsp;@Model.ProposalDetails.Category</td></tr>
+                    </table>
+                </div>
+
+                <!-- ── INTRODUCTION ──────────────────────────── -->
+                <div class="prop-flow">
+                    <p style="font-size:13px; color:var(--text-secondary);">
+                        Dear Sir,<br />
+                        We thankfully acknowledge receipt of your inquiry regarding your requirement
+                        for the mentioned subject. We are pleased to submit herewith our proposal for your subject requirement.
+                    </p>
+                    <p style="font-size:12px; font-weight:600; color:var(--text-primary);">
+                        The contents of the proposal are as below:
+                    </p>
+                    <ol class="prop-checklist">
+                        @{
+                            var items = new[] {
+                                        "Basis of Design", "Scope of Supply",
+                                        "Technical Specifications for all equipment",
+                                        "Utility Requirements for the Plant",
+                                        "Make of Components", "Exclusion List",
+                                        "Price Bid", "Terms & Conditions"
+                                        };
+                            int idx = 0;
+                            foreach (var it in items)
+                            {
+                                idx++;
+                                <li>
+                                    <span>@idx. @it</span>
+                                    <input type="checkbox" checked />
+                                </li>
+                            }
+                        }
+                    </ol>
+
+                    <p style="font-size:12px; color:var(--text-secondary);">
+                        We sincerely trust our proposal will be in line with your requirement and we now look forward to receiving your earliest favorable reply, however, should you need further clarification please feel free to contact us.
+                    </p>
+                    <div class="prop-signature">
+                        <p style="font-size:13px;">
+                            Thanking you and assuring our best services always. <br />Yours faithfully,
+                        </p>
+                        <div class="prop-signature-name">
+                            For Bullows Paint Equipment Private Limited
+                        </div>
+
+                        <div>
+                            <span style="font-size:12px; color:var(--text-muted);">
+                                @Model.salesEngineer?.EngineerName<br />
+                                @Model.salesEngineer?.Designation<br />
+                                Mob No: - @Model.salesEngineer?.MobileNo
+                            </span>
+                        </div>
+                        <div class="prop-cc-block" style="text-align:left; margin-top:12px;">
+                            CC:<br />
+                            Mr. Abhay V. Gurav – Deputy General Manager - Sales & Operation<br />
+                            Mr. Prashant R Waghulade — Chief Business Officer
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        @*   <!-- page 1 ends here; Basis of Design starts on page 2 -->
+        <div class="prop-page-break"></div> *@
+
+        <!-- ── BASIS OF DESIGN ───────────────────────── -->
+        <div class="prop-section">
+            <table class="prop-table">
+                <thead>
+                    <tr>
+                        <th colspan="4" style="text-align:center; font-size:13px; font-weight:700; color:var(--text-primary); text-transform:none; letter-spacing:0;">
+                            BASIS OF DESIGN
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="width:40px; color:var(--text-muted);">1.</td>
+                        <td>Components</td>
+                        <td colspan="2">@NS(Model.ProposalDetails.Component)</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted);">2.</td>
+                        <td>M.O.C. of components</td>
+                        <td colspan="2">@NS(Model.ProposalDetails.MaterialOfConstruction)</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted);">3.</td>
+                        <td>Image/Photo/Drawing</td>
+                        <td colspan="2">
+                            @if (isPicture)
+                            {
+                                <img src="@imgPath" alt="Component image"
+                                     style="max-height:120px; max-width:100%; object-fit:contain;" />
+                            }
+                            else if (hasImg)
+                            {
+                                <span>Provided (attached separately)</span>
+                            }
+                            else
+                            {
+                                <span>Not Specified</span>
+                            }
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted);">4.</td>
+                        <td>No. of shifts per day</td>
+                        <td colspan="2">@NS(Model.ProposalDetails.NumberofShifts)</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted);">5.</td>
+                        <td>Effective working hrs.</td>
+                        <td colspan="2">@NS(Model.ProposalDetails.EffectiveWorking)</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted);">6.</td>
+                        <td>Required Space in Mtr/ Shed drawing</td>
+                        <td colspan="2">Not Specified</td>   @* replace with @NS(...) if enquiry captures it *@
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted);">7.</td>
+                        <td>Component Dimension in mm</td>
+                        <td colspan="2">
+                            @NSDim(Model.ProposalDetails.Length,
+                            Model.ProposalDetails.WidthSize,
+                                                Model.ProposalDetails.HeightSize)
+                    </td>
+                </tr>
+                <tr>
+                    <td style="color:var(--text-muted);">8.</td>
+                    <td>Production</td>
+                    <td colspan="2">@NS(Model.ProposalDetails.ProductionRequirement)</td>
+                </tr>
+                <tr>
+                    <td style="color:var(--text-muted);">9.</td>
+                    <td>Paint Consumption per day</td>
+                    <td colspan="2">@NS(Model.ProposalDetails.Paint)</td>
+                </tr>
+                <tr>
+                    <td style="color:var(--text-muted);">10.</td>
+                    <td>Material Handling</td>
+                    <td colspan="2">@NS(Model.ProposalDetails.ComponentHandling)</td>
+                </tr>
+                <tr>
+                    <td style="color:var(--text-muted);">11.</td>
+                    <td>Component Paint Drying</td>
+                    <td colspan="2">Not Specified</td>   @* replace with @NS(...) if enquiry captures it *@
+                </tr>
+                <tr>
+                    <td style="color:var(--text-muted);">12.</td>
+                    <td>Temperature</td>
+                    <td colspan="2">Ambient 10 – 35 Deg C (Natural drying)</td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="4" style="font-size:12px; color:var(--text-muted); padding-top:10px; border-top:1px solid var(--border);">
+                        <strong>Note: The Basis of Design is as per Customers submitted RFQ.</strong>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+        <!-- ── SCOPE OF SUPPLY ───────────────────────── -->
+        <div class="prop-section prop-no-break">
+            <table class="prop-table">
+                <thead>
+                    <tr>
+                        <th colspan="4" style="text-align:center; font-size:13px; font-weight:700; color:var(--text-primary); text-transform:none; letter-spacing:0;">
+                            SCOPE OF SUPPLY
+                        </th>
+                    </tr>
+                    <tr>
+                        <th style="width:60px; text-align:center;">Sr No.</th>
+                        <th>Description</th>
+                        <th style="width:60px; text-align:center;"></th>
+                        <th style="width:80px; text-align:center;">Qty</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>@Model.ProposalDetails.SubTypeOfDraftType @Model.ProposalDetails.DraftType @Model.ProposalDetails.Category</td>
+                        <td style="text-align:center;"><input type="checkbox" checked /></td>
+                        <td>1 Set</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>Exhaust Ducting with Angle Supports</td>
+                        <td style="text-align:center;"><input type="checkbox" checked /></td>
+                        <td>1 Set</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>Electrical Control Panel and Cable Trays for Paint Booth</td>
+                        <td style="text-align:center;"><input type="checkbox" checked /></td>
+                        <td>1 Set</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <!-- ── TECHNICAL SPECIFICATION ───────────────── -->
+        <div class="prop-section prop-break">
+            <table class="prop-table">
+                <thead>
+                    <tr>
+                        <th colspan="3" style="text-align:center; font-size:13px; font-weight:700; color:var(--text-primary); text-transform:none; letter-spacing:0;">
+                            TECHNICAL SPECIFICATION FOR PAINT BOOTH
+                        </th>
+                    </tr>
+                    <tr>
+                        <th style="width:60px; text-align:center;">Sr. No.</th>
+                        <th style="width:35%;">Description</th>
+                        <th>Specification</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="text-align:center;">@(++sr)</td>
+                        <td>Type</td>
+                        <td>@Model.ProposalDetails.DraftType @Model.ProposalDetails.Category</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;">@(++sr)</td>
+                        <td>Overall Size of Booth in mm</td>
+                        <td>As per Shown in Layout</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;">@(++sr)</td>
+                        <td>Working Size of Booth in mm</td>
+                        <td>
+                            @Model.ProposalDetails.W mm (W) x
+                            @Model.ProposalDetails.D mm (D) x
+                            @Model.ProposalDetails.H mm (H)
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;">@(++sr)</td>
+                        <td>Exhaust Chamber Size in mm</td>
+                        <td>
+                            @Model.MaterialList?.W mm (W) x
+                            @Model.MaterialList?.D3 mm (D) x
+                            @Model.ProposalDetails.ExtractionChamberHeight mm (H)
+                        </td>
+                    </tr>
+                    @if (!isFrontOpen)
+                    {
+                        <tr>
+                            <td style="text-align:center;">@(++sr)</td>
+                            <td>Air Entry in Paint Booth</td>
+                            <td>Air through Filters on Door</td>
+                        </tr>
+                    }
+                    <tr>
+                        <td style="text-align:center;">@(++sr)</td>
+                        <td>Average Velocity Inside Booth</td>
+                        <td>Between 0.4 To 0.5 M/Sec 1 Mtr from Metal Baffle.</td>
+                    </tr>
+
+                    <tr>
+                        <td colspan="3" style="background:var(--bg-hover); font-weight:700; font-size:12px; letter-spacing:.4px;">
+                            Material of Construction
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;">@(++sr)</td>
+                        <td>Panels (Booth Enclosure)</td>
+                        <td>@Model.MaterialList?.PaintBoothMaterial @Model.MaterialList?.PASheetThickness mm Thk sheets with MS Supporting Structure</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;">@(++sr)</td>
+                        <td>Extraction Chamber</td>
+                        <td>@Model.MaterialList?.ECMaterials @Model.MaterialList?.ECSheetThickness mm Thk sheets with MS Supporting Structure</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;">@(++sr)</td>
+                        <td>Exhaust Ducting</td>
+                        <td>
+                            @if (Model.ExhaustDuctingSummary != null && Model.ExhaustDuctingSummary.HasData)
+                            {
+                                var s = Model.ExhaustDuctingSummary;
+                                <text>
+                                    Common Ducting as per Layout<br />
+                                    Unpainted, GI @s.Thickness.ToString("0.#") mm Thk Exhaust ducting provided.<br />
+                                    Total Duct run length @s.TotalLengthM Mtr.<br />
+                                    @if (s.VerticalDuctCount > 0)
+                                    {
+                                        <text>Vertical Straight Duct - @s.VerticalDuctCount @(s.VerticalDuctCount == 1 ? "no" : "nos").<br /></text>
+                                    }
+                                    @if (s.HorizontalDuctCount > 0)
+                                    {
+                                        <text>Horizontal Straight Duct - @s.HorizontalDuctCount @(s.HorizontalDuctCount == 1 ? "no" : "nos").<br /></text>
+                                    }
+                                    @if (s.TotalBendCount > 0)
+                                    {
+                                        <text>90-degree bend - @s.TotalBendCount @(s.TotalBendCount == 1 ? "no" : "Nos").<br /></text>
+                                    }
+                                    <strong>Note: Additional Ducting required as per site condition needs to be ordered separately with Additional Charges.</strong>
+                                </text>
+                            }
+                            else
+                            {
+                                <text>
+                                    Common Ducting as per Layout<br />
+                                    Unpainted GI Exhaust ducting provided.<br />
+                                    <strong>Note: Additional Ducting required as per site condition needs to be ordered separately with Additional Charges.</strong>
+                                </text>
+                            }
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="text-align:center;">@(++sr)</td>
+                        <td>Exhaust Duct Supports</td>
+                        <td>Will be taken from existing wall/roof structure.</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;">@(++sr)</td>
+                        <td>Primary Metallic Filters / Metal Baffle</td>
+                        <td>
+                            MS Sheet 1.2 mm Thk, by using primary metal baffle filter because life of secondary paint arrestance filter increases.
+                            <br />
+                            <img src="~/img/MettleBaffle.png" alt="Primary Metallic Filter"
+                                 style="max-width:220px; height:auto; margin-top:8px;" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;">@(++sr)</td>
+                        <td>Secondary Filters</td>
+                        <td>
+                            Paint Arrestance filter or Paper Filters supporting with MS mesh &amp; MS Structure.
+                            <br />
+                            <span style="display:inline-flex; gap:12px; align-items:flex-start; margin-top:8px; flex-wrap:wrap;">
+                                <img src="~/img/TechnicalData.png" alt="Secondary Filter Technical Data"
+                                     style="max-width:220px; height:auto;" />
+                                <img src="~/img/PaintArrestedFilter.png" alt="Secondary Filter"
+                                     style="max-width:220px; height:auto;" />
+                            </span>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td colspan="3" style="background:var(--bg-hover); font-weight:700; font-size:12px; letter-spacing:.4px;">
+                            Exhaust Blower Specifications
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;">@(++sr)</td>
+                        <td>Type</td>
+                        <td>Centrifugal Blower - @Model.BlowerDetails.MountingTypes</td>
+                    </tr>
+                    <tr><td></td><td>MOC</td><td>MS with Epoxy painting.</td></tr>
+                    <tr><td></td><td>Exhaust Capacity</td><td>@Model.MaterialList?.EXhaustCapacity m³/hr</td></tr>
+                    <tr><td></td><td>Motor Capacity</td><td>@Model.MaterialList?.MotorCapacity HP @Model.MaterialList?.MotorType Motor IE 3</td></tr>
+                    <tr><td></td><td>Qty</td><td>@Model.ProposalDetails?.NoOfBlowers</td></tr>
+                    <tr><td></td><td>Blower Mounting</td><td>1.6 mm thk MOC- M.S. rectangular to round transformation Piece with Blower supports MOC-MS</td></tr>
+                    <tr>
+                        <td></td>
+                        <td>VFD</td>
+                        <td>
+                            <div class="prop-radio-group">
+                                <label><input type="radio" name="vfd" value="Yes" />Provided.</label>
+                                <label><input type="radio" name="vfd" value="No" checked /> Not Provided.</label>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>Manual Volume control damper</td>
+                        <td>
+                            <div class="prop-radio-group">
+                                <label><input type="radio" name="vcd" value="Yes" /> Yes</label>
+                                <label><input type="radio" name="vcd" value="No" checked /> No</label>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>Painting Inside & Outside</td>
+                        <td>
+                            M. S. surface: one coat of Primer + two coats of Synthetic enamel paint.
+                            Paint shade as per BPEPL Standard – Customer to reconfirm
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="3" style="background:var(--bg-hover); font-weight:700; font-size:12px; letter-spacing:.4px;">
+                            Lighting
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;">@(++sr)</td>
+                        <td>Lighting</td>
+                        <td>@Model.MaterialList?.LightSubType @Model.MaterialList?.LightType</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>Illumination Level</td>
+                        <td>@Model.MaterialList?.LuxLevel.ToString("N0") Lux for Booth from 1 meter of tube-light fixture.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>Quantity</td>
+                        <td>@Model.MaterialList?.LightSubType fixture with @Model.MaterialList?.LightType Lamp; Illumination Level inside Booth will be @Model.MaterialList?.LuxLevel.ToString("N0") Lux, @Model.MaterialList?.TubelightQuantity Nos.</td>
+                    </tr>
+                    @if (!isFrontOpen)
+                    {
+                        <tr>
+                            <td style="text-align:center;">@(++sr)</td>
+                            <td>Suction Filters</td>
+                            <td>Suction filter will be provided 20-25 micron</td>
+                        </tr>
+                    }
+                    <tr>
+                        <td style="text-align:center;">@(++sr)</td>
+                        <td>Rotating Table</td>
+                        <td>
+                            <div class="prop-radio-group">
+                                <label><input type="radio" name="RotatingTable" value="Yes" /> Yes</label>
+                                <label><input type="radio" name="RotatingTable" value="No" checked /> No</label>
+                            </div>
+                            <div class="rotating-table-desc" style="display:none; margin-top:6px;">
+                                Manual Rotating Type Turntable Will be Provided.<br />
+                                Size: 1800 mm Dia X 600 H mm<br />
+                                Heavy-duty MS fabricated structure<br />
+                                Qty: 1 No.
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;">@(++sr)</td>
+                        <td>Door</td>
+                        <td>
+                            @doorLine
+                            @if (showDoorSize)
+                            {
+                                <br />
+                                <text>Size: @Model.ProposalDetails.DoorWidth.ToString("0") mm W X @Model.ProposalDetails.DoorHeight.ToString("0") mm H</text>
+                            }
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;">@(++sr)</td>
+                        <td>Operator Access Door</td>
+                        <td>Not Provided</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;">@(++sr)</td>
+                        <td>Filter clogging check</td>
+                        <td>
+                            Differential Pressure Gauge to monitor the clogging status will be
+                            provided across the filters, Qty: @Model.ProposalDetails?.NoOfBlowers Nos.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;">@(++sr)</td>
+                        <td>Sampling Port</td>
+                        <td>@Model.samplingPlatformAndLadder</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;">@(++sr)</td>
+                        <td>Sampling platform & ladder</td>
+                        <td>@Model.samplingPlatformAndLadder</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;">@(++sr)</td>
+                        <td>VOC monitoring unit </td>
+                        <td>Not Provided (in customer scope)</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;">@(++sr)</td>
+                        <td>scaffolding</td>
+                        <td>
+                            <label><input type="radio" name="scaffolding" value="Provided" /> Provided</label>
+                            <label><input type="radio" name="scaffolding" value="Not Provided" checked />Not Provided</label>
+                        </td>
+                    </tr>
+                  
+
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3" style="font-size:12px; color:var(--text-muted); padding-top:10px; border-top:1px solid var(--border);">
+                            <strong>Note:</strong><br />
+                            Our blowers can be supplied Normally without acoustic enclosure, noise generated when blowers are in running condition will be
+                            &#64; 85 +/- 2 DBA when measured from 3 Mtr distance from noise generating source (Blower).<br />
+                            Our blowers can be supplied without acoustic enclosure (Not quoted, can be quoted separately) so as to keep the noise level
+                            &#64; 80 dB +/- 2 DBA from 3 Mtr distance of noise generating source (Blower).<br />
+                            Water Hydrant line upto booth customer scope.
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <!-- ── TECHNICAL SPECIFICATION OF CONTROL PANEL ───────────────────────── -->
+        <div class="prop-section prop-cp">
+            <table class="prop-table">
+                <thead>
+                    <tr>
+                        <th colspan="3" style="text-align:center; font-size:13px; font-weight:700; color:var(--text-primary); text-transform:none; letter-spacing:0;">
+                            TECHNICAL SPECIFICATION OF CONTROL PANEL
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    @* 1.1 Operational Philosophy *@
+                    <tr>
+                        <td style="width:60px; color:var(--text-muted); font-weight:600;">1.1</td>
+                        <td colspan="2">
+                            This Operational Philosophy summarizes the various components of the system and presents a detailed
+                            overview of the associated control system.
+                        </td>
+                    </tr>
+
+                    @* Section 2 heading *@
+                    <tr>
+                        <td colspan="3" style="font-weight:700; color:var(--text-primary); background:var(--bg-hover);">
+                            2. ELECTRICAL SPECIFICATIONS
+                        </td>
+                    </tr>
+
+                    @* Sub-header row *@
+                    <tr style="background:var(--bg-hover);">
+                        <td style="font-weight:700; color:var(--text-primary);">Sr No.</td>
+                        <td style="font-weight:700; color:var(--text-primary);">Description</td>
+                        <td style="font-weight:700; color:var(--text-primary);">Type/Status</td>
+                    </tr>
+
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">1</td>
+                        <td>No. Of Control Panel</td>
+                        <td>1 No.For Painting Booth </td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">2</td>
+                        <td>Type of Control panel</td>
+                        <td>Wall Mounted/ Floor Mounted</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">3</td>
+                        <td>Power Supply</td>
+                        <td>3 Phase &amp; Neutral, 50 HZ 415 VAC, 4 Wires</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">4</td>
+                        <td>Degree Of Protection</td>
+                        <td>
+                            <div class="prop-radio-group">
+                                IP 54
+                                <label><input type="radio" name="DOP" value="Yes" />Flame proof</label>
+                                <label><input type="radio" name="DOP" value="No" checked />Non-Flame proof</label>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">5</td>
+                        <td>Type of Cabling (Field &amp; Panel)</td>
+                        <td>
+                            flexible (Poly cab) cable for exhaust blowers
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">6</td>
+                        <td>Type of Earthing</td>
+                        <td>Copper</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">7</td>
+                        <td>Control Panel Fabrication</td>
+                        <td>Bullows Make</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">8</td>
+                        <td>All Pump &amp; Blower up to 5 HP</td>
+                        <td>DOL</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">9</td>
+                        <td>All Pump &amp; Blower above 5 HP</td>
+                        <td>Star Delta</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">10</td>
+                        <td>Cable Entry / Exit</td>
+                        <td>Bottom</td>
+                    </tr>
+                    @* Section 2.1 heading *@
+                    <tr>
+                        <td colspan="3" style="font-weight:700; color:var(--text-primary); background:var(--bg-hover);">
+                            2.1 Power, Control &amp; Metering Section
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">1.</td>
+                        <td>Main Incomer</td>
+                        <td>Rotary switch</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">2.</td>
+                        <td>MCB, Contactors, S/d Timers &amp; OLR Relay</td>
+                        <td>
+                            Type 2 Co-Ordination Chart
+                            Make- Delta
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">3.</td>
+                        <td>Relay</td>
+                        <td>Omron/ Equivalent Make</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">4.</td>
+                        <td>Selector Switch, Push Buttons &amp; Indication Lamp</td>
+                        <td>Teknik/ Siemens/Schneider/Mitsubishi/ Equivalent make</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">5.</td>
+                        <td>Panel Tube light</td>
+                        <td>Philips/Equivalent make</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">6.</td>
+                        <td>Terminals</td>
+                        <td>Connect well / Equivalent make</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">7.</td>
+                        <td>Type of Wiring for Panel </td>
+                        <td>In Cable Duct (Flexible Polycab) </td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">8.</td>
+                        <td>Type of Wiring for Field </td>
+                        <td>In Cable Tray (Flexible Polycab) </td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">9.</td>
+                        <td>Wire Ends </td>
+                        <td>Lugs, Ferrules </td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">10.</td>
+                        <td>Panel Labels </td>
+                        <td>Anodised Aluminium white label with black text/ Acrylic labels </td>
+                    </tr>
+                </tbody>
+                <tbody class="pb-keep">
+                    @* Special Features row *@
+                    <tr>
+                        <td colspan="3" style="font-weight:700; color:var(--text-primary); background:var(--bg-hover);">
+                            Special Features of Plant Control
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;"></td>
+                        <td colspan="2">There will be 2 modes for operation. Manual mode &amp; Auto mode.</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;">2.2</td>
+                        <td colspan="2">Legends for Circuit Diagram</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;"></td>
+                        <td>EPB</td>
+                        <td>Emergency Push button</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;"></td>
+                        <td>ILPB</td>
+                        <td>Illuminated Push button</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;"></td>
+                        <td>SSW</td>
+                        <td>Selector switch</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;"></td>
+                        <td>IL</td>
+                        <td>Indication lamps</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;"></td>
+                        <td>PB</td>
+                        <td>Push button</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;"></td>
+                        <td>K</td>
+                        <td>Contactor</td>
+                    </tr>
+                    @* Section 3 heading *@
+                    <tr>
+                        <td colspan="3" style="font-weight:700; color:var(--text-primary); background:var(--bg-hover);">
+                            3. Electrical Utility Break-up Details
+                        </td>
+                    </tr>
+
+                    @* Sub-header row for utility table *@
+                    <tr style="background:var(--bg-hover);">
+                        <td style="font-weight:700; color:var(--text-primary);">Sr No.</td>
+                        <td style="font-weight:700; color:var(--text-primary);">Item Description</td>
+                        <td style="font-weight:700; color:var(--text-primary);">
+                            <table style="width:100%; border:none; border-collapse:collapse;">
+                                <tr>
+                                    <td style="border:none; padding:0 4px; font-weight:700; width:25%;">HP</td>
+                                    <td style="border:none; padding:0 4px; font-weight:700; width:25%;">Kw</td>
+                                    <td style="border:none; padding:0 4px; font-weight:700; width:25%;">Qty</td>
+                                    <td style="border:none; padding:0 4px; font-weight:700; width:25%;">Total Kw</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">A</td>
+                        <td>Paint Booth</td>
+                        <td>
+                            <table style="width:100%; border:none; border-collapse:collapse;">
+                                <tr>
+                                    <td style="border:none; padding:0 4px; width:25%;"></td>
+                                    <td style="border:none; padding:0 4px; width:25%;"></td>
+                                    <td style="border:none; padding:0 4px; width:25%;"></td>
+                                    <td style="border:none; padding:0 4px; width:25%;"></td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    @* Exhaust blower motor *@
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">1</td>
+                        <td>Paint Exhaust Blowers -1</td>
+                        <td>
+                            <table style="width:100%; border:none; border-collapse:collapse;">
+                                <tr>
+                                    <td style="border:none; padding:0 4px; width:25%;">@Model.MaterialList?.MotorCapacity</td>
+                                    <td style="border:none; padding:0 4px; width:25%;">@blowerKwEach</td>
+                                    <td style="border:none; padding:0 4px; width:25%;">@Model.ProposalDetails?.NoOfBlowers</td>
+                                    <td style="border:none; padding:0 4px; width:25%;">@blowerTotalKw</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    @* Tube Light *@
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">2</td>
+                        <td>Tube Light</td>
+                        <td>
+                            <table style="width:100%; border:none; border-collapse:collapse;">
+                                <tr>
+                                    <td style="border:none; padding:0 4px; width:25%;"></td>
+                                    <td style="border:none; padding:0 4px; width:25%;">@tubeLightKwEach</td>
+                                    <td style="border:none; padding:0 4px; width:25%;">@Model.MaterialList?.TubelightQuantity</td>
+                                    <td style="border:none; padding:0 4px; width:25%;">@tubeLightTotalKw</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    @* Total Electrical Utility *@
+                    <tr>
+                        <td colspan="2" style="text-align:right; font-weight:700; color:var(--text-primary);">
+                            Total Electrical utility
+                        </td>
+                        <td>
+                            <table style="width:100%; border:none; border-collapse:collapse;">
+                                <tr>
+                                    <td style="border:none; padding:0 4px; width:25%;"></td>
+                                    <td style="border:none; padding:0 4px; width:25%;"></td>
+                                    <td style="border:none; padding:0 4px; width:25%;"></td>
+                                    <td style="border:none; padding:0 4px; width:25%; font-weight:700; color:var(--text-primary);"> @totalElectricalKw Kw</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    @* Note *@
+                    <tr>
+                        <td colspan="3" style="font-size:12px; color:var(--text-muted);">
+                            <strong>Note:</strong> - Above Power requirement provided by supplier this may vary at actual. This will be confirmed at the time of DAP.
+                        </td>
+                    </tr>
+
+                    @* Section 4.2 *@
+                    <tr>
+                        <td style="color:var(--text-muted); font-weight:600;">4.2</td>
+                        <td colspan="2" style="font-weight:600; color:var(--text-primary);">Interlock Details:</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">1</td>
+                        <td colspan="2">When operator pressed Em push button then all blowers will be turn off</td>
+                    </tr>
+
+                    @* Section 4.4 *@
+                    <tr>
+                        <td style="color:var(--text-muted); font-weight:600;">4.4</td>
+                        <td colspan="2" style="font-weight:600; color:var(--text-primary);">Safety Details:</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;"></td>
+                        <td colspan="2">only one emergency stop button is to be provided.</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;"></td>
+                        <td colspan="2">
+                            Overload protection for motor. Alarm will be generated whenever motor trip because of
+                            overload.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;"></td>
+                        <td colspan="2">Earthing to be provided.</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;"></td>
+                        <td colspan="2">IP 55 / 65 protection for motor.</td>
+                    </tr>
+
+                    @* Section 4.5 *@
+                    <tr>
+                        <td style="color:var(--text-muted); font-weight:600;">4.5</td>
+                        <td colspan="2" style="font-weight:600; color:var(--text-primary);">Provision Details: -</td>
+                    </tr>
+                    <tr style="background:var(--bg-hover);">
+                        <td style="color:var(--text-muted);"></td>
+                        <td style="font-weight:700; color:var(--text-primary);">Description</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;"></td>
+                        <td>Overload Protection</td>
+                        <td>For every Motor</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;"></td>
+                        <td>Alarm</td>
+                        <td>In case of Motor Trip</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;"></td>
+                        <td>Tower Lamp</td>
+                        <td>Green- Auto mode, Yellow- Man mode, Red- Fault</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <!-- ── UTILITIES REQUIREMENTS ───────────────────────── -->
+        <div class="prop-section">
+            <table class="prop-table">
+                <thead>
+                    <tr>
+                        <th colspan="4" style="text-align:center; font-size:13px; font-weight:700; color:var(--text-primary); text-transform:none; letter-spacing:0;">
+                            UTILITIES REQUIREMENTS
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    @* Column sub-headers *@
+                    <tr style="background:var(--bg-hover);">
+                        <td style="font-weight:700; color:var(--text-primary); width:60px;">Sr No.</td>
+                        <td style="font-weight:700; color:var(--text-primary);">Description</td>
+                        <td style="font-weight:700; color:var(--text-primary);">Value</td>
+                        <td style="font-weight:700; color:var(--text-primary);">Unit</td>
+                    </tr>
+
+                    @* A: Electrical Power Supply *@
+                    <tr>
+                        <td style="font-weight:700; color:var(--text-primary); text-align:center;">A</td>
+                        <td style="font-weight:600; color:var(--text-primary);">Electrical Power Supply</td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>Type</td>
+                        <td>3-PHASE AC (with Neutral) 4 Wire</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>Voltage</td>
+                        <td>Volts</td>
+                        <td>415+/-6%</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>Frequency</td>
+                        <td>Hertz</td>
+                        <td>50+/-3%</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>Neutral &amp; Earth should be independent</td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+
+                    @* B: Electrical Connected Load *@
+                    <tr>
+                        <td style="font-weight:700; color:var(--text-primary); text-align:center;">B</td>
+                        <td style="font-weight:600; color:var(--text-primary);">Electrical Connected Load</td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>Total Connected load of Booth</td>
+                        <td> @totalElectricalKw Kw</td>
+                        <td> @totalElectricalKw Kw (approx.)</td>
+                    </tr>
+
+                    @* Note *@
+                    <tr>
+                        <td colspan="4" style="font-size:12px; color:var(--text-muted);">
+                            <strong>Note:</strong> Customer will provide main incomer for Panel.
+                        </td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ── MAKE LIST OF PREFERRED BOUGHT OUT ───────────────────────── -->
+        <div class="prop-section prop-no-break">
+            <table class="prop-table">
+                <thead>
+                    <tr>
+                        <th colspan="3" style="text-align:center; font-size:13px; font-weight:700; color:var(--text-primary); text-transform:none; letter-spacing:0;">
+                            MAKE LIST OF PREFERED BOUGHT OUT
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    @* Column sub-headers *@
+                    <tr style="background:var(--bg-hover);">
+                        <td style="font-weight:700; color:var(--text-primary); width:60px;">Sr. No.</td>
+                        <td style="font-weight:700; color:var(--text-primary);">Equipment</td>
+                        <td style="font-weight:700; color:var(--text-primary);">Make</td>
+                    </tr>
+
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">1.</td>
+                        <td>Blower</td>
+                        <td>Bullows/Mittal/Equivalent</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">2.</td>
+                        <td>Electric Motors</td>
+                        <td>Siemens/Bharat Bijlee/Equivalent</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">3.</td>
+                        <td>Electrical Cables</td>
+                        <td>Polycab/Equivalent</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">4.</td>
+                        <td>Tube-Light</td>
+                        <td>TRI FLP</td>
+                    </tr>
+
+                    @* Section divider *@
+                    <tr>
+                        <td colspan="3" style="font-weight:600; color:var(--text-primary); background:var(--bg-hover);">
+                            Material of Construction for Sheet Metal
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="color:var(--text-muted); text-align:center;">5.</td>
+                        <td>GI/MS/SS 304</td>
+                        <td>Jindal /Essar</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ── EXCLUSIONS ─────────────────────────────── -->
+        <div class="prop-section">
+            <table class="prop-table prop-exclusions">
+                <thead>
+                    <tr>
+                        <th colspan="2" class="excl-title">EXCLUSIONS</th>
+                    </tr>
+                    <tr>
+                        <th style="width:60px; text-align:center;">Sr.</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        var exclusions = new[] {
+                                "All civil engineering work for Pit, Trench, RCC design.",
+                                "All service utilities points piping up to off take points.",
+                                "Material unloading and shifting to weatherproof shed at site.",
+                                "Earthing and earthing pits for electrical and instrumentation systems and control panels will be provided by the Customer.",
+                                "Power correction equipment, if necessary, to be provided by Customer.",
+                                "Compressor, Air dryer, Air receiver, generator set if required.",
+                                "Shop and maintenance lighting for building, Plant lighting other than equipment lighting specified.",
+                                "Puncturing of roof for duct routing and sealing during erection.",
+                                "If Required platform and ladder for inspection and sampling port.",
+                                "All Blowers & Rotating Equipment's and accessories placed outside in open to weather should be protected by suitable leak proof shed by Customer with due maintenance clear space all around the equipment.",
+                                "Customer will provide support of forklift, stacker in installation period whenever required.",
+                                "Site Office, Drinking water and toilet facility for our site engineers.",
+                                "Fire extinguishing system, its water circulation pumps and for the Shop including our equipment's.",
+                                "Chemical, Powder, paint, and all utilities required for trial and commissioning.",
+                                "Pollution Control Certificate.",
+                                "Unused & Excess Material Will Be Taken to Bullows.",
+                                "Working Platform in Booths."
+                                };
+                        int excIdx = 0;
+                        foreach (var ex in exclusions)
+                        {
+                            excIdx++;
+                            <tr><td style="text-align:center;">@excIdx</td><td>@Html.Raw(ex)</td></tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ── PRICE DETAILS ─────────────────────────── -->
+        <div class="prop-section">
+            <table class="prop-table">
+                <thead>
+                    <tr>
+                        <th colspan="5" style="text-align:center; font-size:13px; font-weight:700; color:var(--text-primary); text-transform:none; letter-spacing:0;">
+                            PRICE BID
+                        </th>
+                    </tr>
+                    <tr>
+                        <th style="width:55px;">Sr. No.</th>
+                        <th>Description</th>
+                        <th style="width:70px;">Qty.</th>
+                        <th style="width:110px;">HSN/SAC Code</th>
+                        <th style="text-align:right; width:130px;">Price (INR)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="text-align:center;">1.</td>
+                        <td>Dry Type Paint Booth</td>
+                        <td>1 Set</td>
+                        <td>8424 2000</td>
+                        <td style="text-align:right;">
+                            <input type="text" class="prop-input price-input"
+                                   value="@Model.PriceBIDDetails?.POVALUE.ToString("F0")"
+                                   style="width:110px;" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;">2.</td>
+                        <td>Exhaust Ducting with Angle Supports</td>
+                        <td>1 Set</td>
+                        <td>8424 2000</td>
+                        <td style="text-align:right;">
+                            <input type="text" class="prop-input price-input" value="@Model.exhaustPrice.ToString("F0")"
+                                   style="width:110px;" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;">3.</td>
+                        <td>Electrical Control Panel and Cable Trays</td>
+                        <td>1 Set</td>
+                        <td>8424 2000</td>
+                        <td style="text-align:right;">
+                            <input type="text" class="prop-input price-input"
+                                   style="width:110px;" />
+                        </td>
+                    </tr>
+
+                    <!-- Erection & Commissioning -->
+                    <tr>
+                        <td></td>
+                        <td colspan="2" style="text-align:right; font-weight:600;">Erection &amp; Commissioning will be...</td>
+                        <td>998731</td>
+                        <td style="text-align:right;">
+                            <input type="text" class="prop-input price-input"
+                                   value="@Model.PriceBIDDetails?.EAndCCost.ToString("F0")"
+                                   style="width:110px;" />
+                        </td>
+                    </tr>
+
+                    <!-- Packing & Forwarding -->
+                    <tr>
+                        <td></td>
+                        <td colspan="2" style="text-align:right; font-weight:600;">Packing &amp; Forwarding will be...</td>
+                        <td>8424 2000</td>
+                        <td style="text-align:right;">
+                            <input type="text" class="prop-input price-input"
+                                   value="@Model.PriceBIDDetails?.PandFCost.ToString("F0")"
+                                   style="width:110px;" />
+                        </td>
+                    </tr>
+
+                    <!-- Freight, Insurance -->
+                    <tr>
+                        <td></td>
+                        <td colspan="2" style="text-align:right; font-weight:600;">Freight, Insurance will be...</td>
+                        <td>8424 2000</td>
+                        <td style="text-align:right;">
+                            <input type="text" class="prop-input price-input"
+                                   value="@Model.PriceBIDDetails?.PandFCost.ToString("F0")"
+                                   style="width:110px;" />
+                        </td>
+                    </tr>
+
+                    <!-- Total Price -->
+                    <tr class="prop-price-total-row">
+                        <td colspan="4" style="text-align:right;"><strong>Total Price will be</strong></td>
+                        <td style="text-align:right;">
+                            <input type="text" class="prop-input" id="totalPrice" readonly
+                                   style="width:110px; color:var(--accent); font-weight:600;" />
+                        </td>
+                    </tr>
+
+                    <!-- Discount -->
+                    <tr>
+                        <td colspan="4" style="text-align:right;">
+                            Discount &nbsp;
+                            <input type="number" id="discountPercentage" class="prop-input"
+                                   style="width:55px; display:inline-block;" min="0" max="100" value="0" />
+                            %
+                        </td>
+                        <td style="text-align:right;">
+                            <input type="text" class="prop-input" id="discountAmount" readonly
+                                   style="width:110px;" />
+                        </td>
+                    </tr>
+
+                    <!-- Final Best Price -->
+                    <tr class="prop-price-total-row">
+                        <td colspan="4" style="text-align:right;"><strong>Final Best Price</strong></td>
+                        <td style="text-align:right;">
+                            <input type="text" class="prop-input" id="finalPrice" readonly
+                                   style="width:110px; color:var(--success); font-weight:700;" />
+                        </td>
+                    </tr>
+
+                    <!-- GST -->
+                    <tr>
+                        <td colspan="4" style="text-align:right;">
+                            GST &nbsp;
+                            <input type="number" id="gstPercentage" class="prop-input"
+                                   style="width:55px; display:inline-block;" min="0" value="18" />
+                            %
+                        </td>
+                        <td style="text-align:right;">
+                            <input type="text" class="prop-input" id="gstAmount" readonly
+                                   style="width:110px;" />
+                        </td>
+                    </tr>
+
+                    <!-- Gross Amount -->
+                    <tr class="prop-price-total-row">
+                        <td colspan="4" style="text-align:right;"><strong>Gross Amount</strong></td>
+                        <td style="text-align:right;">
+                            <input type="text" class="prop-input" id="grossAmount" readonly
+                                   style="width:110px; color:var(--accent); font-weight:700; font-size:14px;" />
+                        </td>
+                    </tr>
+
+                </tbody>
+            </table>
+            <p style="font-size:11px; color:var(--text-muted); margin-top:8px;">
+                HSN/SAC Code for Plant Equipment: <strong>8424 2000</strong> &nbsp;|&nbsp;
+                Erection &amp; Commissioning: <strong>998731</strong>
+            </p>
+        </div>
+
+       
+        <!-- ── TERMS & CONDITIONS ─────────────────────── -->
+        <div class="prop-section prop-tc">
+            <table class="prop-table">
+                <thead>
+                    <tr>
+                        <th colspan="2" style="text-align:center; font-size:13px; font-weight:700; color:var(--text-primary); text-transform:none; letter-spacing:0;">
+                            Terms &amp; Conditions
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="2" class="tc-muted">
+                            The above quoted prices are ex-Works and excludes the following.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="width:120px;">1</td>
+                        <td>18% GST applicable at extra. GST No: 27AAACB5489M1Z5</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>Any statutory operation variations in the above taxes/levies at the time of supply, to be borne by Buyer.</td>
+                    </tr>
+                    <tr>
+                        <td>Payment Terms</td>
+                        <td>
+                            @if (Model.PaymentTerms != null)
+                            {
+                                <table class="prop-payment-table">
+                                    <tr><td>Advance</td><td>:</td><td>@FormatPct(Model.PaymentTerms.AdvancedPercentage) % advance along with techno-commercially clear order.</td></tr>
+                                    <tr><td>DAP</td><td>:</td><td>@FormatPct(Model.PaymentTerms.DAPPercentage) %</td></tr>
+                                    <tr><td>Supply Before Dispatch</td><td>:</td><td>@FormatPct(Model.PaymentTerms.SUPPLYBEFOREDISPATCHPercentage) %</td></tr>
+                                    <tr><td>Supply After Dispatch</td><td>:</td><td>@FormatPct(Model.PaymentTerms.SUPPLYAFTERDISPATCHPercentage) %</td></tr>
+                                    <tr><td>Installation</td><td>:</td><td>@FormatPct(Model.PaymentTerms.INSTALLATIONPercentage) %</td></tr>
+                                    <tr><td>Commissioning</td><td>:</td><td>@FormatPct(Model.PaymentTerms.COMMISSIONINGPercentage) %</td></tr>
+                                </table>
+                            }
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" class="tc-muted">
+                            "In the eventuality, if the buyer is not ready to accept the material as per schedule, supplier shall be paid for ready material and the demurrage charges to be compensated minimum 0.5% per week."
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Delivery</td>
+                        <td>@Model.PaymentTerms?.DeliverySupplyperiod from DAP &amp; receipt of Advance</td>
+                    </tr>
+                    <tr>
+                        <td>Erection</td>
+                        <td>@Model.PaymentTerms?.EAndCPeriod subject to site readiness &amp; utility connections</td>
+                    </tr>
+                    <tr>
+                        <td>Validity</td>
+                        <td>30 days, subject to confirmation thereafter</td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" class="tc-muted tc-note">
+                            <strong>Note:</strong>
+                            <div>Warranty 12 Months from the date of commissioning. whichever is earlier. However, all electrical items will have only back-to-back guarantee of 6 months from the date of dispatch.</div>
+                            <div>For Bullows this is a turnkey project, it will be difficult to ascertain exact requirement of raw material at site. We supply raw material based on theoretical calculation.</div>
+                            <div>After completion of the site we expect that BPEPL balance raw material lying at site may please be returned to BPEPL under Customer delivery challan.</div>
+                            <div>We sincerely trust that BPEPL given offer is in line with your requirement, however, should need any further clarifications please feel free to contact BPEPL. We now look forward to receiving your favorable reply at the earliest.</div>
+                            <div>Thanking you and always assuring our best services</div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="prop-signature">
+                <p>Yours faithfully,</p>
+                <div class="prop-signature-name">For Bullows Paint Equipment Private Limited</div>
+                <div class="tc-engineer">
+                    @Model.salesEngineer?.EngineerName<br />
+                    @Model.salesEngineer?.Designation<br />
+                    Mob No: - @Model.salesEngineer?.MobileNo
+                </div>
+                <div class="prop-cc-block">
+                    CC: Mr. Abhay V. Gurav – Deputy General Manager - Sales &amp; Operation<br />
+                    Mr. Prashant R Waghulade — Chief Business Officer
+                </div>
+            </div>
+        </div>
+
+        <!-- ── GST REGISTRATION CERTIFICATE ─────────────────────── -->
+        <div class="prop-section">
+
+            @* Certificate wrapper *@
+            <div style="border: 1px solid var(--border); border-radius: 10px; padding: 32px 40px; text-align: center;">
+
+                @* Emblem *@
+                <div style="margin-bottom: 16px;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
+                         alt="Government of India"
+                         style="max-height: 60px; object-fit: contain;" />
+                </div>
+
+                @* Header text *@
+                <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); line-height: 1;">
+                    Government of India<br />
+                    And<br />
+                    Government of Maharashtra
+                </div>
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-top: 3px;">
+                    Form GST REG-25
+                </div>
+                <div style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin: 16px 0 24px 0;
+                                    text-decoration: underline;">
+                    Certificate of Provisional Registration
+                </div>
+
+                @* GST Details table *@
+                <table class="prop-table" style="text-align:left; width:100%; margin:0 auto; font-family: 'Times New Roman', serif;">
+                    <tbody>
+                        <tr>
+                            <td style="width: 40px; color: var(--text-muted);">1.</td>
+                            <td style="width: 220px; font-weight: 600;">GSTIN</td>
+                            <td>27AAACB5489M1Z5</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--text-muted);">2.</td>
+                            <td style="font-weight: 600;">PAN</td>
+                            <td>AAACB5489M</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--text-muted);">3.</td>
+                            <td style="font-weight: 600;">Legal Name</td>
+                            <td>BULLOWS PAINT EQUIPMENT PRIVATE LIMITED</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--text-muted);">4.</td>
+                            <td style="font-weight: 600;">Trade Name</td>
+                            <td>BULLOWS PAINT EQUIPMENT PRIVATE LIMITED</td>
+                        </tr>
+
+                        @* Section 5 heading *@
+                        <tr>
+                            <td style="color: var(--text-muted);">5.</td>
+                            <td colspan="2" style="font-weight: 600;">
+                                Registration Details under Existing Law
+                            </td>
+                        </tr>
+
+                        @* Sub-header *@
+                        <tr style="background: var(--bg-hover);">
+                            <td></td>
+                            <td style="font-weight: 700; text-align: center;">Act</td>
+                            <td style="font-weight: 700;">Registration Number</td>
+                        </tr>
+
+                        <tr>
+                            <td style="color: var(--text-muted);">(a)</td>
+                            <td>TIN under Value Added Tax</td>
+                            <td>27690003982V</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--text-muted);">(b)</td>
+                            <td>Central Sales Tax Registration Number</td>
+                            <td>27690003982C</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--text-muted);">(c)</td>
+                            <td>Corporate Identity Number / Foreign Company Registration Number</td>
+                            <td>U29221MH1963PTCO12756</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--text-muted);">(d)</td>
+                            <td>Central Excise Registration Number</td>
+                            <td>AAACB5489MEM008</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--text-muted);">(e)</td>
+                            <td>Service Tax Registration Number</td>
+                            <td>AAACB5489MSD005</td>
+                        </tr>
+
+                        @* Date row *@
+                        <tr>
+                            <td colspan="2" style="font-weight: 600;">Date</td>
+                            <td>28/06/2017</td>
+                        </tr>
+
+                    </tbody>
+                </table>
+                @* Footer note *@
+                <div style="margin-top: 20px; font-size: 12px; text-align: left; width: 100%; color: var(--text-muted);
+                                    border-top: 1px solid var(--border); padding-top: 12px;">
+                    This is a Certificate of Provisional Registration issued under the provisions of the Act.
+                </div>
+            </div>
+        </div>
+
+    </div>
+    @* ── end proposalContent ── *@
+}
+
+@section Scripts {
+    @* PDF library *@
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.js"></script>
+
+    @* FileSaver — must be before docx *@
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    @* docx UMD build — exposes window.docx globally *@
+    <script src="https://unpkg.com/docx@7.8.2/build/index.umd.min.js"></script>
+
+    @* our proposal logic — loaded AFTER all libraries above *@
+    <script src="~/js/proposal.js" asp-append-version="true"></script>
+    <script>
+        $(function () {
+            initAutocomplete('@Url.Action("SearchEnquiryCode", "Costing")');
+            initPriceCalc();
+            initAlerts();
+
+            // ── Rotating Table show/hide ──
+            $(document).on("change", "input[name='RotatingTable']", function () {
+                $(".rotating-table-desc").toggle($(this).val() === "Yes");
+            });
+
+            @if (hasData)
+            {
+                    <text>
+                    initPDF('@Model.ProposalDetails.SalesNO', '@(Model.PriceBIDDetails?.RevisionNo ?? 0)', '@DateTime.Now.ToString("dd/MM/yyyy")');
+                    initWord({
+                        salesNo        : '@Model.ProposalDetails.SalesNO',
+                        companyName    : '@Model.ProposalDetails.CompanyName',
+                        contactPerson  : '@Model.ProposalDetails.ContactPerson',
+                        date           : '@DateTime.Now.ToString("dd/MM/yyyy")',
+                        // Basis of Design
+                        length         : '@Model.ProposalDetails.Length',
+                        widthSize      : '@Model.ProposalDetails.WidthSize',
+                        heightSize     : '@Model.ProposalDetails.HeightSize',
+                        production     : '@Model.ProposalDetails.ProductionRequirement',
+                        compWeight     : '@Model.ProposalDetails.ComponantWeight',
+                        shifts         : '@Model.ProposalDetails.NumberofShifts',
+                        effectiveHrs   : '@Model.ProposalDetails.EffectiveWorking',
+                        workingDays    : '@Model.ProposalDetails.Workingdays',
+                        paintType      : '@Model.ProposalDetails.TypeOfPaintName',
+                        viscosity      : '@Model.ProposalDetails.Viscosity',
+                        dft            : '@Model.ProposalDetails.DFT',
+                        noOfColors     : '@Model.ProposalDetails.NoOfColors',
+                        specificHeat   : '@Model.ProposalDetails.SpecificHeat',
+                        compHandling   : '@Model.ProposalDetails.ComponantHandlingName',
+                        cycleTime      : '@Model.ProposalDetails.CycleTime',
+                        loadUnload     : '@Model.ProposalDetails.LoadingUnloading',
+                        // Technical spec
+                        boothType      : '@(Model.ProposalDetails.Category == "1" ? "Dry back paint booth" : "Water wash paint booth")',
+                        boothW         : '@Model.MaterialList?.W',
+                        boothD         : '@Model.MaterialList?.D',
+                        boothH         : '@Model.MaterialList?.H',
+                        boothD3        : '@Model.MaterialList?.D3',
+                        ecHeight       : '@Model.ProposalDetails.ExtractionChamberHeight',
+                        pbMaterial     : '@Model.MaterialList?.PaintBoothMaterial',
+                        ecMaterial     : '@Model.MaterialList?.ECMaterials',
+                        exhaustCap     : '@Model.MaterialList?.EXhaustCapacity',
+                        motorCap       : '@Model.MaterialList?.MotorCapacity',
+                        blowerMounting : '@Model.BlowerDetails.MountingTypes',
+                        luxLevel       : '@Model.MaterialList?.LuxLevel',
+                        lumens         : '@Model.MaterialList?.Lumens',
+                        lightQty       : '@Model.MaterialList?.TubelightQuantity',
+                        // Payment terms
+                        advance        : '@FormatPct(Model.PaymentTerms?.AdvancedPercentage)',
+                        dap            : '@FormatPct(Model.PaymentTerms?.DAPPercentage)',
+                        supplyBefore   : '@FormatPct(Model.PaymentTerms?.SUPPLYBEFOREDISPATCHPercentage)',
+                        supplyAfter    : '@FormatPct(Model.PaymentTerms?.SUPPLYAFTERDISPATCHPercentage)',
+                        installation   : '@FormatPct(Model.PaymentTerms?.INSTALLATIONPercentage)',
+                        commissioning  : '@FormatPct(Model.PaymentTerms?.COMMISSIONINGPercentage)',
+                        delivery       : '@Model.PaymentTerms?.DeliverySupplyperiod',
+                        erection       : '@Model.PaymentTerms?.EAndCPeriod',
+                        // Price
+                        poValue        : '@Model.PriceBIDDetails?.POVALUE',
+                        encCost        : '@Model.PriceBIDDetails?.EAndCCost',
+                        pandFCost      : '@Model.PriceBIDDetails?.PandFCost',
+                        insurance      : '@Model.PriceBIDDetails?.Insurance'
+                    });
+                    </text>
+            }
+        });
+    </script>
+}

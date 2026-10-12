@@ -1,0 +1,45 @@
+/* ============================================================
+   Bullows — site.css ADDITIONS
+   Add these at the bottom of your existing site.css
+   ============================================================ */
+
+/* ── Color utility classes ───────────────────────────────────── */
+.text-accent      { color: var(--accent); }
+.text-muted-sm    { font-size: 12px; color: var(--text-muted); }
+
+/* ── Pipeline count colors ───────────────────────────────────── */
+.pipeline-color-accent  { color: var(--accent); }
+.pipeline-color-blue    { color: var(--accent-2); }
+.pipeline-color-success { color: var(--success); }
+.pipeline-color-warning { color: var(--warning); }
+.pipeline-color-purple  { color: var(--purple); }
+
+/* ── Stat icon colors (yellow shorthand) ─────────────────────── */
+.stat-icon.yellow {
+    background   : rgba(245, 166, 35, 0.1);
+    border-color : rgba(245, 166, 35, 0.3);
+    color        : var(--warning);
+}
+
+/* ── Small button variant for cards ─────────────────────────── */
+.btn-sm-dash {
+    padding   : 6px 14px;
+    font-size : 12px;
+}
+
+/* ── Table action link ───────────────────────────────────────── */
+.tbl-action-link {
+    color           : var(--accent);
+    font-size       : 14px;
+    text-decoration : none;
+    display         : flex;
+    justify-content : flex-end;
+    transition      : opacity var(--transition);
+}
+
+.tbl-action-link:hover { opacity: 0.7; color: var(--accent); }
+
+/* ── Responsive hide ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .hide-sm { display: none; }
+}

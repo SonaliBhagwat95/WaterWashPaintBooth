@@ -1,0 +1,142 @@
+﻿@model List<PaintBooth.Models.ProposalListViewModel>
+@{
+    ViewData["Title"] = "Proposal Approval";
+    ViewBag.ActivePage = "Proposal Approval";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/proposal.css" asp-append-version="true" />
+}
+
+<!-- ── PAGE HEADER ──────────────────────────────────────────── -->
+<div class="page-header">
+    <div>
+        <div class="page-header-title">Proposal Approval</div>
+        <div class="page-header-sub">
+            Proposal records — <strong>@Model.Count</strong> record(s)
+        </div>
+    </div>
+    <a asp-controller="Costing" asp-action="ProposalCreate" class="btn-pb-primary">
+        <i class="bi bi-plus-lg"></i> New Proposal
+    </a>
+</div>
+
+<!-- ── ALERTS ───────────────────────────────────────────────── -->
+@if (TempData["Success"] != null)
+{
+    <div class="pb-alert pb-alert-success mb-3" data-auto-dismiss>
+        <i class="bi bi-check-circle-fill"></i> @TempData["Success"]
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="pb-alert pb-alert-danger mb-3" data-auto-dismiss>
+        <i class="bi bi-exclamation-circle-fill"></i> @TempData["Error"]
+    </div>
+}
+
+<!-- ── TABLE CARD ────────────────────────────────────────────── -->
+<div class="pb-card">
+    <div class="setting-toolbar">
+        <div class="setting-search-wrap">
+            <i class="bi bi-search"></i>
+            <input type="text" id="propSearch" class="setting-search"
+                   placeholder="Search by enquiry code or company..." />
+        </div>
+        <div class="setting-count">
+            <span id="visibleCount">@Model.Count</span> records
+        </div>
+    </div>
+
+    <div class="setting-table-wrap">
+        <table class="pb-table" id="propTable">
+            <thead>
+                <tr>
+                    <th style="width:50px;">Sr.</th>
+                    <th>Enquiry Code</th>
+                    <th>Company</th>
+                    <th>Contact Person</th>
+                    <th style="text-align:right;">PO Value (₹)</th>
+                    <th>Date</th>
+                    <th>Revision</th>
+                    <th style="width:90px; text-align:right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="7">
+                            <div class="setting-empty">
+                                <i class="bi bi-file-text"></i>
+                                No proposal records found
+                                <div class="setting-empty-sub">
+                                    Click "New Proposal" to generate a proposal
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    int i = 0;
+                    foreach (var item in Model)
+                    {
+                        i++;
+                        <tr class="prop-row">
+                            <td class="setting-sr">@i</td>
+                            <td><span class="setting-code">@item.SalesNO</span></td>
+                            <td style="color:var(--text-secondary);">@item.CompanyName</td>
+                            <td style="color:var(--text-muted); font-size:12px;">
+                                @item.ContactPerson
+                            </td>
+                            <td style="text-align:right; font-variant-numeric:tabular-nums;">
+                                <strong style="color:var(--accent);">
+                                    @item.POVALUE.ToString("N0")
+                                </strong>
+                            </td>
+                            <td style="color:var(--text-muted); font-size:12px;">
+                                @item.CreatedDate?.ToString("dd MMM yyyy")
+                            </td>
+                            <td>
+                                @if (item.RevisionNo == 0)
+                                {
+                                    <span style="font-size:11px; font-weight:600; color:var(--text-muted);">R0</span>
+                                }
+                                else
+                                {
+                                    <span style="background:rgba(231,60,37,.1); color:#E73C25; border-radius:5px;
+                                 padding:2px 8px; font-size:11px; font-weight:700;">
+                                        R@(item.RevisionNo)
+                                    </span>
+                                }
+                            </td>
+                            <td>
+                                <div class="setting-actions">
+                                    <!-- View / Edit proposal -->
+                                    <form method="post"
+                                          asp-controller="Costing"
+                                          asp-action="ShowProposalForm"
+                                          style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="SalesNO"
+                                               value="@item.SalesNO" />
+                                        <button type="submit"
+                                                class="setting-btn-edit"
+                                                title="View Proposal">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/proposal-index.js" asp-append-version="true"></script>
+}

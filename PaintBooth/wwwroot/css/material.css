@@ -1,0 +1,87 @@
+/* ============================================================
+   Bullows PaintBooth Pro — material.css
+   Styles for Material Master page
+   ============================================================ */
+
+/* ── Form Actions ────────────────────────────────────────────── */
+.mat-form-actions {
+    display        : flex;
+    gap            : 10px;
+    margin-top     : 20px;
+    padding-top    : 16px;
+    border-top     : 1px solid var(--border-color);
+}
+
+/* ── Search ──────────────────────────────────────────────────── */
+.mat-search-wrap {
+    display        : flex;
+    align-items    : center;
+    gap            : 8px;
+    color          : var(--text-muted);
+}
+
+.mat-search {
+    background     : var(--input-bg);
+    border         : 1px solid var(--border-color);
+    border-radius  : 8px;
+    color          : var(--text-primary);
+    font-size      : 13px;
+    height         : 34px;
+    outline        : none;
+    padding        : 0 12px;
+    transition     : border-color 0.2s;
+    width          : 200px;
+}
+
+.mat-search:focus {
+    border-color   : var(--accent);
+}
+
+/* ── Table row ───────────────────────────────────────────────── */
+.mat-row {
+    transition     : background 0.15s;
+}
+
+.mat-row:hover {
+    background     : var(--row-hover, rgba(255,255,255,0.03));
+}
+
+/* Active row (currently being edited) */
+.mat-row-active {
+    background     : rgba(var(--accent-rgb, 255,107,0), 0.08) !important;
+    border-left    : 3px solid var(--accent);
+}
+
+.mat-row-active td:first-child {
+    padding-left   : 13px;
+}
+
+/* ── Card header (title + search side by side) ───────────────── */
+.pb-card-header {
+    display        : flex;
+    align-items    : center;
+    justify-content: space-between;
+    padding        : 16px 20px 12px;
+    border-bottom  : 1px solid var(--border-color);
+    margin-bottom  : 0;
+}
+
+.pb-card-title {
+    font-size      : 14px;
+    font-weight    : 600;
+    color          : var(--text-primary);
+    display        : flex;
+    align-items    : center;
+}
+
+/* ── Delete button confirm state ─────────────────────────────── */
+.mat-delete-btn.confirming {
+    background     : var(--danger, #e53e3e);
+    color          : #fff;
+    border-color   : var(--danger, #e53e3e);
+}
+
+/* ── Hidden rows (search filter) ─────────────────────────────── */
+.mat-row.hidden {
+    display        : none;
+}

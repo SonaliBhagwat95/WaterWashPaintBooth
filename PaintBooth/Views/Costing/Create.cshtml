@@ -1,0 +1,992 @@
+
+@model PaintBooth.Models.CostingModel
+@{
+    ViewData["Title"] = "Raw Material Costing";
+    ViewBag.ActivePage = "Raw Material Costing";
+    var isEdit = Model.DetailsList != null && Model.DetailsList.Any();
+
+    var frameList = Model.FilteredDetailsList
+                    ?? new List<PaintBooth.Models.PaintBoothModel>();
+
+    var ductList = Model.ExhaustDuctingList != null && Model.ExhaustDuctingList.Any()
+        ? Model.ExhaustDuctingList
+        : new List<ExhaustDuctingModel>();
+
+    var ductNetTotal = (double)ductList.Sum(x => x.DuctNetWeight);
+    var rmWeightPanelsCombined = Model.RMWeightOfPanels + ductNetTotal;
+
+    Func<PaintBooth.Models.PaintBoothModel, bool> isMetalBaffle = x =>
+!string.IsNullOrEmpty(x.PanelPosition) && x.PanelPosition.StartsWith("MetalBaffle");
+
+    var mbList = isEdit
+        ? Model.DetailsList.Where(isMetalBaffle).ToList()
+        : new List<PaintBooth.Models.PaintBoothModel>();
+
+
+    // ⚠ Adjust this to match how EC panels are stored in PanelPosition.
+    //   StartsWith("EC")  →  "EC1", "EC2", ...
+    //   == "ExtractionChamber"  →  exact value
+    //   .Contains("EC")  →  anywhere in the string
+    Func<PaintBooth.Models.PaintBoothModel, bool> isEcPanel = x =>
+        !string.IsNullOrEmpty(x.PanelPosition) && x.PanelPosition.StartsWith("EC");
+
+
+    // ⚠ Adjust to match how transition pieces are stored in PanelPosition.
+    Func<PaintBooth.Models.PaintBoothModel, bool> isTransitionPiece = x =>
+        !string.IsNullOrEmpty(x.PanelPosition) && x.PanelPosition.StartsWith("Transition");
+
+    var tpList = isEdit
+        ? Model.DetailsList.Where(isTransitionPiece).ToList()
+        : new List<PaintBooth.Models.PaintBoothModel>();
+
+
+
+    var panelList = isEdit
+    ? Model.DetailsList
+           .Where(x => x.PanelPosition != "TopStructureFrame"
+                    && x.PanelPosition != "BaseStructureFrame"
+                    && !isEcPanel(x)
+                    && !isMetalBaffle(x)
+                    && !isTransitionPiece(x))
+           .ToList()
+    : new List<PaintBooth.Models.PaintBoothModel>();
+
+    var ecList = isEdit
+        ? Model.DetailsList.Where(isEcPanel).ToList()
+        : new List<PaintBooth.Models.PaintBoothModel>();
+
+    
+
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/costing.css" asp-append-version="true" />
+}
+
+<!-- ── PAGE HEADER ──────────────────────────────────────────── -->
+<div class="page-header">
+    <div>
+        <div class="page-header-title">Raw Material Costing</div>
+        <div class="page-header-sub">
+            Search an enquiry to load panel &amp; frame data
+        </div>
+    </div>
+    <a asp-controller="Costing" asp-action="Index" class="btn-pb-secondary">
+        <i class="bi bi-arrow-left"></i> Back to List
+    </a>
+</div>
+
+<!-- ── ALERTS ───────────────────────────────────────────────── -->
+@if (TempData["Success"] != null)
+{
+    <div class="pb-alert pb-alert-success mb-3" data-auto-dismiss>
+        <i class="bi bi-check-circle-fill"></i> @TempData["Success"]
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="pb-alert pb-alert-danger mb-3" data-auto-dismiss>
+        <i class="bi bi-exclamation-circle-fill"></i> @TempData["Error"]
+    </div>
+}
+
+<!-- ══════════════════════════════════════════════════════
+     SECTION 1 — ENQUIRY SEARCH
+══════════════════════════════════════════════════════ -->
+<div class="pb-card mb-3">
+    <div class="form-section-title">
+        <i class="bi bi-search"></i>
+        Enquiry Selection
+    </div>
+    <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <div class="pb-form-group mb-0">
+                <label class="pb-label">Enquiry Code</label>
+                <div class="cost-autocomplete-wrap">
+                    <input type="text"
+                           class="pb-input"
+                           id="txtEnquiryCode"
+                           placeholder="Type enquiry code..."
+                           autocomplete="off"
+                           value="@Context.Session.GetString("EnquiryCode")" />
+                    <div id="enquiryDropdown" class="cost-dropdown"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-auto">
+            <button type="button" id="btnSearch" class="btn-pb-primary">
+                <i class="bi bi-search"></i> Search
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SECTIONS 2-4 — hidden until search loads data
+══════════════════════════════════════════════════════ -->
+<div id="divCostingData" style="@(isEdit ? "" : "display:none;")">
+
+    <!-- ── SECTION 2: PANEL TABLE ─────────────────────────────── -->
+    <div class="pb-card mb-3">
+        <div class="form-section-title">
+            <i class="bi bi-grid-3x3-gap"></i>
+            Panel Details
+            <span class="cost-row-count">
+                <span id="panelCount">@panelList.Count</span> panels
+            </span>
+        </div>
+
+        <div class="cost-table-wrap">
+            <table class="cost-table" id="panelTable">
+                <thead>
+                    <tr>
+                        <th style="width:54px;">Item</th>
+                        <th>Panel Position</th>
+                        <th class="num" style="text-align:center;">Panel Width</th>
+                        <th class="num" style="text-align:center;">Panel Length</th>
+                        <th class="num" style="text-align:center;">Thickness</th>
+                        <th class="num" style="text-align:center;">No. of Panels</th>
+                        <th class="num">Weight (kg)</th>
+                        <th class="num">Gross Weight (kg)</th>
+                    </tr>
+                </thead>
+                <tbody id="panelTableBody">
+                    @if (!panelList.Any())
+                    {
+                        <tr id="panelEmptyRow">
+                            <td colspan="7">
+                                <div class="cost-empty">
+                                    <i class="bi bi-inbox"></i>
+                                    Search an enquiry to load panel data
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        int i = 0;
+                        foreach (var item in panelList)
+                        {
+                            i++;
+                            <tr>
+                                <td>@i</td>
+                                <td>
+                                    @(string.IsNullOrEmpty(item.DisplayPanelPosition)
+                                                                ? item.PanelPosition
+                                                                : item.DisplayPanelPosition)
+                        </td>
+                        <td class="num" style="text-align:center;">@item.StandardPanelWidthForD.ToString("F0")</td>
+                        <td class="num" style="text-align:center;">@item.EqualPanelWidthByH.ToString("F0")</td>
+                        <td class="num" style="text-align:center;">@item.SheetThickness.ToString("F1")</td>
+                        <td class="num" style="text-align:center;">@item.NoofPanels</td>
+                        <td class="num">@item.PanelWeight.ToString("F2")</td>
+                        <td class="num">@((item.PanelWeight * 1.10).ToString("F2"))</td>
+                    </tr>
+                                        }
+                    }
+                </tbody>
+                @if (panelList.Any())
+                {
+                    <tfoot>
+                        <tr>
+                            <td colspan="6" style="text-align:right;">
+                                Total Panel Weight
+                            </td>
+                            <td class="num" id="panelTotalWeight">
+                                @panelList.Sum(x => x.PanelWeight).ToString("F0")
+                            </td>
+                            <td class="num" id="panelTotalGrossWeight">
+                                @panelList.Sum(x => x.PanelWeight * 1.10).ToString("F0")
+                            </td>
+                        </tr>
+                    </tfoot>
+                }
+            </table>
+        </div>
+
+        <!-- ── SECTION: EC PANEL TABLE ────────────────────────────── -->
+        <div class="pb-card mb-3">
+            <div class="form-section-title">
+                <i class="bi bi-grid-1x2"></i>
+                EC Panel Details
+                <span class="cost-row-count">
+                    <span id="ecCount">@ecList.Count</span> panels
+                </span>
+            </div>
+
+            <div class="cost-table-wrap">
+                <table class="cost-table" id="ecTable">
+                    <thead>
+                        <tr>
+                            <th style="width:54px;">Item</th>
+                            <th>Panel Position</th>
+                            <th class="num" style="text-align:center;">Panel Width</th>
+                            <th class="num" style="text-align:center;">Panel Length</th>
+                            <th class="num" style="text-align:center;">Thickness</th>
+                            <th class="num" style="text-align:center;">No. of Panels</th>
+                            <th class="num">Weight (kg)</th>
+                            <th class="num">Gross Weight (kg)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ecTableBody">
+                        @if (!ecList.Any())
+                        {
+                            <tr id="ecEmptyRow">
+                                <td colspan="8">
+                                    <div class="cost-empty">
+                                        <i class="bi bi-inbox"></i>
+                                        No EC panel data
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            int e = 0;
+                            foreach (var item in ecList)
+                            {
+                                e++;
+                                <tr>
+                                    <td>@e</td>
+                                    <td>
+                                        @(string.IsNullOrEmpty(item.DisplayPanelPosition)
+                                                                        ? item.PanelPosition
+                                                                        : item.DisplayPanelPosition)
+                            </td>
+                            <td class="num" style="text-align:center;">@item.StandardPanelWidthForD.ToString("F0")</td>
+                            <td class="num" style="text-align:center;">@item.EqualPanelWidthByH.ToString("F0")</td>
+                            <td class="num" style="text-align:center;">@item.SheetThickness.ToString("F1")</td>
+                            <td class="num" style="text-align:center;">@item.NoofPanels</td>
+                            <td class="num">@item.PanelWeight.ToString("F2")</td>
+                            <td class="num">@((item.PanelWeight * 1.10).ToString("F2"))</td>
+                        </tr>
+                                                }
+                        }
+                    </tbody>
+                    @if (ecList.Any())
+                    {
+                        <tfoot>
+                            <tr>
+                                <td colspan="6" style="text-align:right;">Total EC Panel Weight</td>
+                                <td class="num" id="ecTotalWeight">
+                                    @ecList.Sum(x => x.PanelWeight).ToString("F0")
+                                </td>
+                                <td class="num" id="ecTotalGrossWeight">
+                                    @ecList.Sum(x => x.PanelWeight * 1.10).ToString("F0")
+                                </td>
+                            </tr>
+                        </tfoot>
+                    }
+                </table>
+            </div>
+        </div>
+
+
+
+    </div>
+
+    <!-- ── SECTION: METAL BAFFLE TABLE ────────────────────────── -->
+    <div class="pb-card mb-3">
+        <div class="form-section-title">
+            <i class="bi bi-layout-split"></i>
+            Metal Baffle Details
+            <span class="cost-row-count">
+                <span id="mbCount">@mbList.Count</span> baffles
+            </span>
+        </div>
+
+        <div class="cost-table-wrap">
+            <table class="cost-table" id="mbTable">
+                <thead>
+                    <tr>
+                        <th style="width:54px;">Item</th>
+                        <th>Panel Position</th>
+                        <th class="num" style="text-align:center;">Panel Width</th>
+                        <th class="num" style="text-align:center;">Panel Length</th>
+                        <th class="num" style="text-align:center;">Thickness</th>
+                        <th class="num" style="text-align:center;">No. of Panels</th>
+                        <th class="num">Weight (kg)</th>
+                        <th class="num">Gross Weight (kg)</th>
+                    </tr>
+                </thead>
+                <tbody id="mbTableBody">
+                    @if (!mbList.Any())
+                    {
+                        <tr id="mbEmptyRow">
+                            <td colspan="8">
+                                <div class="cost-empty">
+                                    <i class="bi bi-inbox"></i>
+                                    No metal baffle data
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        int m = 0;
+                        foreach (var item in mbList)
+                        {
+                            m++;
+                            <tr>
+                                <td>@m</td>
+                                <td>
+                                    @(string.IsNullOrEmpty(item.DisplayPanelPosition)
+                                                                ? item.PanelPosition
+                                                                : item.DisplayPanelPosition)
+                        </td>
+                        <td class="num" style="text-align:center;">@item.StandardPanelWidthForD.ToString("F0")</td>
+                        <td class="num" style="text-align:center;">@item.EqualPanelWidthByH.ToString("F0")</td>
+                        <td class="num" style="text-align:center;">@item.SheetThickness.ToString("F1")</td>
+                        <td class="num" style="text-align:center;">@item.NoofPanels</td>
+                        <td class="num">@item.PanelWeight.ToString("F2")</td>
+                        <td class="num">@((item.PanelWeight * 1.10).ToString("F2"))</td>
+                    </tr>
+                                        }
+                    }
+                </tbody>
+                @if (mbList.Any())
+                {
+                    <tfoot>
+                        <tr>
+                            <td colspan="6" style="text-align:right;">Total Metal Baffle Weight</td>
+                            <td class="num" id="mbTotalWeight">
+                                @mbList.Sum(x => x.PanelWeight).ToString("F0")
+                            </td>
+                            <td class="num" id="mbTotalGrossWeight">
+                                @mbList.Sum(x => x.PanelWeight * 1.10).ToString("F0")
+                            </td>
+                        </tr>
+                    </tfoot>
+                }
+            </table>
+        </div>
+    </div>
+    <!-- ── SECTION: TRANSITION PIECE TABLE ────────────────────── -->
+    <div class="pb-card mb-3">
+        <div class="form-section-title">
+            <i class="bi bi-funnel"></i>
+            Transformation Duct- Square to Round
+            <span class="cost-row-count">
+                <span id="tpCount">@tpList.Count</span> pieces
+            </span>
+        </div>
+
+        <div class="cost-table-wrap">
+            <table class="cost-table" id="tpTable">
+                <thead>
+                    <tr>
+                        <th style="width:54px;">Item</th>
+                        <th>Panel Position</th>
+                        <th class="num" style="text-align:center;">Duct Width</th>
+                        <th class="num" style="text-align:center;">Duct Length</th>
+                        <th class="num" style="text-align:center;">Thickness</th>
+                        <th class="num" style="text-align:center;">No. of Duct</th>
+                        <th class="num">Weight (kg)</th>
+                        <th class="num">Gross Weight (kg)</th>
+                    </tr>
+                </thead>
+                <tbody id="tpTableBody">
+                    @if (!tpList.Any())
+                    {
+                        <tr id="tpEmptyRow">
+                            <td colspan="8">
+                                <div class="cost-empty">
+                                    <i class="bi bi-inbox"></i>
+                                    No transition piece data
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        int t = 0;
+                        foreach (var item in tpList)
+                        {
+                            t++;
+                            <tr>
+                                <td>@t</td>
+                                <td>
+                                    @(string.IsNullOrEmpty(item.DisplayPanelPosition)
+                                                                ? item.PanelPosition
+                                                                : item.DisplayPanelPosition)
+                        </td>
+                        <td class="num" style="text-align:center;">@item.StandardPanelWidthForD.ToString("F0")</td>
+                        <td class="num" style="text-align:center;">@item.EqualPanelWidthByH.ToString("F0")</td>
+                        <td class="num" style="text-align:center;">@item.SheetThickness.ToString("F1")</td>
+                        <td class="num" style="text-align:center;">@item.NoofPanels</td>
+                        <td class="num">@item.PanelWeight.ToString("F2")</td>
+                        <td class="num">@((item.PanelWeight * 1.10).ToString("F2"))</td>
+                    </tr>
+                                        }
+                    }
+                </tbody>
+                @if (tpList.Any())
+                {
+                    <tfoot>
+                        <tr>
+                            <td colspan="6" style="text-align:right;">Total Transition Piece Weight</td>
+                            <td class="num" id="tpTotalWeight">
+                                @tpList.Sum(x => x.PanelWeight).ToString("F0")
+                            </td>
+                            <td class="num" id="tpTotalGrossWeight">
+                                @tpList.Sum(x => x.PanelWeight * 1.10).ToString("F0")
+                            </td>
+                        </tr>
+                    </tfoot>
+                }
+            </table>
+        </div>
+    </div>
+
+
+    <!-- ── SECTION: EXHAUST SYSTEM TABLE ──────────────────────── -->
+    <div class="pb-card mb-3">
+        <div class="form-section-title">
+            <i class="bi bi-pipe"></i>
+            Exhaust System Details
+            <span class="cost-row-count">
+                <span id="ductCount">@ductList.Count</span> components
+            </span>
+        </div>
+        <div class="cost-table-wrap">
+            <table class="cost-table" id="ductTable">
+                <thead>
+                    <tr>
+                        <th style="width:54px;">Item</th>
+                        <th>Component</th>
+                        <th style="text-align:center;">Direction / Length</th>
+                        <th class="num" style="text-align:center;">Width</th>
+                        <th class="num" style="text-align:center;">Height</th>
+                        <th class="num" style="text-align:center;">Thickness</th>
+                        <th class="num">Weight (kg)</th>
+                        <th class="num">Gross Weight (kg)</th>
+                    </tr>
+                </thead>
+                <tbody id="ductTableBody">
+                    @if (!ductList.Any())
+                    {
+                        <tr id="ductEmptyRow">
+                            <td colspan="8">
+                                <div class="cost-empty">
+                                    <i class="bi bi-inbox"></i>
+                                    No exhaust ducting data
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        int j = 0;
+                        foreach (var item in ductList)
+                        {
+                            j++;
+                            <tr>
+                                <td>@j</td>
+                                <td>@item.BendType</td>
+                                <td style="text-align:center;">
+                                    @(item.BendType == "Duct"
+                                                                ? (item.DuctLength.HasValue ? item.DuctLength.Value + " mm" : "—")
+                                                                : (string.IsNullOrEmpty(item.BendDirection) ? "—" : item.BendDirection))
+                        </td>
+                        <td class="num" style="text-align:center;">@item.DuctWidth.ToString("F0")</td>
+                        <td class="num" style="text-align:center;">@item.DuctHeight.ToString("F0")</td>
+                        <td class="num" style="text-align:center;">@item.DuctThickness.ToString("F0")</td>
+                        <td class="num">@item.DuctNetWeight.ToString("F2")</td>
+                        <td class="num">@item.DuctGrossWeight.ToString("F2")</td>
+                    </tr>
+                                        }
+                    }
+                </tbody>
+                @if (ductList.Any())
+                {
+                    <tfoot>
+                        <tr>
+                            <td colspan="6" style="text-align:right;">
+                                Total Exhaust Weight
+                            </td>
+                            <td class="num" id="ductTotalWeight">
+                                @ductList.Sum(x => x.DuctNetWeight).ToString("F0")
+                            </td>
+                            <td class="num" id="ductTotalGrossWeight">
+                                @ductList.Sum(x => x.DuctGrossWeight).ToString("F0")
+                            </td>
+                        </tr>
+                    </tfoot>
+                }
+            </table>
+        </div>
+    </div>
+    <!-- ── SECTION 3: FRAME TABLE ─────────────────────────────── -->
+    <div class="pb-card mb-3">
+        <div class="form-section-title">
+            <i class="bi bi-border-all"></i>
+            Frame Details
+            <span class="cost-row-count">
+                <span id="frameCount">@frameList.Count</span> frames
+            </span>
+        </div>
+
+        <div class="cost-table-wrap">
+            <table class="cost-table" id="frameTable">
+                <thead>
+                    <tr>
+                        <th style="width:54px;">Item</th>
+                        <th>Frame Position</th>
+                        <th class="num" style="text-align:center;">Frame Width</th>
+                        <th class="num" style="text-align:center;">Frame Length</th>
+                        <th style="text-align:center;">Size / Section</th>
+                        <th class="num">Weight (kg)</th>
+                        <th class="num">Gross Weight (kg)</th>
+                    </tr>
+                </thead>
+                <tbody id="frameTableBody">
+                    @if (!frameList.Any())
+                    {
+                        <tr id="frameEmptyRow">
+                            <td colspan="6">
+                                <div class="cost-empty">
+                                    <i class="bi bi-inbox"></i>
+                                    No frame data
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        int i = 0;
+                        foreach (var item in frameList)
+                        {
+                            i++;
+                            <tr>
+                                <td>@i</td>
+                                <td>
+                                    @(string.IsNullOrEmpty(item.DisplayPanelPosition)
+                                                                ? item.PanelPosition
+                                                                : item.DisplayPanelPosition)
+                        </td>
+                        <td class="num" style="text-align:center;">@item.FrameWidth.ToString("F0")</td>
+                        <td class="num" style="text-align:center;">@item.FrameHeight.ToString("F0")</td>
+                        <td style ="text-align:center;">@item.Section</td>
+                        <td class="num">@item.PanelWeight.ToString("F2")</td>
+                        <td class="num">@((item.PanelWeight * 1.05).ToString("F2"))</td>
+                    </tr>
+                                        }
+                    }
+                </tbody>
+                @if (frameList.Any())
+                {
+                    <tfoot>
+                        <tr>
+                            <td colspan="5" style="text-align:right;">
+                                Total Frame Weight
+                            </td>
+                            <td class="num" id="frameTotalWeight">
+                                @frameList.Sum(x => x.PanelWeight).ToString("F0")
+                            </td>
+                            <td class="num" id="frameTotalGrossWeight">
+                                @frameList.Sum(x => x.PanelWeight * 1.05).ToString("F0")
+                            </td>
+                        </tr>
+                    </tfoot>
+                }
+            </table>
+        </div>
+    </div>
+    <!-- ── SECTION: ADDITIONAL RAW MATERIALS ──────────────────── -->
+    <div class="pb-card mb-3">
+        <div class="form-section-title d-flex justify-content-between align-items-center">
+            <span>
+                <i class="bi bi-plus-square"></i>
+                Additional Raw Materials
+                <span class="cost-row-count">
+                    <span id="compCount">0</span> items
+                </span>
+            </span>
+            <button type="button" id="btnAddComponent" class="btn-pb-secondary">
+                <i class="bi bi-plus-lg"></i> Add Raw Material
+            </button>
+        </div>
+
+        <div class="cost-table-wrap">
+            <table class="cost-table" id="componentTable">
+                <thead>
+                    <tr>
+                        <th style="width:44px;">Item</th>
+                        <th>Description</th>
+                        <th>Item Code</th>            <!-- ← NEW -->
+                        <th class="num" style="text-align:center;">Qty</th>
+                        <th class="num" style="text-align:center;">Unit Weight (kg)</th>
+                        <th class="num">Total Weight (kg)</th>
+                        <th class="num">Rate (₹/kg)</th>
+                        <th class="num">Amount (₹)</th>
+                        <th style="width:36px;"></th>
+                    </tr>
+                </thead>
+                <tbody id="componentTableBody">
+                    @if (Model.AdditionalRMList == null || !Model.AdditionalRMList.Any())
+                    {
+                        <tr id="compEmptyRow">
+                            <td colspan="9">
+                                <div class="cost-empty">
+                                    <i class="bi bi-inbox"></i>
+                                    No additional raw materials added
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    @* else
+                    {
+                        <tr id="compEmptyRow" style="display:none;"></tr>
+                        int i = 0;
+                        foreach (var item in Model.AdditionalRMList)
+                        {
+                            i++;
+                            <tr data-row="@i">
+                                <td>@i</td>
+                                <td>@item.Description</td>
+                                <td>@item.ItemCode</td>          <!-- ← NEW -->
+                                <td class="num" style="text-align:center;">@item.Qty.ToString("F0")</td>
+                                <td class="num" style="text-align:center;">@item.UnitWeight.ToString("F2")</td>
+                                <td class="num">@item.TotalWeight.ToString("F0")</td>
+                                <td class="num">@item.Rate.ToString("F0")</td>
+                                <td class="num">@item.Amount.ToString("N0")</td>
+                                <td>
+                                    <button type="button" class="btn-comp-del"
+                                            data-row="@i" title="Remove">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    } *@
+                    else
+                    {
+                        <tr id="compEmptyRow" style="display:none;"></tr>
+                        int i = 0;
+                        foreach (var item in Model.AdditionalRMList)
+                        {
+                            i++;
+                            <tr data-row="@i">
+                                <td>@i</td>
+                                <td>@item.Description</td>
+                                @* <td>
+                                    <input type="text" class="pb-input rm-inline" data-f="itemcode"
+                                           value="@item.ItemCode" placeholder="Item Code" autocomplete="off" />
+                                </td> *@
+                                <td>
+                                    <input type="text" class="pb-input rm-inline additional-item-code" data-f="itemcode"
+                                           value="@item.ItemCode" placeholder="Item Code" autocomplete="off" />
+                                </td>
+                                <td class="num">
+                                    <input type="number" class="pb-input rm-inline" data-f="qty"
+                                           value="@item.Qty.ToString("F0")" min="0" step="1" />
+                                </td>
+                                <td class="num">
+                                    <input type="number" class="pb-input rm-inline" data-f="uw"
+                                           value="@item.UnitWeight.ToString("F2")" min="0" step="0.01" />
+                                </td>
+                                <td class="num rm-tw">
+                                    <input type="number" class="pb-input rm-inline" data-f="tw"
+                                           value="@item.TotalWeight.ToString("F0")" min="0" step="1" />
+                                </td>
+                                @* <td class="num">
+                                    <input type="number" class="pb-input rm-inline" data-f="rate"
+                                           value="@item.Rate.ToString("F0")" min="0" step="0.01" />
+                                </td> *@
+                                <td class="num">
+                                    <input type="number" class="pb-input rm-inline additional-rate" data-f="rate"
+                                           value="@item.Rate.ToString("F0")" min="0" step="0.01" />
+                                    <div class="rate-status" style="display:none;"></div>
+                                </td>
+                                <td class="num rm-amt">@item.Amount.ToString("N0")</td>
+                                <td>
+                                    <button type="button" class="btn-comp-del"
+                                            data-row="@i" title="Remove">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+                <tfoot id="compFooter"
+                       style="@(Model.AdditionalRMList != null && Model.AdditionalRMList.Any() ? "" : "display:none;")">
+                    <tr>
+                        <td colspan="5" style="text-align:right;">Total</td>
+                        <td class="num" id="compTotalWeight">
+                            @Model.AddRMWeight.ToString("F0")
+                        </td>
+                        <td></td>
+                        <td class="num" id="compTotalAmount">
+                            @Model.AddRMCost.ToString("N0")
+                        </td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <!-- ── ADD RAW MATERIAL MODAL ──────────────────────────────── -->
+    <div id="addComponentModal" class="cost-modal-backdrop">
+        <div class="cost-modal">
+            <div class="cost-modal-header">
+                <div class="cost-modal-title">
+                    <i class="bi bi-plus-circle"></i>
+                    Add Raw Material
+                </div>
+                <button type="button" id="btnCloseModal" class="cost-modal-close" aria-label="Close">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
+            <div class="pb-form-group">
+                <label class="pb-label">Description</label>
+                <input type="text" class="pb-input" id="compDesc"
+                       placeholder="e.g. MS Plate 8mm, MS Angle 50×50×5"
+                       autocomplete="off" />
+                <div class="cost-field-err" id="errDesc">Description is required</div>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-6">
+                    <div class="pb-form-group mb-0">
+                        <label class="pb-label">Quantity</label>
+                        <input type="number" class="pb-input" id="compQty"
+                               placeholder="0" min="0" step="1" />
+                        <div class="cost-field-err" id="errQty">Enter a valid quantity</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="pb-form-group mb-0">
+                        <label class="pb-label">Unit Weight (kg)</label>
+                        <input type="number" class="pb-input" id="compUnitWeight"
+                               placeholder="0.00" min="0" step="0.01" />
+                        <div class="cost-field-err" id="errUW">Enter a valid weight</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pb-form-group">
+                <label class="pb-label">Item Code</label>
+                <input type="text" class="pb-input additional-item-code" id="boCompItemCode"
+                       placeholder="Enter Item Code" autocomplete="off" />
+                <div class="cost-field-err" id="boErrItemCode">Enter a valid Item Code</div>
+                <div class="rate-status" style="display:none;"></div>
+            </div>
+
+            <div class="pb-form-group">
+                <label class="pb-label">Rate (₹ per kg)</label>
+                <input type="number" class="pb-input additional-rate" id="compRate"
+                       placeholder="0.00" min="0" step="0.01" readonly />
+                <div class="cost-field-err" id="errRate">Enter a valid rate</div>
+            </div>
+
+
+            <!-- Live calc preview -->
+            <div id="compCalcPreview" class="cost-calc-preview" style="display:none;">
+                <span class="ccp-label">Calculated</span>
+                <div class="ccp-values">
+                    <div class="ccp-group">
+                        <span class="ccp-sub">Total weight</span>
+                        <span class="ccp-val" id="prevWeight">0.00 kg</span>
+                    </div>
+                    <div class="ccp-group">
+                        <span class="ccp-sub">Amount</span>
+                        <span class="ccp-val" id="prevAmount">₹0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cost-modal-footer">
+                <button type="button" id="btnCancelModal" class="btn-pb-secondary">
+                    Cancel
+                </button>
+                <button type="button" id="btnConfirmAdd" class="btn-pb-primary">
+                    <i class="bi bi-check-lg"></i> Add to List
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- ── SECTION 4: COST SUMMARY + SAVE ─────────────────────── -->
+    <div class="pb-card mb-3">
+        <div class="form-section-title">
+            <i class="bi bi-calculator"></i>
+            Cost Summary
+        </div>
+
+        <!-- Summary cards -->
+        <div class="cost-summary-grid mb-4">
+            <div class="cost-summary-card">
+                <div class="cs-label">RM Weight of Panels (kg)</div>
+               @*  <div class="cs-value" id="dispRMWeightPanels">
+                    @Model.RMWeightOfPanels.ToString("F0")
+                </div> *@
+                <div class="cs-value" id="dispRMWeightPanels">
+                    @rmWeightPanelsCombined.ToString("F0")
+                </div>
+            </div>
+            <div class="cost-summary-card">
+                <div class="cs-label">Total Cost of Panels (₹)</div>
+                <div class="cs-value" id="dispTotalCostPanels">
+                    @Model.TotalPriceofPanels.ToString("N0")
+                </div>
+            </div>
+            <div class="cost-summary-card">
+                <div class="cs-label">RM Weight of Frame (kg)</div>
+                <div class="cs-value" id="dispRMWeightFrame">
+                    @Model.TotalWeightOfFrame.ToString("F0")
+                </div>
+            </div>
+            <div class="cost-summary-card">
+                <div class="cs-label">Total Cost of Frame (₹)</div>
+                <div class="cs-value" id="dispTotalCostFrame">
+                    @Model.TotalPriceofFrame.ToString("N0")
+                </div>
+            </div>
+
+            <!-- after the existing 5 cards, before closing </div> of cost-summary-grid -->
+            <div class="cost-summary-card">
+                <div class="cs-label">Additional RM Weight (kg)</div>
+                <div class="cs-value" id="dispAddRMWeight">
+                    @Model.AddRMWeight.ToString("F0")
+                </div>
+            </div>
+            <div class="cost-summary-card">
+                <div class="cs-label">Additional RM Cost (₹)</div>
+                <div class="cs-value" id="dispAddRMCost">
+                    @Model.AddRMCost.ToString("N0")
+                </div>
+            </div>
+
+
+
+            <div class="cost-summary-card success">
+                <div class="cs-label">Total Cost of RM (₹)</div>
+                <div class="cs-value" id="dispTotalRM">
+                    @Model.TotalCostOfRawMaterials.ToString("N0")
+                </div>
+            </div>
+        </div>
+
+        <!-- Save form -->
+        <form asp-action="SaveCosting"
+              asp-controller="Costing"
+              method="post"
+              id="costingForm">
+            @Html.AntiForgeryToken()
+
+            <input type="hidden" asp-for="RMWeightOfPanels"
+                   id="hRMWeightOfPanels" />
+            <input type="hidden" asp-for="TotalPriceofPanels"
+                   id="hTotalPriceofPanels" />
+            <input type="hidden" asp-for="TotalWeightOfFrame"
+                   id="hTotalWeightOfFrame" />
+            <input type="hidden" asp-for="TotalPriceofFrame"
+                   id="hTotalPriceofFrame" />
+            <input type="hidden" asp-for="TotalCostOfRawMaterials"
+                   id="hTotalCostOfRawMaterials" />
+            <input type="hidden" id="hAddRMWeight" name="AddRMWeight"
+                   value="@Model.AddRMWeight.ToString("F0")" />
+            <input type="hidden" id="hAddRMCost" name="AddRMCost"
+                   value="@Model.AddRMCost.ToString("F0")" />
+
+            <div class="form-btn-row">
+                <button type="submit" id="btnSave" class="btn-pb-primary">
+                    <div class="btn-spinner"></div>
+                    <span class="btn-text">
+                        <i class="bi bi-floppy"></i> Save Costing
+                    </span>
+                </button>
+
+                <button type="button" id="btnExport" class="btn-pb-secondary">
+                    <i class="bi bi-file-earmark-excel"></i>
+                    Export FI Sheet
+                </button>
+
+                <a asp-controller="Costing" asp-action="Index"
+                   class="btn-pb-secondary">
+                    <i class="bi bi-x-lg"></i> Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+@section Scripts {
+    <script src="~/js/costing.js" asp-append-version="true"></script>
+    <script>
+        // ── Auto-fetch rate when user types an Item Code (grid rows + Add BO modal) ──
+        $(document).on('blur', '.additional-item-code', function () {
+            var $input = $(this);
+            var itemCode = $input.val().trim();
+            if (!itemCode) return;
+
+            var $row = $input.closest('tr');
+            var isModal = $row.length === 0; // no <tr> ancestor → modal context
+
+            // Find the matching rate field: within the row for grids,
+            // within the modal form-group siblings for the modal
+            var $rateInput = isModal
+                ? $input.closest('.cost-modal').find('.additional-rate')
+                : $row.find('.additional-rate');
+
+            var $statusEl = isModal
+                ? $input.closest('.pb-form-group').find('.rate-status')
+                : $row.find('.rate-status');
+
+            var lastKnownRate = parseFloat($rateInput.data('last-rate')) || 0;
+
+            $.getJSON('@Url.Action("GetItemRate", "Costing")',
+                { itemCode: itemCode },
+                function (res) {
+                    if (res.success) {
+                        $rateInput.val(res.rate.toFixed(2));
+                        $input.removeClass('rate-fallback-warning');
+                        $rateInput.data('last-rate', res.rate);
+                        $statusEl.text('').hide();
+                    } else {
+                        $rateInput.val(isModal ? '' : lastKnownRate.toFixed(2));
+                        $input.addClass('rate-fallback-warning');
+                        $statusEl.text('⚠ ' + (res.message || 'Item not found — using last saved rate')).show();
+                    }
+                    $rateInput.trigger('input');
+                }
+            ).fail(function () {
+                $rateInput.val(isModal ? '' : lastKnownRate.toFixed(2));
+                $input.addClass('rate-fallback-warning');
+                $statusEl.text('⚠ API unreachable — using last saved rate').show();
+                $rateInput.trigger('input');
+            });
+        });
+    </script>
+
+    <script>
+        $(function () {
+            initAutocomplete('@Url.Action("SearchEnquiryCode", "Costing")');
+            initSearch('@Url.Action("SearchByEnquiryID", "Costing")');
+            initSave();
+            initExport('@Url.Action("ExportFISheet", "Costing")');
+            initAlerts();
+            initComponents();  // ← add this
+        });
+            // ── Collapsible grid cards ──────────────────────────────
+        (function initCollapsibleCards() {
+            $('.pb-card').has('table.cost-table').each(function () {
+                var $card  = $(this);
+                var $title = $card.children('.form-section-title').first();
+                if (!$title.length) return;
+                $card.addClass('collapsible');
+                if (!$title.find('.collapse-chevron').length) {
+                    $title.append('<i class="bi bi-chevron-down collapse-chevron"></i>');
+                }
+            });
+
+            // ignore clicks on the "Add Raw Material" button etc. inside a title
+            $(document).on('click', '.pb-card.collapsible > .form-section-title', function (e) {
+                if ($(e.target).closest('button, a').length) return;
+                $(this).closest('.pb-card').toggleClass('collapsed');
+            });
+        })();
+    </script>
+}

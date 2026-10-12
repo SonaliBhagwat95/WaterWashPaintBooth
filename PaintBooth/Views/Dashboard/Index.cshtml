@@ -1,0 +1,406 @@
+@model PaintBooth.Models.DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+    var userName = Context.Session.GetString("FullName") ?? "Admin";
+}
+
+@* ── Load dashboard.css only on this page ── *@
+@section Styles {
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+}
+
+<!-- ── PAGE HEADER ──────────────────────────────────────────── -->
+<div class="page-header">
+    <div>
+        <div class="page-header-title">Welcome, @userName</div>
+        <div class="page-header-sub">Here's your Bullows overview for today</div>
+    </div>
+</div>
+
+<!-- ── STAT CARDS ───────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+
+    <!-- Enquiries — real data -->
+    <div class="col-xl-2 col-lg-4 col-sm-6">
+        <a asp-controller="Enquiry" asp-action="Index" class="dash-stat-link">
+            <div class="stat-card">
+                <div class="stat-icon yellow">
+                    <i class="bi bi-clipboard2-text"></i>
+                </div>
+                <div>
+                    <div class="stat-value" id="valEnquiries">@Model.TotalEnquiries</div>
+                    <div class="stat-label">Enquiries</div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Paintbooth Design — coming soon -->
+    <div class="col-xl-2 col-lg-4 col-sm-6">
+        <div class="stat-card stat-card-disabled"
+             title="Available when Paintbooth Design module is ready">
+            <div class="stat-icon blue">
+                <i class="bi bi-palette"></i>
+            </div>
+            <div>
+                <div class="stat-value">@Model.TotalPaintboothDesigns</div>
+                <div class="stat-label">Booth Designs</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Raw Material Costing — coming soon -->
+    <div class="col-xl-2 col-lg-4 col-sm-6">
+        <div class="stat-card stat-card-disabled"
+             title="Available when Raw Material Costing module is ready">
+            <div class="stat-icon green">
+                <i class="bi bi-boxes"></i>
+            </div>
+            <div>
+                <div class="stat-value">@Model.TotalRawMaterialCosts</div>
+                <div class="stat-label">Material Costings</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BO Calculations — coming soon -->
+    <div class="col-xl-2 col-lg-4 col-sm-6">
+        <div class="stat-card stat-card-disabled"
+             title="Available when BO Calculations module is ready">
+            <div class="stat-icon purple">
+                <i class="bi bi-calculator"></i>
+            </div>
+            <div>
+                <div class="stat-value">@Model.TotalBOCalculations</div>
+                <div class="stat-label">BO Calculations</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Price BIDs — coming soon -->
+    <div class="col-xl-2 col-lg-4 col-sm-6">
+        <div class="stat-card stat-card-disabled"
+             title="Available when Price BID module is ready">
+            <div class="stat-icon">
+                <i class="bi bi-cash-coin"></i>
+            </div>
+            <div>
+                <div class="stat-value">@Model.TotalPriceBIDs</div>
+                <div class="stat-label">Price BIDs</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Projects — coming soon -->
+    <div class="col-xl-2 col-lg-4 col-sm-6">
+        <div class="stat-card stat-card-disabled"
+             title="Available when Project module is ready">
+            <div class="stat-icon red">
+                <i class="bi bi-building-gear"></i>
+            </div>
+            <div>
+                <div class="stat-value">@Model.TotalProjects</div>
+                <div class="stat-label">Projects</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ── PROJECT PIPELINE ─────────────────────────────────────── -->
+<div class="pb-card mb-4">
+    <div class="pb-card-header">
+        <div class="pb-card-title">
+            <i class="bi bi-arrow-right-circle me-2 text-accent"></i>
+            Project Pipeline
+        </div>
+        <span class="text-muted-sm">Based on Enquiry DraftType</span>
+    </div>
+
+    <div class="pipeline-wrap">
+
+        <div class="pipeline-stage"
+             data-stage="Enquiry"
+             title="Click to filter by Enquiry stage">
+            <div class="pipeline-count pipeline-color-warning">
+                @Model.PipelineEnquiry
+            </div>
+            <div class="pipeline-label">Enquiry</div>
+        </div>
+
+        <div class="pipeline-arrow">›</div>
+
+        <div class="pipeline-stage"
+             data-stage="Design"
+             title="Click to filter by Design stage">
+            <div class="pipeline-count pipeline-color-blue">
+                @Model.PipelineDesign
+            </div>
+            <div class="pipeline-label">Design</div>
+        </div>
+
+        <div class="pipeline-arrow">›</div>
+
+        <div class="pipeline-stage"
+             data-stage="Costing"
+             title="Click to filter by Costing stage">
+            <div class="pipeline-count pipeline-color-purple">
+                @Model.PipelineCosting
+            </div>
+            <div class="pipeline-label">Costing</div>
+        </div>
+
+        <div class="pipeline-arrow">›</div>
+
+        <div class="pipeline-stage"
+             data-stage="BID"
+             title="Click to filter by BID stage">
+            <div class="pipeline-count pipeline-color-accent">
+                @Model.PipelineBID
+            </div>
+            <div class="pipeline-label">BID</div>
+        </div>
+
+        <div class="pipeline-arrow">›</div>
+
+        <div class="pipeline-stage"
+             data-stage="Approval"
+             title="Click to filter by Approval stage">
+            <div class="pipeline-count pipeline-color-warning">
+                @Model.PipelineApproval
+            </div>
+            <div class="pipeline-label">Approval</div>
+        </div>
+
+        <div class="pipeline-arrow">›</div>
+
+        <div class="pipeline-stage"
+             data-stage="Project"
+             title="Click to filter by Project stage">
+            <div class="pipeline-count pipeline-color-blue">
+                @Model.PipelineProject
+            </div>
+            <div class="pipeline-label">Project</div>
+        </div>
+
+        <div class="pipeline-arrow">›</div>
+
+        <div class="pipeline-stage pipeline-stage-done"
+             data-stage="Delivered"
+             title="Click to filter by Delivered stage">
+            <div class="pipeline-count pipeline-color-success">
+                @Model.PipelineDelivered
+            </div>
+            <div class="pipeline-label">Delivered</div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ── BOTTOM ROW ────────────────────────────────────────────── -->
+<div class="row g-3">
+
+    <!-- Recent Enquiries -->
+    <div class="col-lg-7">
+        <div class="pb-card h-100">
+            <div class="pb-card-header">
+                <div class="pb-card-title">
+                    <i class="bi bi-clipboard2-text me-2"></i>
+                    Recent Enquiries
+                </div>
+                <a asp-controller="Enquiry"
+                   asp-action="Index"
+                   class="btn-pb-primary btn-sm-dash">
+                    <i class="bi bi-plus-lg"></i> New Enquiry
+                </a>
+            </div>
+
+            <div class="enq-table-wrap">
+                <table class="pb-table">
+                    <thead>
+                        <tr>
+                            <th>Sales No</th>
+                            <th>Customer</th>
+                            <th>Draft Type</th>
+                            <th class="hide-sm">Sub Type</th>
+                            <th class="hide-sm">Proposal Date</th>
+                            <th>RM Cost</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        @if (!Model.RecentEnquiries.Any())
+                        {
+                            <tr>
+                                <td colspan="7">
+                                    <div class="enq-empty">
+                                        <i class="bi bi-inbox"></i>
+                                        No enquiries found
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var enq in Model.RecentEnquiries)
+                            {
+                                <tr data-href="/Enquiry/Edit/@enq.EnquiryID">
+                                    <td>@enq.SalesNO</td>
+                                    <td>@enq.CustomerName</td>
+                                    <td>
+                                        <span class="badge-status @GetDraftBadge(enq.DraftType)">
+                                            @enq.DraftType
+                                        </span>
+                                    </td>
+                                    <td class="enq-sub-type hide-sm">@enq.SubType</td>
+                                    <td class="enq-date hide-sm">
+                                        @enq.EnquiryDate.ToString("dd MMM yyyy")
+                                    </td>
+                                    <td class="enq-rm-cost">
+                                        @enq.TotalCostOfRM.ToString("N2")
+                                    </td>
+                                    <td>
+                                        <a asp-controller="Enquiry"
+                                           asp-action="Edit"
+                                           asp-route-id="@enq.EnquiryID"
+                                           class="tbl-action-link">
+                                            <i class="bi bi-arrow-right"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+
+                    </tbody>
+                </table>
+            </div>
+
+            <a asp-controller="Enquiry"
+               asp-action="Index"
+               class="enq-view-all">
+                View all enquiries <i class="bi bi-arrow-right"></i>
+            </a>
+
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-5">
+
+        <!-- Pending Approvals -->
+        <div class="pb-card mb-3">
+            <div class="pb-card-header">
+                <div class="pb-card-title">
+                    <i class="bi bi-hourglass-split me-2"></i>
+                    Pending Approvals
+                </div>
+                <span class="badge-status badge-pending">
+                    @Model.PendingApprovals.Count
+                </span>
+            </div>
+
+            @if (!Model.PendingApprovals.Any())
+            {
+                <div class="approval-empty">
+                    <i class="bi bi-check-circle"></i>
+                    No pending approvals
+                    <div class="approval-empty-sub">
+                        Will show Price BIDs &amp; Proposals when ready
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="approval-list">
+                    @foreach (var item in Model.PendingApprovals)
+                    {
+                        <div class="approval-item">
+                            <div class="approval-dot @GetApprovalDot(item.ApprovalType)"></div>
+                            <div class="approval-info">
+                                <div class="approval-customer">@item.CustomerName</div>
+                            </div>
+                            <span class="badge-status @GetApprovalBadge(item.ApprovalType)">
+                                @item.ApprovalType
+                            </span>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- Activity Feed -->
+        <div class="pb-card">
+            <div class="pb-card-header">
+                <div class="pb-card-title">
+                    <i class="bi bi-activity me-2"></i>
+                    Activity Feed
+                </div>
+            </div>
+
+            @if (!Model.Activities.Any())
+            {
+                <div class="activity-empty">No recent activity</div>
+            }
+            else
+            {
+                <div class="activity-list">
+                    @foreach (var act in Model.Activities)
+                    {
+                        <div class="activity-item">
+                            <div class="activity-bar @GetActivityBar(act.Category)"></div>
+                            <div class="activity-msg">@act.Message</div>
+                            <div class="activity-time">@act.TimeAgo</div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+    </div>
+</div>
+
+@* ── Load dashboard.js only on this page ── *@
+@section Scripts {
+    <script src="~/js/dashboard.js" asp-append-version="true"></script>
+}
+
+@* ── Helper functions ── *@
+@functions {
+    string GetDraftBadge(string draftType) => draftType?.ToLower() switch
+    {
+        "enquiry"   => "badge-pending",
+        "design"    => "badge-done",
+        "costing"   => "badge-inprogress",
+        "bid"       => "badge-inprogress",
+        "approval"  => "badge-pending",
+        "project"   => "badge-active",
+        "delivered" => "badge-active",
+        _           => "badge-pending"
+    };
+
+    string GetApprovalDot(string type) => type switch
+    {
+        "Price BID" => "dot-accent",
+        "Proposal"  => "dot-warning",
+        "BO Calc"   => "dot-purple",
+        _           => "dot-accent"
+    };
+
+    string GetApprovalBadge(string type) => type switch
+    {
+        "Price BID" => "badge-inprogress",
+        "Proposal"  => "badge-pending",
+        "BO Calc"   => "badge-qc",
+        _           => "badge-pending"
+    };
+
+    string GetActivityBar(string category) => category switch
+    {
+        "Enquiry" => "bar-accent",
+        "Project" => "bar-blue",
+        "BID"     => "bar-warning",
+        "Approval"=> "bar-purple",
+        _         => "bar-accent"
+    };
+}

@@ -1,0 +1,482 @@
+@model PaintBooth.Models.PanelSettingFormViewModel
+@{
+    ViewData["Title"] = "Add Setting";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/setting.css" asp-append-version="true" />
+    <link href="~/css/paintbooth.css" rel="stylesheet" />
+
+}
+<!-- ── PAGE HEADER ──────────────────────────────────────────── -->
+<div class="page-header">
+    <div>
+        <div class="page-header-title">Add Paintbooth Setting</div>
+        <div class="page-header-sub">
+            Configure panel settings for an enquiry
+        </div>
+    </div>
+    <a asp-controller="PanelSetting" asp-action="Index"
+       class="btn-pb-secondary">
+        <i class="bi bi-arrow-left"></i> Back to List
+    </a>
+</div>
+
+<form asp-action="SaveSetting" asp-controller="PanelSetting"
+      method="post" id="settingForm">
+    @Html.AntiForgeryToken()
+    <input type="hidden" id="hdnPaintboothType" value="@Model.PaintboothType" />
+    <!-- ── SECTION 1: Enquiry Selection ──────────────────────── -->
+    <div class="pb-card mb-3">
+        <div class="form-section-title">
+            <i class="bi bi-clipboard2-text"></i>
+            Enquiry Selection
+        </div>
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">
+                        Enquiry Code <span class="req-star">*</span>
+                    </label>
+          @*           <div class="setting-autocomplete-wrap"> *@
+                    <div class="pb-autocomplete-wrap">
+                        <input type="text"
+                               class="pb-input"
+                               id="txtEnquiryCode"
+                               name="SalesNo"
+                               placeholder="Type enquiry code..."
+                               autocomplete="off"
+                               value="@Model.SalesNo" />
+                        <div id="resultsContainer" class="pb-dropdown"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">
+                        Setting Type <span class="req-star">*</span>
+                    </label>
+                    <select id="SettingType" class="pb-select">
+                        <option value="">-- Select Type --</option>
+                        <option value="Paintbooth">Paint booth</option>
+                        <option value="Extraction">Extraction Chamber</option>
+                    </select>
+                </div>
+              
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ── SECTION 2: Panel Configuration ───────────────────── -->
+    <div class="pb-card mb-3">
+        <div class="form-section-title">
+            <i class="bi bi-layout-three-columns"></i>
+            Panel Configuration
+            <div class="setting-img-toggle ms-auto">
+                <button type="button" class="setting-img-btn active"
+                        id="btnShowDiagram" title="Show bend diagram">
+                    <i class="bi bi-image"></i> Bend Diagram
+                </button>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <!-- Left: Form fields -->
+            <div class="col-md-8">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Panel Width (mm)<span class="req-star">*</span></label>
+                            <input type="text" id="txtPanelWidth"
+                                   class="pb-input" placeholder="e.g. 1140" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Panel Height (mm)<span class="req-star">*</span></label>
+                            <input type="text" id="txtPanelHeight"
+                                   class="pb-input" placeholder="e.g. 2390" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Sheet Thickness (mm)<span class="req-star">*</span></label>
+                            <select id="SheetThickness" class="pb-select">
+                                <option value="">-- Select --</option>
+                                <option value="1.2">1.2</option>
+                                <option value="1.6">1.6</option>
+                                <option value="2.0">2.0</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Section<span class="req-star">*</span></label>
+                            <select id="drpSection" class="pb-select">
+                                <option value="">-- Select --</option>
+                                <option value="Bend Section">Bend Section</option>
+                                <option value="Structural member">Structural Member</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Bend / Structural M.<span class="req-star">*</span></label>
+                            <select id="drpBendStructural" class="pb-select">
+                                <option value="">-- Select --</option>
+                            </select>
+                            <input type="text"
+                                   id="txtCustomBendSection"
+                                   class="pb-input mt-1"
+                                   placeholder="Enter custom value"
+                                   style="display:none;" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="pb-form-group">
+                            <label class="pb-label setting-label-accent">
+                                Standard Bend-1<span class="req-star">*</span>
+                            </label>
+                            <input type="text" id="txtStandardBend1"
+                                   class="pb-input" placeholder="15" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="pb-form-group">
+                            <label class="pb-label setting-label-accent">
+                                Standard Bend-2<span class="req-star">*</span>
+                            </label>
+                            <input type="text" id="txtStandardBend2"
+                                   class="pb-input" placeholder="38" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="pb-form-group">
+                            <label class="pb-label setting-label-accent">
+                                Pitch Distance<span class="req-star">*</span>
+                            </label>
+                            <input type="text" id="txtPitchDistance"
+                                   class="pb-input" placeholder="Distance" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Slot Dimensions<span class="req-star">*</span></label>
+                            <select id="SlotDimensions" class="pb-select">
+                                <option value="">-- Select --</option>
+                                <option value="10-12">10-12</option>
+                                <option value="10-18">10-18</option>
+                                <option value="12-16">12-16</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Bend diagram image -->
+            @* <div class="col-md-4" id="bendDiagramCol">
+                <div class="setting-diagram-card">
+                    <div class="setting-diagram-label">
+                        <i class="bi bi-image"></i> Bend Details
+                    </div>
+                    <img src="~/img/StandardBend1.jpg"
+                         alt="Bend Details Diagram"
+                         class="setting-diagram-img" />
+                </div>
+            </div> *@
+            <!-- RIGHT: Bend diagram SVG -->
+            <div class="col-md-4" id="bendDiagramCol">
+                <div class="setting-diagram-card">
+                    <div class="setting-diagram-label">
+                        <i class="bi bi-image"></i> Bend Details
+                    </div>
+                    <svg width="100%" viewBox="0 0 680 520" style="max-height:340px;">
+                        <defs>
+                            <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                                <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                            </marker>
+                            <marker id="arr2" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                                <path d="M8 1L2 5L8 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                            </marker>
+                        </defs>
+
+                        <!-- Bend profile -->
+                        <polyline points="60,160 220,160 220,220 180,220 180,380"
+                                  fill="none" stroke="var(--text-primary)" stroke-width="2.5" stroke-linejoin="miter" />
+                        <polyline points="180,380 180,400 160,400"
+                                  fill="none" stroke="var(--text-primary)" stroke-width="2.5" />
+                        <polyline points="60,380 80,370 70,360 90,350"
+                                  fill="none" stroke="var(--text-primary)" stroke-width="1.5" />
+
+                        <!-- BEND 2 dimension -->
+                        <line x1="60" y1="140" x2="220" y2="140" stroke="var(--accent)" stroke-width="1"
+                              marker-start="url(#arr2)" marker-end="url(#arr)" />
+                        <line x1="60" y1="133" x2="60" y2="162" stroke="var(--accent)" stroke-width="0.8" />
+                        <line x1="220" y1="133" x2="220" y2="162" stroke="var(--accent)" stroke-width="0.8" />
+                        <text x="140" y="128" text-anchor="middle"
+                              font-size="11" fill="var(--accent)" font-family="inherit">BEND 2</text>
+
+                        <!-- BEND 1 dimension -->
+                        <line x1="238" y1="160" x2="238" y2="220" stroke="var(--accent)" stroke-width="1"
+                              marker-start="url(#arr2)" marker-end="url(#arr)" />
+                        <line x1="218" y1="160" x2="244" y2="160" stroke="var(--accent)" stroke-width="0.8" />
+                        <line x1="218" y1="220" x2="244" y2="220" stroke="var(--accent)" stroke-width="0.8" />
+                        <text x="258" y="196" text-anchor="start"
+                              font-size="11" fill="var(--accent)" font-family="inherit">BEND 1</text>
+
+                        <!-- BEND DETAILS label -->
+                        <text x="140" y="460" text-anchor="middle"
+                              font-size="13" font-weight="600" fill="var(--text-secondary)" font-family="inherit">BEND DETAILS</text>
+
+                        <!-- Panel outline -->
+                        <rect x="360" y="30" width="200" height="430" rx="2"
+                              fill="none" stroke="#1D9E75" stroke-width="2" />
+
+                        <!-- Cutout hourglass shape -->
+                        <polygon points="420,120 500,120 480,250 500,310 420,310 440,250"
+                                 fill="none" stroke="var(--text-primary)" stroke-width="1.5" />
+                        <line x1="420" y1="120" x2="500" y2="310" stroke="var(--text-muted)" stroke-width="0.8" opacity="0.5" />
+                        <line x1="500" y1="120" x2="420" y2="310" stroke="var(--text-muted)" stroke-width="0.8" opacity="0.5" />
+
+                        <!-- PANEL WIDTH -->
+                        <line x1="360" y1="476" x2="560" y2="476" stroke="var(--accent)" stroke-width="1"
+                              marker-start="url(#arr2)" marker-end="url(#arr)" />
+                        <line x1="360" y1="462" x2="360" y2="480" stroke="var(--accent)" stroke-width="0.8" />
+                        <line x1="560" y1="462" x2="560" y2="480" stroke="var(--accent)" stroke-width="0.8" />
+                        <text x="460" y="494" text-anchor="middle"
+                              font-size="11" fill="var(--accent)" font-family="inherit">PANEL WIDTH</text>
+
+                        <!-- PANEL HEIGHT -->
+                        <line x1="576" y1="30" x2="576" y2="460" stroke="var(--accent)" stroke-width="1"
+                              marker-start="url(#arr2)" marker-end="url(#arr)" />
+                        <line x1="562" y1="30" x2="580" y2="30" stroke="var(--accent)" stroke-width="0.8" />
+                        <line x1="562" y1="460" x2="580" y2="460" stroke="var(--accent)" stroke-width="0.8" />
+                        <text x="600" y="248" text-anchor="middle" font-size="11"
+                              fill="var(--accent)" font-family="inherit"
+                              transform="rotate(90,600,248)">PANEL HEIGHT</text>
+
+                        <!-- CUTOUT HEIGHT -->
+                        <line x1="345" y1="120" x2="345" y2="310" stroke="var(--accent)" stroke-width="1"
+                              marker-start="url(#arr2)" marker-end="url(#arr)" />
+                        <line x1="345" y1="120" x2="422" y2="120" stroke="var(--accent)" stroke-width="0.8" stroke-dasharray="3 2" />
+                        <line x1="345" y1="310" x2="422" y2="310" stroke="var(--accent)" stroke-width="0.8" stroke-dasharray="3 2" />
+                        <text x="338" y="222" text-anchor="middle" font-size="11"
+                              fill="var(--accent)" font-family="inherit"
+                              transform="rotate(-90,338,222)">CUTOUT HEIGHT</text>
+
+                        <!-- CUTOUT WIDTH -->
+                        <line x1="420" y1="326" x2="500" y2="326" stroke="var(--accent)" stroke-width="1"
+                              marker-start="url(#arr2)" marker-end="url(#arr)" />
+                        <line x1="420" y1="312" x2="420" y2="330" stroke="var(--accent)" stroke-width="0.8" />
+                        <line x1="500" y1="312" x2="500" y2="330" stroke="var(--accent)" stroke-width="0.8" />
+                        <text x="460" y="344" text-anchor="middle"
+                              font-size="11" fill="var(--accent)" font-family="inherit">CUTOUT WIDTH</text>
+
+                        <!-- CUTOUT X DISTANCE -->
+                        <line x1="360" y1="360" x2="420" y2="360" stroke="var(--accent)" stroke-width="1"
+                              marker-start="url(#arr2)" marker-end="url(#arr)" />
+                        <line x1="360" y1="352" x2="360" y2="364" stroke="var(--accent)" stroke-width="0.8" />
+                        <line x1="420" y1="352" x2="420" y2="364" stroke="var(--accent)" stroke-width="0.8" />
+                        <text x="390" y="378" text-anchor="middle"
+                              font-size="10" fill="var(--accent)" font-family="inherit">CUTOUT X DIST.</text>
+
+                        <!-- CUTOUT Y DISTANCE -->
+                        <line x1="516" y1="30" x2="516" y2="120" stroke="var(--accent)" stroke-width="1"
+                              marker-start="url(#arr2)" marker-end="url(#arr)" />
+                        <line x1="422" y1="120" x2="560" y2="120" stroke="var(--accent)" stroke-width="0.8" stroke-dasharray="3 2" />
+                        <line x1="362" y1="30" x2="560" y2="30" stroke="var(--accent)" stroke-width="0.8" stroke-dasharray="3 2" />
+                        <text x="540" y="82" text-anchor="middle" font-size="11"
+                              fill="var(--accent)" font-family="inherit"
+                              transform="rotate(90,540,82)">CUTOUT Y DIST.</text>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── SECTION 3: Material & Lighting ────────────────────── -->
+    <div class="pb-card mb-3">
+        <div class="form-section-title">
+            <i class="bi bi-lightbulb"></i>
+            Material &amp; Lighting
+        </div>
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Materials<span class="req-star">*</span></label>
+                    <select id="Materials" class="pb-select">
+                        <option value="">-- Select --</option>
+                        <option value="G.I">G.I</option>
+                        <option value="MS">MS</option>
+                        <option value="SS304">SS304</option>
+                        <option value="Al">Al</option>
+                    </select>
+                </div>
+            </div>
+            <!-- ── NEW: Item Code + Rate ── -->
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Item Code<span class="req-star">*</span></label>
+                    <input type="text" id="txtItemCode" class="pb-input additional-item-code"
+                           placeholder="Enter Item Code" autocomplete="off" />
+                    <div class="rate-status" style="display:none;"></div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Rate (₹)</label>
+                    <input type="text" id="txtRate" class="pb-input additional-rate" readonly placeholder="0.00" />
+                </div>
+            </div>
+          
+           
+        </div>
+
+       @*  structural member itemcode  and rate *@
+        <div class="row g-3" id="divstructuralmember" style="display:none">
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Structural M.<span class="req-star">*</span></label>
+                    <input type="text" id="txtStructuralM" class="pb-input additional-rate" readonly placeholder="0.00" />
+                </div>
+            </div>
+            <!-- ── NEW: Item Code + Rate ── -->
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Item Code For Structural M.<span class="req-star">*</span></label>
+                    <input type="text" id="txtItemCodeForStructuralM" class="pb-input additional-item-code"
+                           placeholder="Enter Item Code" autocomplete="off" />
+                    <div class="rate-status" style="display:none;"></div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Rate (₹)</label>
+                    <input type="text" id="txtRateForStructuralM" class="pb-input additional-rate" readonly placeholder="0.00" />
+                </div>
+            </div>
+
+
+        </div>
+
+
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Light Type<span class="req-star">*</span></label>
+                    <select id="drpLightType" class="pb-select">
+                        <option value="">-- Select --</option>
+                        <option value="TubeLight">TubeLight</option>
+                        <option value="LED">LED</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Light Sub Type<span class="req-star">*</span></label>
+                    <select id="drpLightSubType" class="pb-select">
+                        <option value="">-- Select --</option>
+                        <option value="NFLP">NFLP</option>
+                        <option value="FLP">FLP</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label setting-label-accent">Booth Lux Level<span class="req-star">*</span></label>
+                    <input type="text" id="txtLuxLevel" class="pb-input"  placeholder="0" />
+                    <div id="luxLevelMsg" class="pb-field-msg" style="display:none;"></div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label setting-label-accent">Lumens<span class="req-star">*</span></label>
+                    <input type="text" id="txtLumens" class="pb-input" placeholder="0" />
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── ADD SETTING BUTTON ────────────────────────────────── -->
+    <div class="setting-add-row mb-3">
+        <button type="button" class="btn-pb-primary" id="btnAddSetting">
+            <i class="bi bi-plus-circle"></i> Add to List
+        </button>
+        <button type="button" class="btn-pb-secondary" id="btnClearForm">
+            <i class="bi bi-arrow-counterclockwise"></i> Clear
+        </button>
+        <span class="setting-add-hint">
+            <i class="bi bi-info-circle"></i>
+            Add Paintbooth and Extraction Chamber settings separately.Down Draft has no Extraction Chamber settings available.
+        </span>
+    </div>
+
+    <!-- ── SECTION 4: Added Settings (in-memory table) ───────── -->
+    <div class="pb-card mb-3">
+        <div class="pb-card-header">
+            <div class="pb-card-title">
+                <i class="bi bi-list-check me-2" style="color:var(--accent);"></i>
+                Added Settings
+            </div>
+            <span class="badge-status badge-inprogress" id="addedCount">
+                0 added
+            </span>
+        </div>
+
+        <div class="setting-table-wrap">
+            <table class="pb-table" id="settingsTable">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Panel Width</th>
+                        <th>Panel Height</th>
+                        <th>Thickness</th>
+                        <th>Section</th>
+                        <th>Material</th>
+                        <th>Item Code</th>
+                        <th>Rate</th>
+                        <th style="width:140px; text-align:right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="settingsTableBody">
+                    <tr id="emptySettingRow">
+                        <td colspan="7">
+                            <div class="setting-empty">
+                                <i class="bi bi-inbox"></i>
+                                No settings added yet
+                                <div class="setting-empty-sub">
+                                    Fill the form above and click "Add to List"
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Hidden inputs container — posted to server -->
+        <div id="hiddenInputsContainer"></div>
+    </div>
+
+    <!-- ── SAVE BUTTON ───────────────────────────────────────── -->
+    <div class="form-btn-row">
+        <button type="submit" class="btn-pb-primary"
+                id="saveButton" disabled>
+            <div class="btn-spinner"></div>
+            <span class="btn-text">
+                <i class="bi bi-check-lg"></i> Save Settings
+            </span>
+        </button>
+        <a asp-controller="PanelSetting" asp-action="Index"
+           class="btn-pb-secondary">
+            <i class="bi bi-x-lg"></i> Cancel
+        </a>
+    </div>
+
+</form>
+
+@section Scripts {
+    <script src="~/js/setting.js" asp-append-version="true"></script>
+}

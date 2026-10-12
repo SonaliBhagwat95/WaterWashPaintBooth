@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Platforms>AnyCPU;x64</Platforms>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CouchbaseNetClient" Version="3.7.1" />
+    <PackageReference Include="devDept.Eyeshot" Version="2025.3.437" />
+    <PackageReference Include="devDept.Eyeshot.Control.Win" Version="2025.3.437" />
+    <PackageReference Include="devDept.Eyeshot.x64" Version="2025.3.437" />
+    <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Bullows.Database\Bullows.Database.csproj" />
+    <ProjectReference Include="..\Bullows.Model\Bullows.Model.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="devDept\Geometry\" />
+  </ItemGroup>
+</Project>

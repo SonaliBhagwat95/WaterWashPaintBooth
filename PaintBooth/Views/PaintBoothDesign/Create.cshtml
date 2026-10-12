@@ -1,0 +1,1092 @@
+@model PaintBooth.Models.PaintBoothModel
+@{
+    ViewData["Title"] = "Paintbooth Design";
+    var isEdit = Model.PaintBoothID > 0;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/paintbooth.css" asp-append-version="true" />
+}
+
+<!-- ── PAGE HEADER ──────────────────────────────────────────── -->
+<div class="page-header">
+    <div>
+        <div class="page-header-title">
+            @(isEdit ? "Edit Paintbooth Design" : "New Paintbooth Design")
+        </div>
+        <div class="page-header-sub">
+            Step-by-step calculations for paintbooth design
+        </div>
+    </div>
+    <a asp-controller="PaintBoothDesign" asp-action="Index" class="btn-pb-secondary">
+        <i class="bi bi-arrow-left"></i> Back to List
+    </a>
+</div>
+
+<!-- Loading overlay -->
+<div id="pbLoader" class="pb-loader" style="display:none;">
+    <div class="pb-loader-inner">
+        <div class="pb-spinner"></div>
+        <div class="pb-loader-text">Generating drawings, please wait...</div>
+    </div>
+</div>
+
+<form asp-action="SavePaintBoothDetails" asp-controller="PaintBoothDesign"
+      method="post" id="pbForm">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="PaintBoothID" />
+    <input type="hidden" asp-for="ExhaustDuctingListJson" id="hiddenDuctingList" />
+    <!-- ✅ fixed — asp-for pre-fills the saved value -->
+    <input type="hidden" asp-for="MotorCatalogID" id="motorCatalogIDInput" />
+    <!-- ✅ REPLACE WITH THIS — no asp-for conflict, plain hidden inputs -->
+    <input type="hidden" id="hiddenWaterColumn" name="WaterColumnHidden" />
+    <input type="hidden" id="hiddenBlowerHp" name="BlowerHpHidden" />
+    <input type="hidden" id="hiddenWaterColumnRows" name="WaterColumnRowsJson" asp-for="WaterColumnRowsJson" />
+    <!-- ══════════════════════════════════════════════════════
+         SECTION 1 — ENQUIRY SELECTION
+    ══════════════════════════════════════════════════════ -->
+    <div class="pb-card mb-3">
+        <div class="form-section-title">
+            <i class="bi bi-clipboard2-text"></i>
+            Enquiry Selection
+        </div>
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <div class="pb-form-group mb-0">
+                    <label class="pb-label">Enquiry Code<span class="req-star">*</span></label>
+                    <div class="pb-autocomplete-wrap">
+                        <input type="text" asp-for="SalesNO"
+                               class="pb-input" id="txtEnquiryCode"
+                               placeholder="Type enquiry code..."
+                               autocomplete="off" />
+                        <div id="resultsContainer" class="pb-dropdown"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-auto">
+                <button type="button" id="searchbtn"
+                        class="btn-pb-primary" disabled>
+                    <i class="bi bi-search"></i> Search
+                </button>
+            </div>
+            @* <div class="col-md-auto">
+                <button type="button" id="showSettingDetails"
+                        class="btn-pb-secondary" disabled>
+                    <i class="bi bi-gear"></i> Setting
+                </button>
+            </div> *@
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTIONS 2–12 (hidden until Search clicked)
+    ══════════════════════════════════════════════════════ -->
+    <div id="divAllSections" style="display:none;">
+
+        <!-- ── SECTION 2: Component Details ──────────────────── -->
+        <div class="pb-card mb-3">
+            <div class="form-section-title">
+                <i class="bi bi-box-seam"></i>
+                Component Details
+                <span class="pb-readonly-badge">Read Only — from Enquiry</span>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Depth (mm)<span class="req-star">*</span></label>
+                        <input asp-for="Depth" class="pb-input pb-readonly"
+                               id="txtlenght" readonly />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Width (mm)<span class="req-star">*</span></label>
+                        <input asp-for="Width" class="pb-input pb-readonly"
+                               id="txtwidth" readonly />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Height (mm)<span class="req-star">*</span></label>
+                        <input asp-for="Height" class="pb-input pb-readonly"
+                               id="txtheight" readonly />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="pb-form-group">
+                        <label class="pb-label">EC Height (mm)<span class="req-star">*</span></label>
+                        <input asp-for="ExtractionChamberHeight"
+                               class="pb-input pb-readonly"
+                               id="txtExtractionChamberHeight" readonly />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── SECTION 3: PaintBooth Dimensions ──────────────── -->
+        <div class="pb-card mb-3">
+            <div class="form-section-title">
+                <i class="bi bi-rulers"></i>
+                Paintbooth Dimensions
+            </div>
+
+            <!-- D Row -->
+            <div class="pb-dim-row-label">D — Depth</div>
+            <div class="row g-2 mb-3">
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label">D1<span class="req-star">*</span></label>
+                        <input asp-for="D1" class="pb-input" id="txtD1" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label">D2<span class="req-star">*</span></label>
+                        <input asp-for="D2" class="pb-input" id="txtD2" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label">D3<span class="req-star">*</span></label>
+                        <input asp-for="D3" class="pb-input" id="txtD3" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label">D = D1+D2+Depth</label>
+                        <input asp-for="D" class="pb-input pb-readonly"
+                               id="txtD" readonly />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Std Panels</label>
+                        <input asp-for="StandardPanels" class="pb-input pb-readonly"
+                               id="txtstandardPanels" readonly />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Remaining</label>
+                        <input asp-for="RemainingPanels" class="pb-input pb-readonly"
+                               id="txtremaingPanels" readonly />
+                    </div>
+                </div>
+            </div>
+
+            <!-- W Row -->
+            <div class="pb-dim-row-label">W — Width</div>
+            <div class="row g-2 mb-3">
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label">W1<span class="req-star">*</span></label>
+                        <input asp-for="W1" class="pb-input" id="txtw1" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label">W2<span class="req-star">*</span></label>
+                        <input asp-for="W2" class="pb-input" id="txtw2" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label pb-label-accent">W3 (auto)</label>
+                        <input asp-for="W3" class="pb-input pb-readonly"
+                               id="txtw3" readonly />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label">W = W1+W2+Width</label>
+                        <input asp-for="W" class="pb-input pb-readonly"
+                               id="txtw" readonly />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Std Panels</label>
+                        <input asp-for="StandardPanelsByW" class="pb-input pb-readonly"
+                               id="txtstandardPanelsByW" readonly />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Remaining</label>
+                        <input asp-for="RemainingPanelsByW" class="pb-input pb-readonly"
+                               id="txtremaingPanelsByW" readonly />
+                    </div>
+                </div>
+            </div>
+            <!-- H Row -->
+            <div class="pb-dim-row-label">H — Height</div>
+            <div class="row g-2">
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label">H1<span class="req-star">*</span></label>
+                        <input asp-for="H1" class="pb-input" id="txtH1" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label">H2<span class="req-star">*</span></label>
+                        <input asp-for="H2" class="pb-input" id="txtH2" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label"> </label>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label">H = H1+H2+Height</label>
+                        <input asp-for="H" class="pb-input pb-readonly"
+                               id="txtH" readonly />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Std Panels</label>
+                        <input asp-for="StandardPanelsByH" class="pb-input pb-readonly"
+                               id="txtstandardPanelsByH" readonly />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Remaining</label>
+                        <input asp-for="RemainingPanelsByH" class="pb-input pb-readonly"
+                               id="txtremaingPanelsByH" readonly />
+                        <div id="remainingHeightError" class="form-field-error" style="display:none;">
+                            <i class="bi bi-exclamation-circle"></i>
+                            Remaining must be ≥ 250 mm or 0
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2" id="PanelsAboveFilterFrame">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Panel H above Filter</label>
+                        <input asp-for="PanelHeightAboveFilterFrame"
+                               class="pb-input pb-readonly"
+                               id="txtPanelHeightAboveFilterFrame" readonly />
+                    </div>
+                </div>
+            </div>
+            <div id="panelHeightAboveFilterError" class="pb-alert pb-alert-warning mt-2"
+                 style="display:none;">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span id="panelHeightAboveFilterMsg"></span>
+            </div>
+
+            <!-- PaintBooth diagram -->
+            @*  <div class="pb-diagram-card mt-3">
+                <img src="~/img/PaintBooth.png" alt="Paintbooth diagram"
+                     class="pb-diagram-img" />
+            </div> *@
+        </div>
+        <!-- ── SECTION: 3D Live Preview ──────────────────────────────── -->
+        <div class="pb-card mb-3">
+            <div class="form-section-title">
+                <i class="bi bi-box"></i>
+                3D Live Preview
+                <span style="font-size:10px;color:var(--text-muted);margin-left:8px;">
+                    Updates as you change dimensions above
+                </span>
+                <div style="margin-left:auto;display:flex;gap:8px;">
+                    <button type="button" id="btn3dReset" class="btn-pb-secondary"
+                            style="font-size:11px;padding:4px 12px;">
+                        <i class="bi bi-arrow-counterclockwise"></i> Reset
+                    </button>
+                    <button type="button" id="btn3dWire" class="btn-pb-secondary"
+                            style="font-size:11px;padding:4px 12px;">
+                        <i class="bi bi-grid-3x3"></i> Wireframe
+                    </button>
+                </div>
+            </div>
+
+            <canvas id="pb3dCanvas"
+                    style="width:100%;height:420px;display:block;
+                   border-radius:10px;background:#0d1117;
+                   cursor:grab;"></canvas>
+
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px;">
+                <div class="pb-dim-preview-card">
+                    <div style="font-size:10px;color:var(--text-muted);">D (Depth)</div>
+                    <div style="font-size:15px;font-weight:600;color:var(--accent);"
+                         id="preview3dD">
+                        —
+                    </div>
+                </div>
+                <div class="pb-dim-preview-card">
+                    <div style="font-size:10px;color:var(--text-muted);">W (Width)</div>
+                    <div style="font-size:15px;font-weight:600;color:var(--accent);"
+                         id="preview3dW">
+                        —
+                    </div>
+                </div>
+                <div class="pb-dim-preview-card">
+                    <div style="font-size:10px;color:var(--text-muted);">H (Height)</div>
+                    <div style="font-size:15px;font-weight:600;color:var(--accent);"
+                         id="preview3dH">
+                        —
+                    </div>
+                </div>
+                <div class="pb-dim-preview-card">
+                    <div style="font-size:10px;color:var(--text-muted);">C/S Area (m²)</div>
+                    <div style="font-size:15px;font-weight:600;color:var(--success);"
+                         id="preview3dA">
+                        —
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── SECTION 4: EC Service Door ─────────────────────── -->
+        <div class="pb-card mb-3">
+            <div class="form-section-title">
+                <i class="bi bi-door-open"></i>
+                EC Service Door
+            </div>
+            <div class="row g-3 align-items-center">
+                <div class="col-md-3">
+                    <label class="pb-checkbox-label">
+                        <input type="checkbox" asp-for="chkServiceDoor"
+                               id="chkServiceDoor" />
+                        Add EC Service Door?
+                    </label>
+                </div>
+            </div>
+            <div id="serviceDoorFields" class="row g-3 mt-2">
+                <div class="col-md-3">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Door Location</label>
+                        <select asp-for="ServiceDoorLocation" class="pb-select"
+                                id="drpServiceDoorLocation">
+                            <option value="">-- Select --</option>
+                            <option value="LeftSide">Left Side</option>
+                            <option value="RightSide">Right Side</option>
+                            <option value="Both Side">Both Side</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="pb-form-group">
+                        <label class="pb-label pb-label-accent">
+                            Door Height (mm)
+                        </label>
+                        <input asp-for="DoorHeight" class="pb-input"
+                               id="txtDoorHeight" placeholder="1180" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="pb-form-group">
+                        <label class="pb-label pb-label-accent">
+                            Door Width (mm)
+                        </label>
+                        <input asp-for="DoorWidth" class="pb-input"
+                               id="txtDoorWidth" placeholder="580" />
+                    </div>
+                </div>
+            </div>
+            <div id="serviceDoorError" class="form-field-error mt-2" style="display:none;">
+                <i class="bi bi-exclamation-circle"></i>
+                <span id="serviceDoorErrorMsg"></span>
+            </div>
+        </div>
+
+        <!-- ── SECTION 5: Component Entry Door ───────────────── -->
+        <div class="pb-card mb-3" id="divComponentEntry">
+            <div class="form-section-title">
+                <i class="bi bi-aspect-ratio"></i>
+                Component Entry Door Dimensions
+            </div>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Door Width (mm)<span class="req-star">*</span></label>
+                        <input asp-for="HingedDoorWidth" class="pb-input pb-readonly"
+                               id="txtHingedDoorWidth" />
+                        <div id="doorWidthError" class="form-field-error" style="display:none;">
+                            <i class="bi bi-exclamation-circle"></i>
+                            Width cannot exceed paintbooth width
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Door Height (mm)<span class="req-star">*</span></label>
+                        <input asp-for="HingedDoorHeight" class="pb-input"
+                               id="txtHingedDoorHeight" />
+                        <div id="doorHeightError" class="form-field-error" style="display:none;">
+                            <i class="bi bi-exclamation-circle"></i>
+                            Height cannot exceed paintbooth height
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3" id="DivBetweenCenterDistance" style="display:none">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Between Center Distance<span class="req-star">*</span></label>
+                        <input asp-for="BetweenCenterDistance" class="pb-input" id="BetweenCenterDistance" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── SECTION 6: Viewing Glass ──────────────────────── -->
+        <div class="pb-card mb-3" id="divViewingGlass">
+            <div class="form-section-title">
+                <i class="bi bi-eye"></i>
+                Viewing Glass (Optional)
+            </div>
+            <label class="pb-checkbox-label mb-2">
+                <input type="checkbox" asp-for="chkWatchDoor" id="chkWatchDoor" />
+                Add viewing glass?
+            </label>
+            <div id="watchGlassFields" class="row g-3" style="display:none;">
+                <div class="col-md-3">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Bottom Distance (mm)</label>
+                        <input asp-for="WatchGlassBottomDistance" class="pb-input"
+                               id="txtWatchGlassBottomDistance" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Height (mm)</label>
+                        <input asp-for="WatchglassHeight" class="pb-input"
+                               id="txtWatchglassHeight" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Width (mm)</label>
+                        <input asp-for="WatchglassWidth" class="pb-input"
+                               id="WatchglassWidth" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── SECTION 7: Blower Capacity ────────────────────── -->
+        <div class="pb-card mb-3">
+            <div class="form-section-title">
+                <i class="bi bi-wind"></i>
+                Blower Capacity
+            </div>
+            <div class="row g-3 mb-3">
+                <div class="col-md-3">
+                    <div class="pb-form-group">
+                        <label class="pb-label">C/S Area (sq m)<span class="req-star">*</span></label>
+                        <input asp-for="CrossSectionalArea" class="pb-input pb-readonly"
+                               id="txtCrossSectionalArea" readonly />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Velocity — Blower (m/s)<span class="req-star">*</span></label>
+                        <input asp-for="VelocityofBlower" class="pb-input"
+                               id="txtVelocityofBlower" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="pb-form-group">
+                        <label class="pb-label pb-label-accent">Capacity (m³/s)<span class="req-star">*</span></label>
+                        <input asp-for="CapacityofBlower" class="pb-input pb-readonly"
+                               id="txtCapacityofBlower" readonly />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="pb-form-group">
+                        <label class="pb-label pb-label-accent"> Total Capacity (m³/hr)<span class="req-star">*</span></label>
+                        <input asp-for="CapacityofBlowerinH" class="pb-input pb-readonly"
+                               id="txtCapacityofBlowerinH" readonly />
+                    </div>
+                </div>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Mounting Type<span class="req-star">*</span></label>
+                        <select asp-for="Mountingtype" class="pb-select"
+                                id="drpBlowerLocation" required>
+                            <option value="">-- Select --</option>
+                            <option value="FOOT MOUNTED">Foot Mounted</option>
+                            <option value="FLANGE MOUNTED">Flange Mounted</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Drive Type<span class="req-star">*</span></label>
+                        <select asp-for="Drivetype" class="pb-select"
+                                id="drpDrivenType" required>
+                            <option value="">-- Select --</option>
+                            <option value="DIRECT DRIVEN">Direct Driven</option>
+                            <option value="INDIRECT DRIVEN">Indirect Driven</option>
+                        </select>
+                    </div>
+                </div>
+                @* <div class="col-md-3">
+                    <div class="pb-form-group">
+                        <label class="pb-label">No. Of Blowers<span class="req-star">*</span></label>
+                        <input asp-for="NoOfBlowers" class="pb-input pb-readonly"
+                               id="txtNoOfBlowers" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Capacity for each Blowers<span class="req-star">*</span></label>
+                        <input asp-for="CapacityofEachBlower" class="pb-input pb-readonly"
+                               id="txtCapacityofeachBlower" readonly />
+                    </div>
+                </div> *@
+            </div>
+        </div>
+
+        <!-- ── SECTION 8: Filter Frame ───────────────────────── -->
+        <div class="pb-card mb-3">
+            <div class="form-section-title">
+                <i class="bi bi-grid-3x3"></i>
+                <span id="filterFrameSectionTitle">Filter Frame Design</span>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Capacity (m³/hr)</label>
+                        <input asp-for="CapacityofBlowerinH" class="pb-input pb-readonly"
+                               id="txtCapacityofBlowerinHReadonly" readonly />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Round Up Capacity</label>
+                        <input asp-for="CapacityofBlowerRoundOf" class="pb-input"
+                               id="txtCapacityofBlowerRoundOf" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Capacity (m³/s)</label>
+                        <input asp-for="CapacityofBlowerAfterRoundOup"
+                               class="pb-input pb-readonly"
+                               id="txtCapacityofBlowerRoundOfmpersec" readonly />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label pb-label-accent">
+                            Velocity — Filter Frame (m/s)
+                        </label>
+                        <input asp-for="VelocityofFilterFrame" class="pb-input"
+                               id="txtVelocityofFilterFrame" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Filter Area (sq m)<span class="req-star">*</span></label>
+                        <input asp-for="FilterArea" class="pb-input pb-readonly"
+                               id="txtFilterArea" readonly />
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="pb-form-group">
+                        <label class="pb-label">No. Of Blowers<span class="req-star">*</span></label>
+                        <input asp-for="NoOfBlowers" class="pb-input pb-readonly"
+                               id="txtNoOfBlowers" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Capacity for each Blowers<span class="req-star">*</span></label>
+                        <input asp-for="CapacityofEachBlower" class="pb-input pb-readonly"
+                               id="txtCapacityofeachBlower" readonly />
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ── SECTION 9: Exhaust Ducting ────────────────────── -->
+        <div class="pb-card mb-3">
+            <div class="form-section-title">
+                <i class="bi bi-pipe"></i>
+                Exhaust Ducting Details
+            </div>
+            <div class="row g-3 mb-3">
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label pb-label-accent">
+                            Duct Height (mm)
+                        </label>
+                        <input asp-for="ExhaustDuctHeight" class="pb-input pb-readonly"
+                               id="txtexhaustheight" readonly />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label pb-label-accent">
+                            Duct Width (mm)
+                        </label>
+                        <input asp-for="ExhaustWidth" class="pb-input"
+                               id="txtExhaustWidth" />
+                    </div>
+                </div>
+                @* <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label pb-label-accent">
+                            Duct Thickness (mm)
+                        </label>
+                        <input asp-for="ExhaustThickness" class="pb-input"
+                               id="txtExhaustThickness" />
+                    </div>
+                </div> *@
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label pb-label-accent">
+                            Duct Thickness (mm)
+                        </label>
+                        <input asp-for="ExhaustThickness" class="pb-input"
+                               id="txtExhaustThickness" type="number" min="0.1" step="0.1" />
+                        <span id="ductThicknessError" class="form-field-error" style="display:none;">
+                            <i class="bi bi-exclamation-circle"></i>
+                            Duct Thickness must be greater than 0.
+                        </span>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label pb-label-accent">
+                            Blower Orientation
+                        </label>
+                        <select asp-for="BlowerOrientation" class="pb-select"
+                                id="drpOrientaionBlower">
+                            <option value="90">90°</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ducting component add row -->
+            @* <div class="row g-3 align-items-end mb-3">
+                <div class="col-md-3">
+                    <div class="pb-form-group mb-0">
+                        <label class="pb-label pb-label-accent">
+                            Ducting Component
+                        </label>
+                        <select asp-for="ExhaustDucting" class="pb-select"
+                                id="drpBendDucting">
+                            <option value="">-- Select --</option>
+                            <option value="Bend Upwards" selected>Bend Upwards</option>
+                            <option value="Duct">Duct</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-2" id="dicductlength" style="display:none;">
+                    <div class="pb-form-group mb-0">
+                        <label class="pb-label pb-label-accent">
+                            Duct Length (mm)
+                        </label>
+                        <input asp-for="DuctLength" class="pb-input"
+                               id="txtDuctLength" />
+                    </div>
+                </div>
+                <div class="col-md-auto">
+                    <button type="button" id="btnAdd"
+                            class="btn-pb-secondary">
+                        <i class="bi bi-plus-circle"></i> Add
+                    </button>
+                </div>
+            </div> *@
+            <div class="row g-3 align-items-end mb-3">
+                <div class="col-md-3">
+                    <div class="pb-form-group mb-0">
+                        <label class="pb-label pb-label-accent">
+                            Ducting Component
+                        </label>
+                        <select asp-for="ExhaustDucting" class="pb-select"
+                                id="drpBendDucting">
+                            <option value="">-- Select --</option>
+                            <option value="Bend" selected>Bend</option>
+                            <option value="Duct">Duct</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="col-md-2" id="dicbenddir">
+                    <div class="pb-form-group mb-0">
+                        <label class="pb-label pb-label-accent">
+                            Bend Direction
+                        </label>
+                        <select asp-for="BendDirection" class="pb-select"
+                                id="drpBendDirection">
+                            <option value="Up" selected>Up</option>
+                            <option value="Right">Right</option>
+                            <option value="Left">Left</option>
+                            <option value="Down">Down</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-2" id="dicductorient" style="display:none;">
+                    <div class="pb-form-group mb-0">
+                        <label class="pb-label pb-label-accent">
+                            Duct Orientation
+                        </label>
+                        <select class="pb-select" id="drpDuctOrientation">
+                            <option value="Vertical" selected>Vertical</option>
+                            <option value="Horizontal">Horizontal</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-2" id="dicductlength" style="display:none;">
+                    <div class="pb-form-group mb-0">
+                        <label class="pb-label pb-label-accent">
+                            Duct Length (mm)
+                        </label>
+                        <input asp-for="DuctLength" class="pb-input"
+                               id="txtDuctLength" />
+                    </div>
+                </div>
+
+                <div class="col-md-auto">
+                    <button type="button" id="btnAdd"
+                            class="btn-pb-secondary">
+                        <i class="bi bi-plus-circle"></i> Add
+                    </button>
+                </div>
+            </div>
+            <!-- Ducting table -->
+            @* <table class="pb-table" id="componentsTable">
+                <thead>
+                    <tr>
+                        <th style="width:60px;">Sr.</th>
+                        <th>Bend Type</th>
+                        <th>Length</th>
+                        <th style="width:120px;text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr id="emptyDuctRow">
+                        <td colspan="4" style="text-align:center;color:var(--text-muted);padding:20px;">
+                            No ducting components added
+                        </td>
+                    </tr>
+                </tbody>
+            </table> *@
+
+
+
+            <div class="row g-3 mt-1">
+                <!-- LEFT: compact grid of added components -->
+                <div class="col-lg-7">
+                    <div class="pb-duct-grid">
+                        <table id="componentsTable" class="table pb-duct-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th style="width:50px;">Sr.</th>
+                                    <th>Bend Type</th>
+                                    <th>Length</th>
+                                    <th style="text-align:right;">Net Wt (kg)</th>
+                                    <th style="text-align:right;">Gross Wt (kg)</th>
+                                    <th style="text-align:right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr id="emptyDuctRow">
+                                    <td colspan="6" style="text-align:center;color:var(--text-muted);padding:20px;">
+                                        No ducting components added
+                                    </td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3" style="text-align:right;font-weight:500;color:var(--text-secondary);padding:10px 12px;">
+                                        Total Weight (kg):
+                                    </td>
+                                    <td id="ductNetTotalCell" style="text-align:right;font-weight:600;color:var(--text-secondary);padding:10px 12px;">0</td>
+                                    <td id="ductWtTotalCell" style="text-align:right;font-weight:600;color:var(--accent);padding:10px 12px;">0</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- RIGHT: 3D preview -->
+                <div class="col-lg-5">
+                    <div id="ductThreeWrap"
+                         style="width:100%;height:100%;min-height:320px;background:#0f1626;border-radius:12px;position:relative;cursor:grab;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── SECTION 10: Blower Power ──────────────────────── -->
+        <div class="pb-card mb-3">
+            <div class="form-section-title">
+                <i class="bi bi-lightning-charge"></i>
+                Blower Power Calculations
+            </div>
+            <div class="row g-3 align-items-center mb-3">
+                <div class="col-md-auto">
+                    <button type="button" id="btnWaterColumn"
+                            class="btn-pb-secondary">
+                        <i class="bi bi-droplet"></i> Water Column
+                    </button>
+                </div>
+
+
+            </div>
+
+            <!-- Pressure Drop Table -->
+            <div id="pressureDropSection" style="display:none;">
+                <table class="pb-table" id="pressureDropTable">
+                    <thead>
+                        <tr>
+                            <th style="width:50px;">Select</th>
+                            <th style="width:70px;">Item No.</th>
+                            <th>Description</th>
+                            <th style="width:100px;">Pressure Drop (mm)</th>
+                            <th style="width:80px;">Quantity</th>
+                            <th style="width:80px;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pressureDropBody"></tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="5" style="text-align:right;font-size:13px;color:var(--text-secondary);">
+                                Addition Factor:
+                            </td>
+                            <td>
+                                <input type="number" value="10" id="additionFactor"
+                                       class="pb-input" style="width:80px;" />
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="5" style="text-align:right;font-weight:600;color:var(--text-primary);">
+                                Grand Total:
+                            </td>
+                            <td id="grandTotal"
+                                style="text-align:center;font-weight:700;color:var(--accent);">
+                                0.00
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div class="row g-3 mb-3">
+                <div class="col-md-2">
+                    <div class="pb-form-group mb-0">
+                        <label class="pb-label pb-label-accent">
+                            Water Column (mm)
+                        </label>
+                        @*  <input asp-for="WaterColumn" class="pb-input"
+                               id="txtWater" /> *@
+                        <input asp-for="WaterColumn" class="pb-input" id="txtWater" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group mb-0">
+                        <label class="pb-label pb-label-accent">
+                            Blower HP
+                        </label>
+                        @* <input asp-for="BlowerHpCalculation" class="pb-input"
+                               id="txtHPCalculations" readonly /> *@
+                        <input asp-for="BlowerHpCalculation" class="pb-input" id="txtHPCalculations" readonly />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group mb-0">
+                        <button type="button" id="btnFetchRecords"
+                                class="btn-pb-secondary" style="margin-top:23px" disabled>
+                            <i class="bi bi-cpu"></i> Motor Details
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- Motor Table -->
+            <div id="motorTableSection" style="display:none;margin-top:16px;">
+                <table class="pb-table" id="motorFlangeTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Rated HP</th>
+                            @*  <th>Frame Size</th> *@
+                            <th>Type Ref</th>
+                            <th>Rated Speed</th>
+                            <th>Rated Current</th>
+                            <th>Efficiency</th>
+                            <th style="width:60px;">Select</th>
+                        </tr>
+                    </thead>
+                    <tbody id="motorFlangeBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ── SECTION 11: Blower Item Code ──────────────────── -->
+        <div class="pb-card mb-3">
+            <div class="form-section-title">
+                <i class="bi bi-tag"></i>
+                Blower Item Code
+            </div>
+            <div class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <div class="pb-form-group mb-0">
+                        <label class="pb-label">
+                            Static Pressure (mm)
+                            <small style="color:var(--text-muted);font-size:9px;">
+                                (ref: Water Column)
+                            </small>
+                        </label>
+                        <input type="number" id="txtStaticPressure"
+                               class="pb-input" value="0" min="0" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group mb-0">
+                        <label class="pb-label">Serial No. (0-9)</label>
+                        <input type="number" id="txtBlowerSerial"
+                               class="pb-input" value="0" min="0" max="9" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="pb-form-group mb-0">
+                        <label class="pb-label pb-label-accent">
+                            Generated Item Code
+                        </label>
+                        <input type="text" id="txtBlowerItemCode"
+                               asp-for="BlowerItemCode"
+                               class="pb-input pb-code-input" readonly />
+                    </div>
+                </div>
+            </div>
+            <div id="blowerCodeBreakdown" class="pb-code-breakdown mt-2"></div>
+        </div>
+
+        <!-- ── SECTION 12: Motor Item Code ───────────────────── -->
+        <div class="pb-card mb-3" id="divMotorItemCode" style="display:none;">
+            <div class="form-section-title">
+                <i class="bi bi-gear"></i>
+                Motor Item Code
+            </div>
+            <div class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <div class="pb-form-group mb-0">
+                        <label class="pb-label">Phase</label>
+                        <select id="drpMotorPhase" class="pb-select">
+                            <option value="1">1 — Single Phase</option>
+                            <option value="3" selected>3 — Three Phase</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group mb-0">
+                        <label class="pb-label">No. of Poles</label>
+                        <select id="drpMotorPoles" class="pb-select">
+                            <option value="2">2 Pole</option>
+                            <option value="4" selected>4 Pole</option>
+                            <option value="6">6 Pole</option>
+                            <option value="8">8 Pole</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group mb-0">
+                        <label class="pb-label">Flame Proof</label>
+                        <input asp-for="MotorTypes" class="pb-input"
+                               id="drpMotorProof" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group mb-0">
+                        <label class="pb-label">Mounting Type</label>
+                        <select id="drpMotorMount" class="pb-select">
+                            <option value="1" selected>1 — Foot Mounted</option>
+                            <option value="2">2 — Flange Mounted</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group mb-0">
+                        <label class="pb-label">IE Rating</label>
+                        <select id="drpMotorIE" class="pb-select">
+                            <option value="1">1 — IE1</option>
+                            <option value="2" selected>2 — IE2</option>
+                            <option value="3">3 — IE3</option>
+                            <option value="4">4 — EFF1</option>
+                            <option value="5">5 — EFF2</option>
+                            <option value="6">6 — EFF3</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group mb-0">
+                        <label class="pb-label">Serial No. (0-9)</label>
+                        <input type="number" id="txtMotorSerial"
+                               class="pb-input" value="0" min="0" max="9" />
+                    </div>
+                </div>
+            </div>
+            <div class="row g-3 mt-2">
+                <div class="col-md-3">
+                    <div class="pb-form-group mb-0">
+                        <label class="pb-label pb-label-accent">
+                            Generated Motor Item Code
+                        </label>
+                        <input type="text" id="txtMotorItemCode"
+                               asp-for="MotorItemCode"
+                               class="pb-input pb-code-input" readonly />
+                    </div>
+                </div>
+            </div>
+            <div id="motorCodeBreakdown" class="pb-code-breakdown mt-2"></div>
+        </div>
+
+        <!-- ── SUBMIT ─────────────────────────────────────────── -->
+        <div class="form-btn-row">
+            <button type="submit" id="submitbtn" class="btn-pb-primary" disabled>
+                <div class="btn-spinner"></div>
+                <span class="btn-text">
+                    <i class="bi bi-arrow-right-circle"></i> Next
+                </span>
+            </button>
+            <a asp-controller="PaintBoothDesign" asp-action="Index"
+               class="btn-pb-secondary">
+                <i class="bi bi-x-lg"></i> Cancel
+            </a>
+            <span id="SubmitError" class="form-field-error" style="display:none;">
+                <i class="bi bi-exclamation-circle"></i>
+                Please check above details before submitting.
+            </span>
+        </div>
+
+    </div>
+</form>
+
+<!-- ── SETTING MODAL ─────────────────────────────────────────── -->
+<div id="settingModalOverlay" class="pb-modal-overlay" style="display:none;">
+    <div class="pb-modal">
+        <div class="pb-modal-header">
+            <span><i class="bi bi-gear me-2"></i> Setting Details</span>
+            <button type="button" id="closeSettingModal" class="pb-modal-close">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <div class="pb-modal-body" id="settingModalContent">
+        </div>
+        <div class="pb-modal-footer">
+            <button type="button" class="btn-pb-secondary" id="closeSettingModal2">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @* Three.js for 3D preview *@
+    <script src="~/js/three.min.js" asp-append-version="true"></script>
+    <script src="~/js/paintbooth3d.js" asp-append-version="true"></script>
+    <script src="~/js/paintbooth.js" asp-append-version="true"></script>
+}

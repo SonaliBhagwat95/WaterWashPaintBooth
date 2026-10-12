@@ -1,0 +1,358 @@
+@model PaintBooth.Models.PaintBoothModel
+@{
+    ViewData["Title"] = "Filter Frame Calculations";
+    ViewBag.ActivePage = "PaintboothDesign";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/paintbooth.css" asp-append-version="true" />
+}
+
+<!-- ── PAGE HEADER ──────────────────────────────────────────── -->
+<div class="page-header">
+    <div>
+        <div class="page-header-title">Filter Frame Calculations</div>
+        <div class="page-header-sub">Review dimensions and download generated drawings</div>
+    </div>
+    <a asp-controller="PaintBoothDesign" asp-action="Index" class="btn-pb-secondary">
+        <i class="bi bi-arrow-left"></i> Back to List
+    </a>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SECTION 1 — PAINTBOOTH DIMENSIONS (read-only summary)
+══════════════════════════════════════════════════════ -->
+<div class="pb-card mb-3">
+    <div class="form-section-title">
+        <i class="bi bi-rulers"></i>
+        Paintbooth Dimensions
+        <span class="pb-readonly-badge">Read Only</span>
+    </div>
+    <div class="row g-3">
+        <div class="col-md-2">
+            <div class="pb-form-group">
+                <label class="pb-label">Filter Area (sq.m)</label>
+                <input type="text" class="pb-input pb-readonly"
+                       value="@Model.FilterArea" readonly />
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="pb-form-group">
+                <label class="pb-label">Depth (mm)</label>
+                <input type="text" class="pb-input pb-readonly"
+                       value="@Model.D" readonly />
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="pb-form-group">
+                <label class="pb-label">Width (mm)</label>
+                <input type="text" class="pb-input pb-readonly"
+                       value="@Model.W" readonly />
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="pb-form-group">
+                <label class="pb-label">Height (mm)</label>
+                <input type="text" class="pb-input pb-readonly"
+                       value="@Model.H" readonly />
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="pb-form-group">
+                <label class="pb-label">No. of TubeLights / LED</label>
+                <input type="text" class="pb-input pb-readonly"
+                       value="@Model.Lights" readonly />
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SECTION 2 — GENERATED DRAWINGS
+══════════════════════════════════════════════════════ -->
+<div class="pb-card mb-3">
+    <div class="form-section-title">
+        <i class="bi bi-file-zip"></i>
+        Generated Drawings
+    </div>
+
+    @* Antiforgery token — used by AJAX POST *@
+    @Html.AntiForgeryToken()
+
+    @* Hidden values — read by JS and sent via fetch *@
+    <input type="hidden" id="hFilterArea" value="@Model.FilterArea" />
+    <input type="hidden" id="hW" value="@Model.W" />
+    <input type="hidden" id="hH" value="@Model.H" />
+    <input type="hidden" id="hD" value="@Model.D" />
+    <input type="hidden" id="hLights" value="@Model.Lights" />
+
+    <div class="row g-3 align-items-center mb-3">
+        <div class="col-md-auto">
+            <button type="button" id="btnSave" class="btn-pb-primary">
+                <div class="btn-spinner" id="saveSpinner" style="display:none;
+                     width:16px;height:16px;margin-right:6px;vertical-align:middle;"></div>
+                <span id="saveBtnText">
+                    <i class="bi bi-floppy"></i> Save &amp; Generate ZIP
+                </span>
+            </button>
+        </div>
+       @*  <div class="col-md-auto">
+            <button type="button" id="btnDownload"
+                    class="btn-pb-secondary" disabled>
+                <i class="bi bi-download"></i> Download Development
+            </button>
+        </div> *@
+    </div>
+
+    <!-- ── SUCCESS BANNER — shown after ZIP downloaded ───────── -->
+    <div id="successBanner" style="display:none;
+         background:rgba(31,200,160,.12);
+         border:1px solid rgba(31,200,160,.35);
+         border-radius:10px;
+         padding:16px 20px;
+         margin-top:8px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <i class="bi bi-check-circle-fill"
+               style="font-size:22px;color:#1fc8a0;flex-shrink:0;"></i>
+            <div>
+                <div style="font-size:14px;font-weight:600;color:var(--text-primary);">
+                    Paintbooth Design saved successfully
+                </div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:3px;">
+                    ZIP file downloaded:
+                    <strong id="successFileName" style="color:var(--text-secondary);"></strong>
+                </div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">
+                    You can now proceed to the next step from the sidebar,
+                    or re-download the drawings using the button above.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── ERROR BANNER ───────────────────────────────────────── -->
+    <div id="errorBanner" style="display:none;
+         background:rgba(226,75,74,.10);
+         border:1px solid rgba(226,75,74,.35);
+         border-radius:10px;
+         padding:16px 20px;
+         margin-top:8px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <i class="bi bi-exclamation-triangle-fill"
+               style="font-size:22px;color:#e24b4a;flex-shrink:0;"></i>
+            <div>
+                <div style="font-size:14px;font-weight:600;color:var(--text-primary);">
+                    Something went wrong
+                </div>
+                <div id="errorText"
+                     style="font-size:12px;color:var(--text-muted);margin-top:3px;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ── FULL-SCREEN LOADING OVERLAY ──────────────────────────── -->
+<div id="loadingOverlay" style="display:none;
+     position:fixed;inset:0;
+     background:rgba(0,0,0,.6);
+     z-index:9999;
+     align-items:center;
+     justify-content:center;">
+    <div style="background:var(--bg-card);
+                border-radius:14px;
+                padding:36px 48px;
+                text-align:center;
+                border:1px solid var(--border);
+                min-width:260px;">
+        <div class="pb-spinner"
+             style="width:48px;height:48px;margin:0 auto 18px;"></div>
+        <div id="overlayMsg"
+             style="font-size:14px;font-weight:600;color:var(--text-primary);">
+            Generating drawings...
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">
+            Please wait, this may take a moment.
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(function () {
+
+            var token = $('input[name="__RequestVerificationToken"]').val();
+
+            /* ════════════════════════════════════════════════════════
+               SAVE & GENERATE ZIP  — uses fetch so we control the
+               button state fully after file download completes.
+            ════════════════════════════════════════════════════════ */
+            $('#btnSave').on('click', function () {
+
+                var $btn = $(this);
+
+                // Show overlay + spinner
+                showOverlay('Generating drawings...');
+                $btn.prop('disabled', true);
+                $('#saveSpinner').show();
+                $('#saveBtnText').html(
+                    '<i class="bi bi-hourglass-split"></i> Generating...'
+                );
+                $('#successBanner').hide();
+                $('#errorBanner').hide();
+
+                // Build POST body
+                var formData = new FormData();
+                formData.append('FilterArea', $('#hFilterArea').val());
+                formData.append('W',          $('#hW').val());
+                formData.append('H',          $('#hH').val());
+                formData.append('D',          $('#hD').val());
+                formData.append('Lights',     $('#hLights').val());
+                formData.append('__RequestVerificationToken', token);
+
+                fetch('@Url.Action("FilterFrameBox", "PaintBoothDesign")', {
+                    method : 'POST',
+                    body   : formData
+                })
+                .then(function (response) {
+
+                    if (!response.ok) {
+                        return response.text().then(function (txt) {
+                            throw new Error(txt || 'Server error ' + response.status);
+                        });
+                    }
+
+                    // Read filename from Content-Disposition header
+                    var cd    = response.headers.get('Content-Disposition') || '';
+                    var match = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                    var fname = match
+                        ? match[1].replace(/['"]/g, '').trim()
+                        : 'drawings.zip';
+
+                    return response.blob().then(function (blob) {
+                        return { blob: blob, name: fname };
+                    });
+                })
+                .then(function (result) {
+
+                    // Trigger browser file-save dialog
+                    var url = window.URL.createObjectURL(result.blob);
+                    var a   = document.createElement('a');
+                    a.href     = url;
+                    a.download = result.name;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+
+                    // ── Reset button ──────────────────────────────────────
+                    $btn.prop('disabled', false);
+                    $('#saveSpinner').hide();
+                    $('#saveBtnText').html(
+                        '<i class="bi bi-arrow-repeat"></i> Regenerate ZIP'
+                    );
+
+                    // ── Enable download button ────────────────────────────
+                    $('#btnDownload').prop('disabled', false);
+
+                    // ── Show success banner ───────────────────────────────
+                    $('#successFileName').text(result.name);
+                    $('#successBanner').show();
+                    $('#errorBanner').hide();
+
+                    hideOverlay();
+                })
+                .catch(function (err) {
+                    console.error('FilterFrameBox error:', err);
+
+                    // ── Reset button on error ─────────────────────────────
+                    $btn.prop('disabled', false);
+                    $('#saveSpinner').hide();
+                    $('#saveBtnText').html(
+                        '<i class="bi bi-floppy"></i> Save &amp; Generate ZIP'
+                    );
+
+                    // ── Show error banner ─────────────────────────────────
+                    $('#errorText').text(err.message || 'Generation failed. Please try again.');
+                    $('#errorBanner').show();
+                    $('#successBanner').hide();
+
+                    hideOverlay();
+                });
+            });
+
+
+            /* ════════════════════════════════════════════════════════
+               DOWNLOAD DEVELOPMENT ZIP
+            ════════════════════════════════════════════════════════ */
+            $('#btnDownload').on('click', function () {
+
+                var $btn        = $(this);
+                var enquiryCode = '@Context.Session.GetString("SalesNo")';
+
+                showOverlay('Downloading development files...');
+                $btn.prop('disabled', true);
+
+                fetch('@Url.Action("GetPanelDetails", "PaintBoothDesign")')
+                    .then(function (response) {
+                        if (!response.ok)
+                            throw new Error('Network error: ' + response.status);
+
+                        var cd    = response.headers.get('Content-Disposition') || '';
+                        var match = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                        var name  = match
+                            ? match[1].replace(/['"]/g, '').trim()
+                            : 'Development.zip';
+
+                        return response.blob().then(function (b) {
+                            return { blob: b, name: name };
+                        });
+                    })
+                    .then(function (r) {
+                        var url = window.URL.createObjectURL(r.blob);
+                        var a   = document.createElement('a');
+                        a.href     = url;
+                        a.download = 'Development_' + (enquiryCode || 'file') + '.zip';
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        window.URL.revokeObjectURL(url);
+
+                        // ── Reset button ──────────────────────────────────
+                        $btn.prop('disabled', false);
+
+                        $('#successFileName').text(a.download);
+                        $('#successBanner').show();
+                        $('#errorBanner').hide();
+
+                        hideOverlay();
+                    })
+                    .catch(function (err) {
+                        console.error('Download error:', err);
+
+                        $btn.prop('disabled', false);
+
+                        $('#errorText').text(err.message || 'Download failed.');
+                        $('#errorBanner').show();
+                        $('#successBanner').hide();
+
+                        hideOverlay();
+                    });
+            });
+
+
+            /* ════════════════════════════════════════════════════════
+               HELPERS
+            ════════════════════════════════════════════════════════ */
+            function showOverlay(msg) {
+                $('#overlayMsg').text(msg || 'Please wait...');
+                $('#loadingOverlay').css('display', 'flex');
+            }
+            function hideOverlay() {
+                $('#loadingOverlay').css('display', 'none');
+            }
+
+        });
+    </script>
+}

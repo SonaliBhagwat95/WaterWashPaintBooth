@@ -1,0 +1,756 @@
+﻿@model PaintBooth.Models.PriceBIDModel
+@{
+    ViewData["Title"] = "Price BID";
+    ViewBag.ActivePage = "Price BID";
+    bool hasData = !string.IsNullOrWhiteSpace(Model.SalesNO);
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/pricebid.css" asp-append-version="true" />
+}
+
+<!-- ── PAGE HEADER ──────────────────────────────────────────── -->
+<div class="page-header">
+    <div>
+        <div class="page-header-title">Price BID</div>
+        <div class="page-header-sub">Cost breakdown and pricing for enquiry</div>
+    </div>
+    <a asp-controller="Costing" asp-action="PriceBID_Index" class="btn-pb-secondary">
+        <i class="bi bi-arrow-left"></i> Back to List
+    </a>
+</div>
+
+<!-- ── ALERTS ───────────────────────────────────────────────── -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="pb-alert pb-alert-success mb-3" data-auto-dismiss>
+        <i class="bi bi-check-circle-fill"></i> @TempData["SuccessMessage"]
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="pb-alert pb-alert-danger mb-3" data-auto-dismiss>
+        <i class="bi bi-exclamation-circle-fill"></i> @TempData["ErrorMessage"]
+    </div>
+}
+
+<!-- ══════════════════════════════════════════════════════
+     SECTION 1 — SEARCH
+══════════════════════════════════════════════════════ -->
+<div class="pb-card mb-3">
+    <div class="form-section-title">
+        <i class="bi bi-search"></i> Enquiry Selection
+    </div>
+    <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <div class="pb-form-group mb-0">
+                <label class="pb-label">Enquiry Code</label>
+                <div class="bid-autocomplete-wrap">
+                    <input type="text" class="pb-input" id="txtEnquiryCode"
+                           placeholder="Type enquiry code..."
+                           autocomplete="off"
+                           value="@Model.SalesNO" />
+                    <div id="bidDropdown" class="bid-dropdown"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-auto">
+            <button type="button" id="btnSearch" class="btn-pb-primary">
+                <i class="bi bi-search"></i> Search
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SECTION 2 — PRICE BID FORM (hidden until search)
+══════════════════════════════════════════════════════ -->
+<div id="divBidForm" style="@(hasData ? "" : "display:none;")">
+
+    <form asp-action="UpdatePriceDetails"
+          asp-controller="Costing"
+          method="post"
+          id="bidForm">
+        @Html.AntiForgeryToken()
+        @* Primary hidden field — updated by JS after search *@
+        <input type="hidden" asp-for="SalesNO" id="hiddenSalesNO" />
+        @* Safety backup — always mirrors the visible search input *@
+        <input type="hidden" name="SalesNO" id="hiddenSalesNOBackup" />
+
+        <!-- ── PRICE TABLE CARD ───────────────────────────── -->
+        <div class="pb-card mb-3">
+            <div class="form-section-title">
+                <i class="bi bi-calculator"></i>
+                Cost Breakdown
+            </div>
+
+            <div class="bid-table-wrap">
+                <table class="bid-table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Weight / Value</th>
+                            <th>Rate / %</th>
+                            <th>Cost (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        <!-- ── BASE COSTS ──────────────────── -->
+                        <tr class="bid-section-row">
+                            <td colspan="4">Base Costs</td>
+                        </tr>
+                        <tr class="bid-readonly-row">
+                            <td>RM</td>
+                            <td>—</td>
+                            <td>—</td>
+                            <td>
+                                @Html.TextBoxFor(m => m.PriceOfRM,"{0:0}", new {
+                                @id = "txtPriceOfRM",
+                                                                @class = "bid-input cost-highlight"
+                                                                })
+                            </td>
+                        </tr>
+                        <tr class="bid-readonly-row">
+                            <td>BO</td>
+                            <td>—</td>
+                            <td>—</td>
+                            <td>
+                                @Html.TextBoxFor(m => m.PriceOfBO,"{0:0}", new {
+                                                                @id = "txtPriceOfBO",
+                                                                @class = "bid-input cost-highlight"
+                                                                })
+                            </td>
+                        </tr>
+                        <tr class="bid-readonly-row">
+                            <td>Labour</td>
+                            <td>—</td>
+                            <td>—</td>
+                            <td>
+                                @Html.TextBoxFor(m => m.LabourCost,"{0:0}", new {
+                                                                @id = "labourCost",
+                                                                @class = "bid-input"
+                                                                })
+                            </td>
+                        </tr>
+
+                        <!-- ── ADDITIONAL COSTS ────────────── -->
+                        <tr class="bid-section-row">
+                            <td colspan="4">Additional Costs</td>
+                        </tr>
+                       @*  <tr>
+                            <td>E&amp;C</td>
+                            <td><input type="text" id="txtEnC" class="bid-input" /></td>
+                            <td>
+                                <div class="bid-pct-wrap">
+                                   
+                                    <input type="text" id="txtEnCRate" class="bid-input"
+                                           asp-for="EnCRate" placeholder="0" />
+                                    <span class="bid-pct-suffix">%</span>
+                                </div>
+                            </td>
+                            <td>
+                                @Html.TextBoxFor(m => m.EAndCCost, new {
+                                                                @id = "txtEnCCost", @class = "bid-input"
+                                                                })
+                            </td>
+                        </tr> *@
+                        <tr>
+                            <td>E&amp;C</td>
+                            <td>
+                                <button type="button" id="btnCalcEnC" class="btn-enc-calc" title="Calculate E&C">
+                                    <i class="bi bi-calculator"></i> Calculate
+                                </button>
+                            </td>
+                            <td>
+                               -
+                            </td>
+                           
+                           
+                            <td>
+                                <input type="text"
+                                       id="txtEnCCost"
+                                       name="EAndCCost"
+                                       class="bid-input"
+                                       value="@Model.EAndCCost.ToString("F0")" />
+                            </td>
+                           
+                        </tr>
+                        <tr>
+                            <td>P&amp;F</td>
+                            <td><input type="text" id="txtPnF" class="bid-input" /></td>
+                            <td>
+                                <div class="bid-pct-wrap">
+                                    @* <input type="text" id="txtPnFRate" class="bid-input" placeholder="0" value="@Model.PnFRate" /> *@
+                                    <input type="text" id="txtPnFRate" class="bid-input" asp-for="PnFRate" placeholder="0" />
+                                    <span class="bid-pct-suffix">%</span>
+                                </div>
+                            </td>
+                            <td>
+                                @Html.TextBoxFor(m => m.PandFCost, new {
+                                                                @id = "txtPnFCost", @class = "bid-input"
+                                                                })
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Freight</td>
+                            <td><input type="text" id="txtFraightValue" class="bid-input" /></td>
+                            <td>
+                                <div class="bid-pct-wrap">
+                                    @* <input type="text" id="txtFraightRate" class="bid-input" placeholder="0" value="@Model.FreightRate" /> *@
+                                    <input type="text" id="txtFraightRate" class="bid-input"
+                                           asp-for="FreightRate" placeholder="0" />
+                                    <span class="bid-pct-suffix">%</span>
+                                </div>
+                            </td>
+                            <td>
+                                @Html.TextBoxFor(m => m.FreightCost, new {
+                                                                @id = "txtFreight", @class = "bid-input"
+                                                                })
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Design Charges</td>
+                            <td><input type="text" id="txtDesignCharges" class="bid-input" /></td>
+                            <td>
+                                <div class="bid-pct-wrap">
+                                    @* <input type="text" id="txtDesignChargesRate" class="bid-input" placeholder="0" value="@Model.DesignChargesRate" /> *@
+                                    <input type="text" id="txtDesignChargesRate" class="bid-input"
+                                           asp-for="DesignChargesRate" placeholder="0" />
+                                    <span class="bid-pct-suffix">%</span>
+                                </div>
+                            </td>
+                            <td>
+                                @Html.TextBoxFor(m => m.DesignChargesCost, new {
+                                                                @id = "txtDesignChargesCost", @class = "bid-input"
+                                                                })
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Contingency</td>
+                            <td><input type="text" id="txtContingency" class="bid-input" /></td>
+                            <td>
+                                <div class="bid-pct-wrap">
+                                    @* <input type="text" id="txtContingencyRate" class="bid-input" placeholder="0" value="@Model.ContingencyRate" /> *@
+                                    <!-- Contingency Rate -->
+                                    <input type="text" id="txtContingencyRate" class="bid-input"
+                                           asp-for="ContingencyRate" placeholder="0" />
+                                    <span class="bid-pct-suffix">%</span>
+                                </div>
+                            </td>
+                            <td>
+                                @Html.TextBoxFor(m => m.ContingencyCost, new {
+                                                                @id = "txtContingencyCost", @class = "bid-input"
+                                                                })
+                            </td>
+                        </tr>
+
+                        <!-- ── BASIC COST TOTAL ────────────── -->
+                        <tr class="bid-section-row">
+                            <td colspan="4">Basic Cost</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Basic Cost</strong></td>
+                            <td>—</td>
+                            <td>—</td>
+                            <td>
+                                @Html.TextBoxFor(m => m.BasicCost, new {
+                                                                @id = "txtBasicCost",
+                                                                @class = "bid-input total-highlight",
+                                                                @readonly = "readonly"
+                                                                })
+                            </td>
+                        </tr>
+
+                        <!-- ── FACTOR COSTS ────────────────── -->
+                        <tr class="bid-section-row">
+                            <td colspan="4">Factor Costs</td>
+                        </tr>
+                        <tr>
+                            <td>Insurance</td>
+                            <td><input type="text" id="txtInsurance" class="bid-input" /></td>
+                            <td>
+                                <div class="bid-pct-wrap">
+                                    @* <input type="text" id="txtInsuranceRate" class="bid-input" placeholder="0" value="@Model.InsuranceRate" /> *@
+                                    <input type="text" id="txtInsuranceRate" class="bid-input"
+                                           asp-for="InsuranceRate" placeholder="0" />
+
+                                    <span class="bid-pct-suffix">%</span>
+                                </div>
+                            </td>
+                            <td>
+                                @Html.TextBoxFor(m => m.Insurance, new {
+                                                                @id = "txtInsuranceCost", @class = "bid-input"
+                                                                })
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Commercial Factor</td>
+                            <td><input type="text" id="txtCommercialFactor" class="bid-input" /></td>
+                            <td>
+                                <div class="bid-pct-wrap">
+                                   @*  <input type="text" id="txtCommercialFactorRate" class="bid-input" placeholder="0" value="@Model.CommercialFactorRate" /> *@
+                                    <input type="text" id="txtCommercialFactorRate" class="bid-input"
+                                           asp-for="CommercialFactorRate" placeholder="0" />
+
+                                    <span class="bid-pct-suffix">%</span>
+                                </div>
+                            </td>
+                            <td>
+                                @Html.TextBoxFor(m => m.CommercialFactor, new {
+                                                                @id = "txtCommercialFactorCost", @class = "bid-input"
+                                                                })
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Incentive Factor</td>
+                            <td><input type="text" id="txtIncentiveFactor" class="bid-input" /></td>
+                            <td>
+                                <div class="bid-pct-wrap">
+                                    @* <input type="text" id="txtIncentiveFactorRate" class="bid-input" placeholder="0" value="@Model.IncentiveFactorRate" /> *@
+                                    <!-- Incentive Factor Rate -->
+                                    <input type="text" id="txtIncentiveFactorRate" class="bid-input"
+                                           asp-for="IncentiveFactorRate" placeholder="0" />
+                                    <span class="bid-pct-suffix">%</span>
+                                </div>
+                            </td>
+                            <td>
+                                @Html.TextBoxFor(m => m.IncentiveFactor, new {
+                                                                @id = "txtIncentiveFactorCost", @class = "bid-input"
+                                                                })
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>TPC</td>
+                            <td><input type="text" id="txtTPC" class="bid-input" /></td>
+                            <td>
+                                <div class="bid-pct-wrap">
+                                    @* <input type="text" id="txtTPCRate" class="bid-input" placeholder="0" value="@Model.TPCRate" /> *@
+                                    <input type="text" id="txtTPCRate" class="bid-input"
+                                           asp-for="TPCRate" placeholder="0" />
+                                    <span class="bid-pct-suffix">%</span>
+                                </div>
+                            </td>
+                            <td>
+                                @Html.TextBoxFor(m => m.TPCCost, new {
+                                                                @id = "txtTPCCost", @class = "bid-input"
+                                                                })
+                            </td>
+                        </tr>
+
+                        <!-- ── TVC TOTAL ───────────────────── -->
+                        <tr class="bid-section-row">
+                            <td colspan="4">Total Variable Cost</td>
+                        </tr>
+                        <tr>
+                            <td><strong>TVC</strong></td>
+                            <td>—</td>
+                            <td>—</td>
+                            <td>
+                                @Html.TextBoxFor(m => m.TVCCost, new {
+                                                                @id = "txtTVCCost",
+                                                                @class = "bid-input total-highlight",
+                                                                @readonly = "readonly"
+                                                                })
+                            </td>
+                        </tr>
+
+                        <!-- ── PO VALUE ────────────────────── -->
+                        <tr class="bid-section-row">
+                            <td colspan="4">PO Value &amp; Offer Price</td>
+                        </tr>
+                        <tr>
+                            <td><strong>PO VALUE</strong></td>
+                            <td><input type="text" id="txtPOValue" class="bid-input" /></td>
+                            <td>
+                                <div class="bid-pct-wrap">
+                                    @* <input type="text" id="txtPORate" class="bid-input" placeholder="≥100" min="100" value="@Model.PORate" /> *@
+                                    <!-- PO Rate -->
+                                    <input type="text" id="txtPORate" class="bid-input"
+                                           asp-for="PORate" placeholder="≥100" min="100" />
+                                    <span class="bid-pct-suffix">%</span>
+                                </div>
+                                <div id="errorPORate"
+                                     style="font-size:11px;color:var(--danger);margin-top:3px;"></div>
+                            </td>
+                            <td>
+                                @Html.TextBoxFor(m => m.POVALUE, new {
+                                                                @id = "txtPOValueCost",
+                                                                @class = "bid-input cost-highlight"
+                                                                })
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Throughput Value</td>
+                            <td><input type="text" id="txtThroughputValue" class="bid-input" readonly /></td>
+                            <td>
+                                <div class="bid-pct-wrap">
+                                    <input type="text" id="txtThroughputValueRate" class="bid-input" readonly />
+                                    <span class="bid-pct-suffix">%</span>
+                                </div>
+                            </td>
+                            <td>—</td>
+                        </tr>
+                        <tr>
+                            <td>Negotiation Margin</td>
+                            <td><input type="text" id="NegotiationValue" class="bid-input" /></td>
+                            <td>
+                                <div class="bid-pct-wrap">
+                                    @* <input type="text" id="txtNegotiationRate" class="bid-input" value="@(Model.NegotiationRate > 0 ? Model.NegotiationRate : 10)" /> *@
+                                    <!-- Negotiation Rate -->
+                                    <input type="text" id="txtNegotiationRate" class="bid-input"
+                                           asp-for="NegotiationRate" />
+                                    <span class="bid-pct-suffix">%</span>
+                                </div>
+                            </td>
+                            <td>
+                                @Html.TextBoxFor(m => m.NegotiationCost, new {
+                                                                @id = "txtNegotiationCost", @class = "bid-input"
+                                                                })
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Offer Price</strong></td>
+                            <td>—</td>
+                            <td>—</td>
+                            <td>
+                                @Html.TextBoxFor(m => m.BestPrice, new {
+                                                                @id = "txtBestPrice",
+                                                                @class = "bid-input total-highlight",
+                                                                @readonly = "readonly"
+                                                                })
+                            </td>
+                        </tr>
+
+                        <!-- ── DELIVERY ────────────────────── -->
+                        <tr class="bid-section-row">
+                            <td colspan="4">Delivery &amp; Execution</td>
+                        </tr>
+                        <tr>
+                            <td>Delivery Supply Period</td>
+                            <td>
+                                <input type="text" asp-for="DeliverySupplyperiod" value="12-14 weeks"
+                                       class="bid-input"
+                                       placeholder="12-14 weeks" />
+                            </td>
+                            <td>—</td>
+                            <td>—</td>
+                        </tr>
+                        <tr>
+                            <td>E&amp;C Period</td>
+                            <td>
+                                <input type="text" asp-for="EAndCPeriod" value="4-6 weeks"
+                                       class="bid-input"
+                                       placeholder="4-6 weeks" />
+                            </td>
+                            <td>—</td>
+                            <td>—</td>
+                        </tr>
+
+                        <!-- ── PAYMENT TERMS ───────────────── -->
+                        <tr class="bid-section-row">
+                            <td colspan="3">Payment Terms</td>
+                            <td>
+                                <span id="paymentBadge" class="bid-payment-badge warning">
+                                    100% remaining
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Advance</td>
+                            <td>
+                                <div class="bid-pct-wrap">
+                                    <input type="text" id="txtAdvance" asp-for="AdvancedPercentage"
+                                           value="30" class="bid-input" />
+                                    <span class="bid-pct-suffix">%</span>
+                                </div>
+                            </td>
+                            <td>—</td>
+                            <td><input type="text" id="txtAdvanceValueCost" class="bid-input" readonly /></td>
+                        </tr>
+                        <tr>
+                            <td>DAP</td>
+                            <td>
+                                <div class="bid-pct-wrap">
+                                    @* <input type="text" id="txtDAP" asp-for="DAPPercentage"  class="bid-input" /> *@
+                                    @Html.TextBoxFor(m => m.DAPPercentage, "{0:0}", new { @id = "txtDAP", @class = "bid-input" })
+                                    <span class="bid-pct-suffix">%</span>
+                                </div>
+                            </td>
+                            <td>—</td>
+                            <td><input type="text" id="txtDAPCost" class="bid-input" readonly /></td>
+                        </tr>
+                        <tr>
+                            <td>Supply Before Dispatch</td>
+                            <td>
+                                <div class="bid-pct-wrap">
+                                    @* <input type="text" id="txtSUPPLYBEFOREDISPATCH"
+                                           asp-for="SUPPLYBEFOREDISPATCHPercentage"
+                                           class="bid-input" /> *@
+                                    @Html.TextBoxFor(m => m.SUPPLYBEFOREDISPATCHPercentage, "{0:0}", new { @id = "txtSUPPLYBEFOREDISPATCH", @class = "bid-input" })
+                                    <span class="bid-pct-suffix">%</span>
+                                </div>
+                            </td>
+                            <td>—</td>
+                            <td><input type="text" id="txtSUPPLYBEFOREDISPATCHCost" class="bid-input" readonly /></td>
+                        </tr>
+                        <tr>
+                            <td>Supply After Dispatch</td>
+                            <td>
+                                <div class="bid-pct-wrap">
+                                   @*  <input type="text" id="txtSUPPLYAFTERDISPATCH"
+                                           asp-for="SUPPLYAFTERDISPATCHPercentage"
+                                           class="bid-input" /> *@
+                                    @Html.TextBoxFor(m => m.SUPPLYAFTERDISPATCHPercentage, "{0:0}", new { @id = "txtSUPPLYAFTERDISPATCH", @class = "bid-input" })
+                                    <span class="bid-pct-suffix">%</span>
+                                </div>
+                            </td>
+                            <td>—</td>
+                            <td><input type="text" id="txtSUPPLYAFTERDISPATCHCost" class="bid-input" readonly /></td>
+                        </tr>
+                        <tr>
+                            <td>Installation</td>
+                            <td>
+                                <div class="bid-pct-wrap">
+                                   @*  <input type="text" id="txtInstalation"
+                                           asp-for="INSTALLATIONPercentage"
+                                           class="bid-input" /> *@
+                                    @Html.TextBoxFor(m => m.INSTALLATIONPercentage, "{0:0}", new { @id = "txtInstalation", @class = "bid-input" })
+                                    <span class="bid-pct-suffix">%</span>
+                                </div>
+                            </td>
+                            <td>—</td>
+                            <td><input type="text" id="txtInstalationCost" class="bid-input" readonly /></td>
+                        </tr>
+                        <tr>
+                            <td>Commissioning</td>
+                            <td>
+                                <div class="bid-pct-wrap">
+                                    @* <input type="text" id="txtCOMMISSIONING"
+                                           asp-for="COMMISSIONINGPercentage"
+                                           class="bid-input" /> *@
+                                    @Html.TextBoxFor(m => m.COMMISSIONINGPercentage, "{0:0}", new { @id = "txtCOMMISSIONING", @class = "bid-input" })
+                                    <span class="bid-pct-suffix">%</span>
+                                </div>
+                            </td>
+                            <td>—</td>
+                            <td><input type="text" id="txtCOMMISSIONINGCost" class="bid-input" readonly /></td>
+                        </tr>
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ── APPROVE + SAVE ─────────────────────────────────── -->
+        <div id="divApprove" style="@(hasData ? "" : "display:none;")">
+            <div class="bid-approve-wrap">
+                <input type="checkbox" asp-for="ConfirmPriceBID" id="approvePriceBid" />
+                <div>
+                    <div class="bid-approve-label">Approve Price BID</div>
+                    <div class="bid-approve-hint">
+                        Tick to confirm — Save button will be enabled
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-btn-row">
+                <button type="submit" id="btnSave"
+                        class="btn-pb-primary" disabled>
+                    <div class="btn-spinner"></div>
+                    <span class="btn-text">
+                        <i class="bi bi-floppy"></i> Save Price BID
+                    </span>
+                </button>
+                <a asp-controller="Costing"
+                   asp-action="PriceBID_Index"
+                   class="btn-pb-secondary">
+                    <i class="bi bi-x-lg"></i> Cancel
+                </a>
+            </div>
+        </div>
+        <!-- ── E&C CALCULATOR MODAL ─────────────────────────────────── -->
+        <div id="encModal" class="cost-modal-backdrop">
+            <div class="cost-modal" style="max-width:700px;">
+                <div class="cost-modal-header">
+                    <div class="cost-modal-title">
+                        <i class="bi bi-calculator"></i>
+                        E&amp;C Cost Calculator
+                    </div>
+                    <button type="button" id="btnCloseEncModal" class="cost-modal-close">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+
+                <div style="overflow-x:auto;">
+                    <table class="cost-table" id="encTable">
+                        <thead>
+                            <tr>
+                                <th style="width:44px;">Sr.</th>
+                                <th>Description</th>
+                                <th class="num">Persons</th>
+                                <th class="num">Per Day Rate (₹)</th>
+                                <th class="num">Total Days</th>
+                                <th class="num">Total Cost (₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="encTableBody">
+                            <!-- 8 fixed rows -->
+                            <tr data-fixed="true">
+                                <td>1</td>
+                                <td><input type="text" class="pb-input enc-desc" value="Site Engineer" /></td>
+                                <td><input type="number" class="pb-input enc-persons" value="1" min="0" /></td>
+                                <td><input type="number" class="pb-input enc-rate" value="2000" min="0" /></td>
+                                <td><input type="number" class="pb-input enc-days" placeholder="0" min="0" /></td>
+                                <td class="num enc-cost">0</td>
+                            </tr>
+                            <tr data-fixed="true">
+                                <td>2</td>
+                                <td><input type="text" class="pb-input enc-desc" value="Contractor Supervisor" /></td>
+                                <td><input type="number" class="pb-input enc-persons" value="1" min="0" /></td>
+                                <td><input type="number" class="pb-input enc-rate" value="1800" min="0" /></td>
+                                <td><input type="number" class="pb-input enc-days" placeholder="0" min="0" /></td>
+                                <td class="num enc-cost">0</td>
+                            </tr>
+                            <tr data-fixed="true">
+                                <td>3</td>
+                                <td><input type="text" class="pb-input enc-desc" value="Labour" /></td>
+                                <td><input type="number" class="pb-input enc-persons" value="6" min="0" /></td>
+                                <td><input type="number" class="pb-input enc-rate" value="1500" min="0" /></td>
+                                <td><input type="number" class="pb-input enc-days" placeholder="0" min="0" /></td>
+                                <td class="num enc-cost">0</td>
+                            </tr>
+                            <tr data-fixed="true">
+                                <td>4</td>
+                                <td><input type="text" class="pb-input enc-desc" value="Electrical Engineer" /></td>
+                                <td><input type="number" class="pb-input enc-persons" value="1" min="0" /></td>
+                                <td><input type="number" class="pb-input enc-rate" value="2500" min="0" /></td>
+                                <td><input type="number" class="pb-input enc-days" placeholder="0" min="0" /></td>
+                                <td class="num enc-cost">0</td>
+                            </tr>
+                            <tr data-fixed="true">
+                                <td>5</td>
+                                <td><input type="text" class="pb-input enc-desc" value="Crane Charges" /></td>
+                                <td><input type="number" class="pb-input enc-persons" value="1" min="0" /></td>
+                                <td><input type="number" class="pb-input enc-rate" value="7000" min="0" /></td>
+                                <td><input type="number" class="pb-input enc-days" placeholder="0" min="0" /></td>
+                                <td class="num enc-cost">0</td>
+                            </tr>
+                            <tr data-fixed="true">
+                                <td>6</td>
+                                <td><input type="text" class="pb-input enc-desc" value="Consumable" /></td>
+                                <td><input type="number" class="pb-input enc-persons" value="1" min="0" /></td>
+                                <td><input type="number" class="pb-input enc-rate" value="10000" min="0" /></td>
+                                <td><input type="number" class="pb-input enc-days" placeholder="0" min="0" /></td>
+                                <td class="num enc-cost">0</td>
+                            </tr>
+                            <tr data-fixed="true">
+                                <td>7</td>
+                                <td><input type="text" class="pb-input enc-desc" value="Contractor Room Rent" /></td>
+                                <td><input type="number" class="pb-input enc-persons" value="5" min="0" /></td>
+                                <td><input type="number" class="pb-input enc-rate" value="1000" min="0" /></td>
+                                <td><input type="number" class="pb-input enc-days" placeholder="0" min="0" /></td>
+                                <td class="num enc-cost">0</td>
+                            </tr>
+                            <tr data-fixed="true">
+                                <td>8</td>
+                                <td><input type="text" class="pb-input enc-desc" value="Travel Charges" /></td>
+                                <td><input type="number" class="pb-input enc-persons" value="5" min="0" /></td>
+                                <td><input type="number" class="pb-input enc-rate" value="5000" min="0" /></td>
+                                <td><input type="number" class="pb-input enc-days" placeholder="0" min="0" /></td>
+                                <td class="num enc-cost">0</td>
+                            </tr>
+                            <!-- 2 extra editable rows -->
+                            <tr data-extra="true">
+                                <td>9</td>
+                                <td><input type="text" class="pb-input enc-desc" placeholder="Description..." /></td>
+                                <td><input type="number" class="pb-input enc-persons" value="1" min="0" /></td>
+                                <td><input type="number" class="pb-input enc-rate" placeholder="0" min="0" /></td>
+                                <td><input type="number" class="pb-input enc-days" placeholder="0" min="0" /></td>
+                                <td class="num enc-cost">0</td>
+                            </tr>
+                            <tr data-extra="true">
+                                <td>10</td>
+                                <td><input type="text" class="pb-input enc-desc" placeholder="Description..." /></td>
+                                <td><input type="number" class="pb-input enc-persons" value="1" min="0" /></td>
+                                <td><input type="number" class="pb-input enc-rate" placeholder="0" min="0" /></td>
+                                <td><input type="number" class="pb-input enc-days" placeholder="0" min="0" /></td>
+                                <td class="num enc-cost">0</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="5" style="text-align:right; font-weight:600;">Total</td>
+                                <td class="num" id="encSubTotal">0</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Contractor margin -->
+                <div class="row g-3 mt-3 align-items-center">
+                    <div class="col-md-4">
+                        <div class="pb-form-group mb-0">
+                            <label class="pb-label">Sub Total (₹)</label>
+                            <input type="text" class="pb-input" id="encSubTotalDisplay" readonly />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="pb-form-group mb-0">
+                            <label class="pb-label">Contractor Margin (₹)</label>
+                            <input type="number" class="pb-input" id="encMarginAmt"
+                                   placeholder="0" min="0" step="1" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="pb-form-group mb-0">
+                            <label class="pb-label">Final E&amp;C Value (₹)</label>
+                            <input type="text" class="pb-input" id="encFinalValue"
+                                   style="font-weight:600; color:var(--accent);" readonly />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="cost-modal-footer">
+                    <button type="button" id="btnCancelEncModal" class="btn-pb-secondary">
+                        Cancel
+                    </button>
+                    <button type="button" id="btnApplyEnC" class="btn-pb-primary">
+                        <i class="bi bi-check-lg"></i> Apply to E&amp;C
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script src="~/js/pricebid.js" asp-append-version="true"></script>
+    <script>
+        $(function () {
+            initAutocomplete('@Url.Action("SearchEnquiryCode", "Costing")');
+            initSearch('@Url.Action("FetchPriceBIDData", "Costing")');
+            initCalculations();
+            initApprove();
+            initSave();
+            initAlerts();
+                initEncCalculator(
+            '@Url.Action("SaveENCCalculation", "Costing")',
+            '@Url.Action("GetENCCalculation", "Costing")'
+        );
+            @if (hasData)
+            {
+                    <text>
+                    // Edit mode — data already loaded from model
+                    // Show the form sections
+                    $('#divBidForm').show();
+                    $('#divApprove').show();
+
+                    // Recalculate all derived fields from saved rate values
+                    // (Weight/Value columns are auto-derived, costs are recalculated)
+                    initEditMode();
+                    </text>
+            }
+        });
+    </script>
+}

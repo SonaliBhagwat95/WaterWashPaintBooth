@@ -1,0 +1,484 @@
+/* ============================================================
+   Bullows PaintBooth Pro — paintbooth.css
+   Styles for PaintBooth Design Index and Create pages
+   ============================================================ */
+
+/* ── Shared helpers ──────────────────────────────────────────── */
+.req-star           { color: var(--danger); font-size: 13px; margin-left: 2px; }
+.form-field-error   { display: block; font-size: 11px; color: var(--danger); margin-top: 5px; }
+.form-section-title {
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--font-display); font-size: 13px; font-weight: 600;
+    color: var(--text-primary); margin-bottom: 16px;
+    padding-bottom: 12px; border-bottom: 1px solid var(--border);
+}
+.form-section-title i   { color: var(--accent); font-size: 15px; }
+.form-btn-row           { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+
+/* Accent label */
+.pb-label-accent    { color: var(--accent) !important; }
+
+/* Readonly input style */
+.pb-readonly {
+    background  : var(--bg-hover) !important;
+    color       : var(--text-secondary) !important;
+    cursor      : default;
+}
+
+/* Readonly badge in section title */
+.pb-readonly-badge {
+    margin-left   : auto;
+    font-size     : 10px;
+    font-weight   : 500;
+    letter-spacing: 0.4px;
+    color         : var(--text-muted);
+    background    : var(--bg-hover);
+    border        : 1px solid var(--border);
+    border-radius : 20px;
+    padding       : 2px 10px;
+}
+
+/* Checkbox label */
+.pb-checkbox-label {
+    display     : flex;
+    align-items : center;
+    gap         : 9px;
+    font-size   : 13px;
+    color       : var(--text-secondary);
+    cursor      : pointer;
+}
+.pb-checkbox-label input[type="checkbox"] {
+    accent-color : var(--accent);
+    width        : 15px;
+    height       : 15px;
+}
+
+/* Dimension row label */
+.pb-dim-row-label {
+    font-size      : 10px;
+    font-weight    : 600;
+    letter-spacing : 0.6px;
+    text-transform : uppercase;
+    color          : var(--accent);
+    margin-bottom  : 6px;
+    display        : flex;
+    align-items    : center;
+    gap            : 6px;
+}
+.pb-dim-row-label::after {
+    content    : '';
+    flex       : 1;
+    height     : 1px;
+    background : var(--border);
+}
+
+/* Diagram card */
+.pb-diagram-card {
+    display         : flex;
+    justify-content : center;
+    align-items     : center;
+    background      : var(--bg-hover);
+    border          : 1px solid var(--border);
+    border-radius   : 10px;
+    padding         : 12px;
+    max-width       : 220px;
+}
+.pb-diagram-img {
+    max-width  : 180px;
+    max-height : 360px;
+    object-fit : contain;
+}
+
+/* Generated item code input */
+.pb-code-input {
+    font-family    : monospace !important;
+    font-weight    : 700 !important;
+    letter-spacing : 1.5px !important;
+    color          : var(--accent) !important;
+    font-size      : 13px !important;
+}
+
+/* Code breakdown badges row */
+.pb-code-breakdown {
+    display   : flex;
+    gap       : 6px;
+    flex-wrap : wrap;
+}
+
+.pb-code-badge {
+    display        : flex;
+    flex-direction : column;
+    align-items    : center;
+    background     : var(--accent-glow);
+    border         : 1px solid var(--border-accent);
+    border-radius  : 7px;
+    padding        : 4px 12px;
+    min-width      : 56px;
+}
+
+.pb-code-badge-val {
+    font-size    : 13px;
+    font-weight  : 700;
+    font-family  : monospace;
+    color        : var(--accent);
+    line-height  : 1.4;
+}
+
+.pb-code-badge-lbl {
+    font-size  : 9px;
+    color      : var(--text-muted);
+    white-space: nowrap;
+    margin-top : 1px;
+}
+
+/* ============================================================
+   LOADER OVERLAY
+   ============================================================ */
+.pb-loader {
+    position   : fixed;
+    inset      : 0;
+    z-index    : 9999;
+    background : rgba(0, 0, 0, 0.55);
+    display    : flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pb-loader-inner {
+    display        : flex;
+    flex-direction : column;
+    align-items    : center;
+    gap            : 16px;
+    background     : var(--bg-card);
+    border         : 1px solid var(--border);
+    border-radius  : 16px;
+    padding        : 32px 48px;
+}
+
+.pb-spinner {
+    width            : 48px;
+    height           : 48px;
+    border           : 3px solid var(--border);
+    border-top-color : var(--accent);
+    border-radius    : 50%;
+    animation        : spin 0.8s linear infinite;
+}
+
+.pb-loader-text {
+    font-size  : 13px;
+    color      : var(--text-secondary);
+    font-family: var(--font-body);
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Button spinner */
+.btn-spinner {
+    display          : none;
+    width            : 15px;
+    height           : 15px;
+    border           : 2px solid rgba(255,255,255,0.3);
+    border-top-color : #fff;
+    border-radius    : 50%;
+    animation        : spin 0.7s linear infinite;
+}
+.btn-pb-primary.loading .btn-spinner { display: inline-block; }
+.btn-pb-primary.loading .btn-text    { display: none; }
+
+/* ============================================================
+   AUTOCOMPLETE DROPDOWN
+   ============================================================ */
+.pb-autocomplete-wrap { position: relative; }
+
+.pb-dropdown {
+    position   : absolute;
+    top        : 100%;
+    left       : 0;
+    right      : 0;
+    background : var(--bg-card);
+    border     : 1px solid var(--border);
+    border-radius: 9px;
+    z-index    : 100;
+    display    : none;
+    max-height : 180px;
+    overflow-y : auto;
+    box-shadow : 0 8px 24px rgba(0,0,0,0.2);
+}
+
+.pb-dropdown-item {
+    padding       : 9px 14px;
+    font-size     : 13px;
+    color         : var(--text-primary);
+    cursor        : pointer;
+    transition    : background var(--transition);
+    border-bottom : 1px solid var(--border);
+}
+.pb-dropdown-item:last-child { border-bottom: none; }
+.pb-dropdown-item:hover      { background: var(--bg-hover); color: var(--accent); }
+
+/* ============================================================
+   SETTING MODAL
+   ============================================================ */
+.pb-modal-overlay {
+    position        : fixed;
+    inset           : 0;
+    z-index         : 10000;
+    background      : rgba(0,0,0,0.6);
+    display         : flex;
+    align-items     : center;
+    justify-content : center;
+}
+
+.pb-modal {
+    background     : var(--bg-card);
+    border         : 1px solid var(--border);
+    border-radius  : 16px;
+    width          : 90%;
+    max-width      : 600px;
+    max-height     : 80vh;
+    display        : flex;
+    flex-direction : column;
+}
+
+.pb-modal-header {
+    display         : flex;
+    align-items     : center;
+    justify-content : space-between;
+    padding         : 16px 20px;
+    border-bottom   : 1px solid var(--border);
+    font-family     : var(--font-display);
+    font-weight     : 600;
+    color           : var(--text-primary);
+    font-size       : 15px;
+}
+
+.pb-modal-close {
+    background : none;
+    border     : none;
+    color      : var(--text-muted);
+    font-size  : 16px;
+    cursor     : pointer;
+    padding    : 0;
+    transition : color var(--transition);
+}
+.pb-modal-close:hover { color: var(--danger); }
+
+.pb-modal-body {
+    flex      : 1;
+    overflow-y: auto;
+    padding   : 16px 20px;
+}
+
+.pb-modal-footer {
+    display         : flex;
+    gap             : 10px;
+    justify-content : flex-end;
+    padding         : 14px 20px;
+    border-top      : 1px solid var(--border);
+}
+
+/* Setting detail table inside modal */
+.pb-setting-table {
+    width      : 100%;
+    font-size  : 13px;
+    border-collapse: collapse;
+}
+.pb-setting-table th {
+    color      : var(--text-muted);
+    font-weight: 500;
+    padding    : 7px 10px;
+    text-align : left;
+    width      : 40%;
+    border-bottom: 1px solid var(--border);
+}
+.pb-setting-table td {
+    color      : var(--text-primary);
+    padding    : 7px 10px;
+    border-bottom: 1px solid var(--border);
+}
+.pb-setting-table tr:last-child th,
+.pb-setting-table tr:last-child td { border-bottom: none; }
+
+/* Setting type badge inside modal */
+.pb-setting-type-badge {
+    display      : inline-block;
+    font-size    : 10px;
+    font-weight  : 600;
+    padding      : 3px 10px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.pb-setting-type-pb { background: var(--accent-glow); color: var(--accent); }
+.pb-setting-type-ec { background: rgba(61,142,255,0.1); color: var(--accent-2); }
+
+/* ============================================================
+   INDEX PAGE
+   ============================================================ */
+.pb-toolbar {
+    display         : flex;
+    align-items     : center;
+    justify-content : space-between;
+    margin-bottom   : 16px;
+    gap             : 12px;
+    flex-wrap       : wrap;
+}
+
+.pb-search-wrap {
+    display      : flex;
+    align-items  : center;
+    gap          : 9px;
+    background   : var(--bg-hover);
+    border       : 1px solid var(--border);
+    border-radius: 9px;
+    padding      : 0 14px;
+    height       : 40px;
+    width        : 300px;
+    transition   : border-color var(--transition), width var(--transition);
+}
+.pb-search-wrap:focus-within { border-color: var(--accent); width: 360px; }
+.pb-search-wrap i { color: var(--text-muted); font-size: 14px; }
+
+.pb-search-inp {
+    background  : none;
+    border      : none;
+    outline     : none;
+    color       : var(--text-primary);
+    font-size   : 13px;
+    font-family : var(--font-body);
+    width       : 100%;
+}
+.pb-search-inp::placeholder { color: var(--text-muted); }
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .pb-search-wrap  { width: 100%; }
+    .pb-toolbar      { flex-direction: column; align-items: flex-start; }
+    .pb-diagram-card { display: none; }
+}
+.pb-dim-preview-card {
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+.setting-btn-edit,
+.setting-btn-delete {
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all var(--transition);
+    border: 1px solid var(--border);
+    background: var(--bg-hover);
+    text-decoration: none;
+}
+.setting-btn-edit {
+    color: var(--accent-2);
+}
+
+    .setting-btn-edit:hover {
+        background: rgba(61,142,255,.1);
+        border-color: rgba(61,142,255,.3);
+        color: var(--accent-2);
+    }
+.setting-btn-delete {
+    color: var(--danger);
+    border: none;
+}
+
+    .setting-btn-delete:hover {
+        background: rgba(240,72,72,.1);
+        border-color: rgba(240,72,72,.3);
+    }
+
+.pb-duct-grid {
+    background: var(--bg-surface);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    height: 100%;
+}
+
+.pb-duct-table {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+    .pb-duct-table thead th {
+        font-size: 11px;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        background: transparent;
+        border-bottom: 0.5px solid var(--border);
+        padding: 10px 12px;
+    }
+
+    .pb-duct-table tbody td {
+        padding: 8px 12px;
+        border-bottom: 0.5px solid var(--border);
+        vertical-align: middle;
+    }
+
+    .pb-duct-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .pb-duct-table,
+    .pb-duct-table > :not(caption) > * > * {
+        background-color: transparent !important;
+        color: var(--text-secondary);
+        box-shadow: none;
+    }
+        /* Ducting table action buttons */
+        .pb-duct-table .setting-tbl-edit,
+        .pb-duct-table .setting-tbl-remove {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            height: 30px;
+            padding: 0 10px;
+            border-radius: 7px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: var(--bg-hover);
+            transition: all var(--transition);
+        }
+
+        .pb-duct-table .setting-tbl-edit {
+            color: var(--accent-2);
+        }
+            .pb-duct-table .setting-tbl-edit:hover {
+                background: rgba(61,142,255,.12);
+                border-color: rgba(61,142,255,.35);
+            }
+
+        .pb-duct-table .setting-tbl-remove {
+            color: var(--danger);
+            width: 30px;
+            padding: 0;
+        }
+
+            .pb-duct-table .setting-tbl-remove:hover {
+                background: rgba(240,72,72,.12);
+                border-color: rgba(240,72,72,.35);
+            }
+
+        /* tidy spacing in the actions cell */
+        .pb-duct-table td:last-child {
+            white-space: nowrap;
+        }
+
+        .pb-duct-table .setting-tbl-edit {
+            margin-right: 6px;
+        }

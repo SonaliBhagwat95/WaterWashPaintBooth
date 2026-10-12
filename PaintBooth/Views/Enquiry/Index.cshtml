@@ -1,0 +1,179 @@
+@model List<PaintBooth.Models.EnquiryListViewModel>
+@{
+    ViewData["Title"] = "Enquiry";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/enquiry.css" asp-append-version="true" />
+}
+
+<!-- ── PAGE HEADER ──────────────────────────────────────────── -->
+<div class="page-header">
+    <div>
+        <div class="page-header-title">Enquiry</div>
+        <div class="page-header-sub">
+            Manage all enquiries — <strong>@Model.Count</strong> record(s)
+        </div>
+    </div>
+     <a asp-controller="Enquiry" asp-action="EnquiryFromERP" class="btn-pb-primary">
+        <i class="bi bi-plus-lg"></i> Enquiry From ERP
+    </a>
+   @*  <a asp-controller="Enquiry" asp-action="Create" class="btn-pb-primary">
+        <i class="bi bi-plus-lg"></i> New Enquiry
+    </a> *@
+
+</div>
+
+<!-- ── ALERTS ───────────────────────────────────────────────── -->
+@if (TempData["Success"] != null)
+{
+    <div class="pb-alert pb-alert-success mb-3" data-auto-dismiss>
+        <i class="bi bi-check-circle-fill"></i>
+        @TempData["Success"]
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="pb-alert pb-alert-danger mb-3" data-auto-dismiss>
+        <i class="bi bi-exclamation-circle-fill"></i>
+        @TempData["Error"]
+    </div>
+}
+
+<!-- ── TABLE CARD ────────────────────────────────────────────── -->
+<div class="pb-card">
+
+    <!-- Toolbar -->
+    <div class="enq-toolbar">
+        <div class="enq-search-wrap">
+            <i class="bi bi-search"></i>
+            <input type="text"
+                   id="enquirySearch"
+                   class="enq-search"
+                   placeholder="Search by enquiry no, company, component..." />
+        </div>
+        <div class="enq-count">
+            <span id="visibleCount">@Model.Count</span> enquiries
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="enq-table-wrap">
+        <table class="pb-table" id="enquiryTable">
+            <thead>
+                <tr>
+                    <th style="width:50px;">Sr.</th>
+                    <th>Enquiry No</th>
+                    <th>Company Name</th>
+                    <th>Component</th>
+                    <th>PaintBooth Type</th>
+                    <th>Draft Type</th>
+                    <th>Enquiry Date</th>
+                   @*  <th>Stage</th> *@
+                    <th style="width:90px; text-align:right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="9">
+                            <div class="enq-empty">
+                                <i class="bi bi-clipboard2-text"></i>
+                                No enquiries found
+                                <div class="enq-empty-sub">
+                                    Click "New Enquiry" to create your first one
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    int sr = 1;
+                    @foreach (var enq in Model)
+                    {
+                        <tr class="enq-row">
+                            <td class="enq-sr">@sr</td>
+                            <td class="enq-no">@enq.SalesNO</td>
+                            <td class="enq-company">@enq.CompanyName</td>
+                            <td>@enq.Component</td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(enq.Category))
+                                {
+                                    <span class="badge-status badge-inprogress">
+                                        @enq.Category
+                                    </span>
+                                }
+                            </td>
+                            <td style="font-size:12px; color:var(--text-secondary);">
+                                @enq.DraftType
+                            </td>
+                            <td class="enq-date">
+                                @enq.EnquiryDate.ToString("dd MMM yyyy")
+                            </td>
+                           @*  <td>
+                                <span class="badge-status @GetStageBadge(enq.Stage)">
+                                    @enq.Stage
+                                </span>
+                            </td> *@
+                            <td>
+                                <div class="enq-actions">
+
+                                    <!-- Edit -->
+                                    <a asp-controller="Enquiry"
+                                       asp-action="Edit"
+                                       asp-route-id="@enq.EnquiryID"
+                                       class="enq-btn-edit"
+                                       title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+
+                                    <!-- Delete -->
+                                   @*  <form asp-controller="Enquiry"
+                                          asp-action="Delete"
+                                          method="post"
+                                          style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@enq.EnquiryID" />
+                                        <button type="button"
+                                                class="enq-btn-delete"
+                                                title="Delete"
+                                                data-confirm="Delete enquiry @enq.SalesNO?"
+                                                data-url="/Enquiry/Delete/@enq.EnquiryID">
+                                            <i class="bi bi-trash3"></i>
+                                        </button>
+                                    </form> *@
+
+                                </div>
+                            </td>
+                        </tr>
+                        sr++;
+                    }
+                }
+
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+@functions {
+    string GetStageBadge(string stage) => stage?.ToLower() switch
+    {
+        "enquiry"   => "badge-pending",
+        "design"    => "badge-done",
+        "costing"   => "badge-inprogress",
+        "bid"       => "badge-inprogress",
+        "approval"  => "badge-pending",
+        "project"   => "badge-active",
+        "delivered" => "badge-active",
+        _           => "badge-pending"
+    };
+}
+
+@section Scripts {
+    <script src="~/js/enquiry-index.js" asp-append-version="true"></script>
+}

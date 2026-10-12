@@ -1,0 +1,398 @@
+/* ============================================================
+   Bullows PaintBooth Pro — pricebid.css
+   Price BID — Index + Create pages
+   ============================================================ */
+
+/* ── Shared helpers ──────────────────────────────────────────── */
+.pb-row.hidden    { display: none; }
+.form-btn-row     { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+
+/* ── Button spinner ──────────────────────────────────────────── */
+.btn-spinner {
+    display          : none;
+    width            : 15px;
+    height           : 15px;
+    border           : 2px solid rgba(255,255,255,.3);
+    border-top-color : #fff;
+    border-radius    : 50%;
+    animation        : spin .7s linear infinite;
+    vertical-align   : middle;
+    margin-right     : 5px;
+}
+.btn-pb-primary.loading .btn-spinner { display: inline-block; }
+.btn-pb-primary.loading .btn-text    { display: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── pb-card ─────────────────────────────────────────────────── */
+.pb-card {
+    background    : var(--bg-card);
+    border        : 1px solid var(--border);
+    border-radius : 14px;
+    padding       : 20px 24px;
+    margin-bottom : 16px;
+}
+
+/* ── form-section-title ──────────────────────────────────────── */
+.form-section-title {
+    display        : flex;
+    align-items    : center;
+    gap            : 8px;
+    font-family    : var(--font-display);
+    font-size      : 13px;
+    font-weight    : 600;
+    color          : var(--text-primary);
+    margin-bottom  : 18px;
+    padding-bottom : 12px;
+    border-bottom  : 1px solid var(--border);
+}
+.form-section-title i { color: var(--accent); font-size: 15px; }
+
+/* ── pb-label / pb-input ─────────────────────────────────────── */
+.pb-label {
+    font-size      : 11px;
+    font-weight    : 600;
+    letter-spacing : .4px;
+    text-transform : uppercase;
+    color          : var(--text-muted);
+    margin-bottom  : 5px;
+    display        : block;
+}
+.pb-form-group { margin-bottom: 14px; }
+.pb-input {
+    width         : 100%;
+    background    : var(--bg-hover);
+    border        : 1px solid var(--border);
+    border-radius : 8px;
+    padding       : 8px 12px;
+    font-size     : 13px;
+    color         : var(--text-primary);
+    font-family   : var(--font-body);
+    transition    : border-color var(--transition);
+    outline       : none;
+}
+.pb-input:focus        { border-color: var(--accent); }
+.pb-input[readonly]    { opacity: .65; cursor: not-allowed; }
+.pb-input::placeholder { color: var(--text-muted); }
+
+/* ── INDEX: toolbar / table ──────────────────────────────────── */
+.setting-toolbar {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px; gap: 12px; flex-wrap: wrap;
+}
+.setting-search-wrap {
+    display: flex; align-items: center; gap: 9px;
+    background: var(--bg-hover); border: 1px solid var(--border);
+    border-radius: 9px; padding: 0 14px; height: 40px; width: 300px;
+    transition: border-color var(--transition), width var(--transition);
+}
+.setting-search-wrap:focus-within { border-color: var(--accent); width: 360px; }
+.setting-search-wrap i { color: var(--text-muted); font-size: 14px; }
+.setting-search {
+    background: none; border: none; outline: none;
+    color: var(--text-primary); font-size: 13px;
+    font-family: var(--font-body); width: 100%;
+}
+.setting-search::placeholder { color: var(--text-muted); }
+.setting-count      { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+.setting-count span { font-weight: 600; color: var(--accent); }
+.setting-table-wrap { overflow-x: auto; }
+.setting-sr         { color: var(--text-muted); font-size: 12px; }
+.setting-code       { font-weight: 600; color: var(--text-primary); }
+.setting-actions    { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.setting-btn-edit,
+.setting-btn-delete {
+    width: 30px; height: 30px; border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; cursor: pointer; transition: all var(--transition);
+    border: 1px solid var(--border); background: var(--bg-hover); text-decoration: none;
+}
+.setting-btn-edit           { color: var(--accent-2); }
+.setting-btn-edit:hover     { background: rgba(61,142,255,.1); border-color: rgba(61,142,255,.3); }
+.setting-btn-delete         { color: var(--danger); border: none; }
+.setting-btn-delete:hover   { background: rgba(240,72,72,.1); }
+.setting-empty              { text-align: center; padding: 48px 0; color: var(--text-muted); font-size: 14px; }
+.setting-empty i            { font-size: 36px; display: block; margin-bottom: 12px; opacity: .4; }
+.setting-empty-sub          { font-size: 12px; margin-top: 6px; color: var(--text-muted); }
+.pb-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.pb-table thead tr          { background: var(--bg-hover); border-bottom: 2px solid var(--border); }
+.pb-table thead th {
+    padding: 10px 14px; font-size: 11px; font-weight: 600;
+    letter-spacing: .4px; text-transform: uppercase;
+    color: var(--text-muted); white-space: nowrap; text-align: left;
+}
+.pb-table tbody tr          { border-bottom: 1px solid var(--border); transition: background .12s; }
+.pb-table tbody tr:last-child { border-bottom: none; }
+.pb-table tbody tr:hover    { background: var(--bg-hover); }
+.pb-table tbody td          { padding: 9px 14px; color: var(--text-primary); white-space: nowrap; }
+
+/* ── pb-alert ────────────────────────────────────────────────── */
+.pb-alert {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px; border-radius: 10px;
+    font-size: 13px; font-weight: 500;
+}
+.pb-alert-success { background: rgba(34,201,126,.1); border: 1px solid rgba(34,201,126,.25); color: var(--success); }
+.pb-alert-danger  { background: rgba(240,72,72,.1);  border: 1px solid rgba(240,72,72,.25);  color: var(--danger); }
+
+/* ── CREATE: Autocomplete ────────────────────────────────────── */
+.bid-autocomplete-wrap { position: relative; }
+.bid-dropdown {
+    position: absolute; top: 100%; left: 0; right: 0;
+    z-index: 200; background: var(--bg-card);
+    border: 1px solid var(--border); border-radius: 9px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.18);
+    max-height: 200px; overflow-y: auto;
+    display: none; margin-top: 4px;
+}
+.bid-dropdown-item {
+    padding: 9px 14px; font-size: 13px; color: var(--text-primary);
+    cursor: pointer; transition: background .15s;
+    border-bottom: 1px solid var(--border);
+}
+.bid-dropdown-item:last-child { border-bottom: none; }
+.bid-dropdown-item:hover      { background: var(--bg-hover); color: var(--accent); }
+
+/* ── CREATE: Price BID table ─────────────────────────────────── */
+.bid-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+
+.bid-table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+}
+.bid-table thead tr    { background: var(--bg-hover); border-bottom: 2px solid var(--border); }
+.bid-table thead th {
+    padding: 10px 16px; font-size: 11px; font-weight: 600;
+    letter-spacing: .4px; text-transform: uppercase;
+    color: var(--text-muted); white-space: nowrap; text-align: left;
+}
+.bid-table thead th:not(:first-child) { text-align: center; }
+
+.bid-table tbody tr    { border-bottom: 1px solid var(--border); }
+.bid-table tbody tr:last-child { border-bottom: none; }
+.bid-table tbody tr:hover      { background: rgba(255,255,255,.015); }
+.bid-table tbody td    { padding: 8px 12px; color: var(--text-primary); vertical-align: middle; }
+.bid-table tbody td:first-child { font-size: 13px; font-weight: 500; min-width: 170px; }
+.bid-table tbody td:not(:first-child) { text-align: center; }
+
+/* Section header row inside table */
+.bid-table .bid-section-row td {
+    background    : var(--bg-hover);
+    font-size     : 11px;
+    font-weight   : 700;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    color         : var(--accent);
+    padding       : 8px 16px;
+    border-top    : 2px solid var(--border);
+}
+
+/* Readonly / auto-calculated rows */
+.bid-table .bid-readonly-row td:first-child { color: var(--text-secondary); }
+
+/* ── CREATE: Inline inputs inside bid table ──────────────────── */
+.bid-input {
+    width         : 110px;
+    background    : var(--bg-surface);
+    border        : 1px solid var(--border);
+    border-radius : 6px;
+    padding       : 5px 10px;
+    font-size     : 12px;
+    color         : var(--text-primary);
+    font-family   : var(--font-body);
+    text-align    : right;
+    outline       : none;
+    transition    : border-color .15s;
+    font-variant-numeric: tabular-nums;
+}
+.bid-input:focus          { border-color: var(--accent); }
+.bid-input[readonly]      { opacity: .65; cursor: not-allowed; background: var(--bg-hover); }
+.bid-input.cost-highlight { color: var(--accent); font-weight: 600; }
+.bid-input.total-highlight{ color: var(--success); font-weight: 700; font-size: 13px; }
+
+/* % suffix wrap */
+.bid-pct-wrap {
+    display     : inline-flex;
+    align-items : center;
+    gap         : 4px;
+}
+.bid-pct-suffix {
+    font-size  : 11px;
+    color      : var(--text-muted);
+    font-weight: 600;
+}
+
+/* ── CREATE: Payment remaining badge ─────────────────────────── */
+.bid-payment-badge {
+    display       : inline-flex;
+    align-items   : center;
+    gap           : 6px;
+    padding       : 6px 14px;
+    border-radius : 20px;
+    font-size     : 12px;
+    font-weight   : 700;
+    transition    : all .2s;
+}
+.bid-payment-badge.ok      { background: rgba(34,201,126,.15); color: var(--success); border: 1px solid rgba(34,201,126,.3); }
+.bid-payment-badge.warning { background: rgba(245,166,35,.15);  color: var(--warning); border: 1px solid rgba(245,166,35,.3); }
+.bid-payment-badge.over    { background: rgba(240,72,72,.15);   color: var(--danger);  border: 1px solid rgba(240,72,72,.3); }
+
+/* ── CREATE: Approve checkbox ────────────────────────────────── */
+.bid-approve-wrap {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 18px;
+    background: var(--bg-hover); border: 1px solid var(--border);
+    border-radius: 10px; margin-bottom: 16px;
+}
+.bid-approve-wrap input[type="checkbox"] { width: 17px; height: 17px; cursor: pointer; accent-color: var(--accent); }
+.bid-approve-label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.bid-approve-hint  { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .setting-search-wrap { width: 100%; }
+    .setting-toolbar     { flex-direction: column; align-items: flex-start; }
+    .bid-input           { width: 85px; }
+}
+.btn-enc-calc {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border-accent);
+    background: var(--accent-glow);
+    color: var(--accent);
+    cursor: pointer;
+    margin-left: 8px;
+    transition: all var(--transition);
+    font-family: var(--font-body);
+}
+
+    .btn-enc-calc:hover {
+        background: var(--accent);
+        color: #fff;
+    }
+/* ── E&C Modal ───────────────────────────────────────────── */
+.cost-modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 1050;
+    align-items: center;
+    justify-content: center;
+}
+
+    .cost-modal-backdrop.open {
+        display: flex;
+    }
+
+.cost-modal {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    width: 100%;
+    max-width: 480px;
+    transition: background var(--transition), border-color var(--transition);
+}
+
+.cost-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.cost-modal-title {
+    font-size: 15px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-primary);
+}
+
+.cost-modal-close {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 16px;
+    padding: 4px 6px;
+    border-radius: 7px;
+    line-height: 1;
+    transition: all var(--transition);
+}
+
+    .cost-modal-close:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+    }
+
+.cost-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: 1rem;
+    margin-top: 0.5rem;
+    border-top: 1px solid var(--border);
+}
+
+.cost-table-wrap {
+    overflow-x: auto;
+}
+
+.cost-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+    .cost-table thead th {
+        padding: 9px 12px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: .4px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+    }
+
+        .cost-table thead th.num {
+            text-align: right;
+        }
+
+    .cost-table tbody tr {
+        border-bottom: 1px solid var(--border);
+        transition: background var(--transition);
+    }
+
+        .cost-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .cost-table tbody tr:hover {
+            background: var(--bg-hover);
+        }
+
+    .cost-table tbody td {
+        padding: 8px 12px;
+        color: var(--text-secondary);
+    }
+
+    .cost-table td.num {
+        text-align: right;
+    }
+
+    .cost-table tfoot td {
+        padding: 9px 12px;
+        font-weight: 600;
+        color: var(--accent);
+        background: var(--bg-hover);
+        border-top: 1px solid var(--border);
+    }

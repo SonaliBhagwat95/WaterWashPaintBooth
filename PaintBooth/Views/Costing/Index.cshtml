@@ -1,0 +1,158 @@
+﻿@model List<PaintBooth.Models.CostingListViewModel>
+@{
+    ViewData["Title"] = "Raw Material Costing";
+    //ViewBag.ActivePage = "Raw Material Costing";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/costing.css" asp-append-version="true" />
+}
+
+<!-- ── PAGE HEADER ──────────────────────────────────────────── -->
+<div class="page-header">
+    <div>
+        <div class="page-header-title">Raw Material Costing</div>
+        <div class="page-header-sub">
+            Costing records for completed paintbooth designs —
+            <strong>@Model.Count</strong> record(s)
+        </div>
+    </div>
+    <a asp-controller="Costing" asp-action="Create" class="btn-pb-primary">
+        <i class="bi bi-plus-lg"></i> New Costing
+    </a>
+</div>
+
+<!-- ── ALERTS ───────────────────────────────────────────────── -->
+@if (TempData["Success"] != null)
+{
+    <div class="pb-alert pb-alert-success mb-3" data-auto-dismiss>
+        <i class="bi bi-check-circle-fill"></i> @TempData["Success"]
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="pb-alert pb-alert-danger mb-3" data-auto-dismiss>
+        <i class="bi bi-exclamation-circle-fill"></i> @TempData["Error"]
+    </div>
+}
+
+<!-- ── TABLE CARD ────────────────────────────────────────────── -->
+<div class="pb-card">
+
+    <div class="setting-toolbar">
+        <div class="setting-search-wrap">
+            <i class="bi bi-search"></i>
+            <input type="text" id="costingSearch" class="setting-search"
+                   placeholder="Search by enquiry code or company..." />
+        </div>
+        <div class="setting-count">
+            <span id="visibleCount">@Model.Count</span> records
+        </div>
+    </div>
+
+    <div class="setting-table-wrap">
+        <table class="pb-table" id="costingTable">
+            <thead>
+                <tr>
+                    <th style="width:50px;">Sr.</th>
+                    <th>Enquiry Code</th>
+                    <th>Company</th>
+                    <th style="text-align:right;">Cost of Panels (₹)</th>
+                    <th style="text-align:right;">Cost of Frames (₹)</th>
+                    <th style="text-align:right;">Total RM Cost (₹)</th>
+                    <th>Date</th>
+                    <th style="width:110px; text-align:right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="8">
+                            <div class="setting-empty">
+                                <i class="bi bi-calculator"></i>
+                                No costing records found
+                                <div class="setting-empty-sub">
+                                    Click "New Costing" to add costing for an enquiry
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    int i = 0;
+                    foreach (var item in Model)
+                    {
+                        i++;
+                        <tr class="costing-row">
+                            <td class="setting-sr">@i</td>
+                            <td>
+                                <span class="setting-code">@item.SalesNO</span>
+                            </td>
+                            <td style="color:var(--text-secondary);">
+                                @item.CompanyName
+                            </td>
+                            <td style="text-align:right; font-variant-numeric:tabular-nums; font-size:13px;">
+                                @item.TotalCostOfPanels.ToString("N0")
+                            </td>
+                            <td style="text-align:right; font-variant-numeric:tabular-nums; font-size:13px;">
+                                @item.TotalCostOfFrames.ToString("N0")
+                            </td>
+                            <td style="text-align:right;">
+                                <strong style="color:var(--accent); font-variant-numeric:tabular-nums;">
+                                    @item.TotalCostOfRM.ToString("N0")
+                                </strong>
+                            </td>
+                            <td style="color:var(--text-muted); font-size:12px;">
+                                @item.CreatedDate?.ToString("dd MMM yyyy")
+                            </td>
+                            <td>
+                                <div class="setting-actions">
+                                    <!-- Edit -->
+                                    <a asp-controller="Costing"
+                                       asp-action="Edit"
+                                       asp-route-enquiryCode="@item.SalesNO"
+                                       class="setting-btn-edit"
+                                       title="Edit Costing">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+
+                                    <!-- Export FI Sheet -->
+                                    <a asp-controller="Costing"
+                                       asp-action="ExportFISheet"
+                                       asp-route-enquiryCode="@item.SalesNO"
+                                       class="setting-btn-edit"
+                                       title="Export FI Sheet">
+                                        <i class="bi bi-file-earmark-excel"
+                                           style="color:#1d6f42;"></i>
+                                    </a>
+
+                                    <!-- Delete -->
+                                    @* <form asp-action="Delete"
+                                          asp-controller="Costing"
+                                          method="post"
+                                          style="display:inline;"
+                                          onsubmit="return confirm('Remove costing for @item.SalesNO? This cannot be undone.');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="enquiryCode"
+                                               value="@item.SalesNO" />
+                                        <button type="submit"
+                                                class="setting-btn-delete"
+                                                title="Delete">
+                                            <i class="bi bi-trash3"></i>
+                                        </button>
+                                    </form> *@
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/costing-index.js" asp-append-version="true"></script>
+}

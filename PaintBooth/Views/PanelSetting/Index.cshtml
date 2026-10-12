@@ -1,0 +1,152 @@
+@model List<PaintBooth.Models.PanelSettingListViewModel>
+@{
+    ViewData["Title"] = "Paintbooth Setting";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/setting.css" asp-append-version="true" />
+}
+
+<!-- ── PAGE HEADER ──────────────────────────────────────────── -->
+<div class="page-header">
+    <div>
+        <div class="page-header-title">Paintbooth Setting</div>
+        <div class="page-header-sub">
+            Panel settings configured per enquiry —
+            <strong>@Model.Count</strong> record(s)
+        </div>
+    </div>
+    <a asp-controller="PanelSetting" asp-action="Create"
+       class="btn-pb-primary">
+        <i class="bi bi-plus-lg"></i> Add Setting
+    </a>
+</div>
+
+<!-- ── ALERTS ───────────────────────────────────────────────── -->
+@if (TempData["Success"] != null)
+{
+    <div class="pb-alert pb-alert-success mb-3" data-auto-dismiss>
+        <i class="bi bi-check-circle-fill"></i>
+        @TempData["Success"]
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="pb-alert pb-alert-danger mb-3" data-auto-dismiss>
+        <i class="bi bi-exclamation-circle-fill"></i>
+        @TempData["Error"]
+    </div>
+}
+
+<!-- ── TABLE CARD ────────────────────────────────────────────── -->
+<div class="pb-card">
+
+    <div class="setting-toolbar">
+        <div class="setting-search-wrap">
+            <i class="bi bi-search"></i>
+            <input type="text"
+                   id="settingSearch"
+                   class="setting-search"
+                   placeholder="Search by enquiry code, material..." />
+        </div>
+        <div class="setting-count">
+            <span id="visibleCount">@Model.Count</span> settings
+        </div>
+    </div>
+
+    <div class="setting-table-wrap">
+        <table class="pb-table" id="settingTable">
+            <thead>
+                <tr>
+                    <th style="width:50px;">Sr.</th>
+                    <th>Enquiry Code</th>
+                    <th>PA Thickness</th>
+                    <th>EC Thickness</th>
+                    <th>PA Material</th>
+                    <th>EC Material</th>
+                    <th style="width:90px; text-align:right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="7">
+                            <div class="setting-empty">
+                                <i class="bi bi-gear"></i>
+                                No settings found
+                                <div class="setting-empty-sub">
+                                    Click "Add Setting" to configure panel settings for an enquiry
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    int sr = 1;
+                    @foreach (var item in Model)
+                    {
+                        <tr class="setting-row">
+                            <td class="setting-sr">@sr</td>
+                            <td class="setting-code">@item.SalesNo</td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(item.PaintBoothThk))
+                                {
+                                    <span class="badge-status badge-inprogress">
+                                        @item.PaintBoothThk
+                                    </span>
+                                }
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(item.ECThk))
+                                {
+                                    <span class="badge-status badge-done">
+                                        @item.ECThk
+                                    </span>
+                                }
+                            </td>
+                            <td style="color:var(--text-secondary);font-size:13px;">
+                                @item.PaintBoothMaterial
+                            </td>
+                            <td style="color:var(--text-secondary);font-size:13px;">
+                                @item.ECMaterial
+                            </td>
+                            <td>
+                                <div class="setting-actions">
+                                    <a asp-controller="PanelSetting"
+                                       asp-action="Edit"
+                                       asp-route-salesNo="@item.SalesNo"
+                                       class="setting-btn-edit"
+                                       title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    @* <form asp-controller="PanelSetting"
+                                          asp-action="Delete"
+                                          method="post"
+                                          style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="salesNo" value="@item.SalesNo" />
+                                        <button type="button"
+                                                class="setting-btn-delete"
+                                                title="Delete"
+                                                data-confirm="Delete settings for @item.SalesNo?"
+                                                data-url="/PanelSetting/Delete/@item.SalesNo">
+                                            <i class="bi bi-trash3"></i>
+                                        </button>
+                                    </form> *@
+                                </div>
+                            </td>
+                        </tr>
+                        sr++;
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+@section Scripts {
+    <script src="~/js/setting-index.js" asp-append-version="true"></script>
+}

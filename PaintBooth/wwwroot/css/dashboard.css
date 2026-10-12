@@ -1,0 +1,287 @@
+/* ============================================================
+   Bullows PaintBooth Pro — dashboard.css
+   Styles only for Dashboard/Index page
+   Loaded via @section Styles in Dashboard/Index.cshtml
+   ============================================================ */
+
+/* ============================================================
+   STAT CARDS ROW
+   ============================================================ */
+.dash-stat-link {
+    text-decoration : none;
+    display         : block;
+}
+
+.dash-stat-link:hover .stat-card {
+    border-color : var(--border-accent);
+    transform    : translateY(-2px);
+}
+
+/* ============================================================
+   PROJECT PIPELINE
+   ============================================================ */
+.pipeline-wrap {
+    display    : flex;
+    align-items: center;
+    gap        : 6px;
+    overflow-x : auto;
+    padding-bottom : 4px;
+}
+
+/* Hide scrollbar but keep scroll working */
+.pipeline-wrap::-webkit-scrollbar { height: 3px; }
+.pipeline-wrap::-webkit-scrollbar-track { background: transparent; }
+.pipeline-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.pipeline-stage {
+    flex            : 1;
+    min-width       : 90px;
+    background      : var(--bg-hover);
+    border          : 1px solid var(--border);
+    border-radius   : 10px;
+    padding         : 14px 8px;
+    text-align      : center;
+    transition      : all var(--transition);
+    cursor          : pointer;
+}
+
+.pipeline-stage:hover {
+    border-color : var(--border-accent);
+    transform    : translateY(-2px);
+}
+
+.pipeline-stage-done {
+    background   : rgba(34, 201, 126, 0.07);
+    border-color : rgba(34, 201, 126, 0.25);
+}
+
+.pipeline-stage-done:hover {
+    background   : rgba(34, 201, 126, 0.12);
+    border-color : rgba(34, 201, 126, 0.4);
+}
+
+.pipeline-count {
+    font-family : var(--font-display);
+    font-size   : 24px;
+    font-weight : 700;
+    line-height : 1;
+}
+
+.pipeline-label {
+    font-size      : 10px;
+    color          : var(--text-muted);
+    margin-top     : 6px;
+    text-transform : uppercase;
+    letter-spacing : 0.5px;
+}
+
+.pipeline-arrow {
+    color       : var(--text-muted);
+    font-size   : 20px;
+    flex-shrink : 0;
+    user-select : none;
+}
+
+/* ============================================================
+   RECENT ENQUIRIES TABLE
+   ============================================================ */
+.enq-table-wrap {
+    overflow-x : auto;
+}
+
+.enq-empty {
+    text-align  : center;
+    padding     : 36px 0;
+    color       : var(--text-muted);
+    font-size   : 13px;
+}
+
+.enq-empty i {
+    font-size    : 28px;
+    display      : block;
+    margin-bottom: 10px;
+    opacity      : 0.5;
+}
+
+.enq-view-all {
+    text-align      : right;
+    margin-top      : 14px;
+    font-size       : 12px;
+    color           : var(--accent);
+    text-decoration : none;
+    display         : inline-flex;
+    align-items     : center;
+    gap             : 5px;
+    float           : right;
+    transition      : opacity var(--transition);
+}
+
+.enq-view-all:hover { opacity: 0.75; color: var(--accent); }
+
+.enq-rm-cost {
+    font-weight : 500;
+    color       : var(--text-primary);
+}
+
+.enq-sub-type {
+    color     : var(--text-muted);
+    font-size : 12px;
+}
+
+.enq-date {
+    font-size : 12px;
+    color     : var(--text-secondary);
+}
+
+/* ============================================================
+   PENDING APPROVALS
+   ============================================================ */
+.approval-list {
+    display        : flex;
+    flex-direction : column;
+    gap            : 4px;
+}
+
+.approval-item {
+    display     : flex;
+    align-items : center;
+    gap         : 10px;
+    padding     : 9px 0;
+    border-bottom : 1px solid var(--border);
+    transition  : background var(--transition);
+}
+
+.approval-item:last-child { border-bottom: none; }
+
+.approval-dot {
+    width         : 8px;
+    height        : 8px;
+    border-radius : 50%;
+    flex-shrink   : 0;
+}
+
+.dot-accent   { background: var(--accent); }
+.dot-warning  { background: var(--warning); }
+.dot-purple   { background: var(--purple); }
+.dot-blue     { background: var(--accent-2); }
+.dot-success  { background: var(--success); }
+
+.approval-info     { flex: 1; min-width: 0; }
+
+.approval-customer {
+    font-size     : 13px;
+    font-weight   : 500;
+    color         : var(--text-primary);
+    white-space   : nowrap;
+    overflow      : hidden;
+    text-overflow : ellipsis;
+}
+
+.approval-empty {
+    text-align : center;
+    padding    : 20px 0;
+    color      : var(--text-muted);
+    font-size  : 13px;
+}
+
+.approval-empty i {
+    font-size    : 22px;
+    display      : block;
+    margin-bottom: 6px;
+    color        : var(--success);
+}
+
+.approval-empty-sub {
+    font-size  : 11px;
+    margin-top : 4px;
+    color      : var(--text-muted);
+}
+
+/* ============================================================
+   ACTIVITY FEED
+   ============================================================ */
+.activity-list {
+    display        : flex;
+    flex-direction : column;
+}
+
+.activity-item {
+    display     : flex;
+    align-items : center;
+    gap         : 10px;
+    padding     : 9px 0;
+    border-bottom : 1px solid var(--border);
+    transition  : background var(--transition);
+}
+
+.activity-item:last-child { border-bottom: none; }
+
+.activity-bar {
+    width         : 4px;
+    height        : 30px;
+    border-radius : 2px;
+    flex-shrink   : 0;
+}
+
+.bar-accent   { background: var(--accent); }
+.bar-blue     { background: var(--accent-2); }
+.bar-warning  { background: var(--warning); }
+.bar-success  { background: var(--success); }
+.bar-purple   { background: var(--purple); }
+
+.activity-msg {
+    flex        : 1;
+    font-size   : 12px;
+    color       : var(--text-secondary);
+    line-height : 1.4;
+}
+
+.activity-time {
+    font-size   : 11px;
+    color       : var(--text-muted);
+    white-space : nowrap;
+    flex-shrink : 0;
+}
+
+.activity-empty {
+    text-align : center;
+    padding    : 20px 0;
+    color      : var(--text-muted);
+    font-size  : 13px;
+}
+
+/* ============================================================
+   COMING SOON STAT CARD (modules not built yet)
+   ============================================================ */
+.stat-card-disabled {
+    opacity : 0.6;
+    cursor  : default;
+}
+
+.stat-card-disabled:hover {
+    border-color : var(--border);
+    background   : var(--bg-card);
+    transform    : none;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+    .pipeline-stage {
+        min-width : 70px;
+        padding   : 10px 4px;
+    }
+
+    .pipeline-count { font-size: 20px; }
+    .pipeline-label { font-size: 9px; }
+    .pipeline-arrow { font-size: 16px; }
+}
+
+@media (max-width: 576px) {
+    .pipeline-wrap  { gap: 3px; }
+    .pipeline-arrow { display: none; }
+
+    .enq-date,
+    .enq-sub-type   { display: none; }
+}

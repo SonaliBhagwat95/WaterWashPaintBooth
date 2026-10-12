@@ -1,0 +1,890 @@
+﻿@model PaintBooth.Models.EnquiryFormViewModel
+@{
+    ViewData["Title"] = Model.Enquiry.EnquiryID > 0 ? "Edit Enquiry" : "New Enquiry";
+    var isEdit = Model.Enquiry.EnquiryID > 0;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/enquiry.css" asp-append-version="true" />
+}
+
+<!-- PAGE HEADER  -->
+<div class="page-header">
+    <div>
+        <div class="page-header-title">@ViewData["Title"]</div>
+        <div class="page-header-sub">Fill in the basis of design details</div>
+    </div>
+    <a asp-controller="Enquiry" asp-action="Index" class="btn-pb-secondary">
+        <i class="bi bi-arrow-left"></i> Back to List
+    </a>
+</div>
+
+<form asp-action="@(isEdit ? "Edit" : "Create")" asp-controller="Enquiry"
+      method="post" id="enquiryForm"
+      enctype="multipart/form-data" novalidate>
+
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Enquiry.EnquiryID" />
+    <input type="hidden" asp-for="Enquiry.CustomerID" id="hdnCustomerID" />
+    <input type="hidden" asp-for="Component.ComponentID" />
+    <input type="hidden" asp-for="Component.Image_Path" />
+    <input type="hidden" asp-for="customer.CustomerLocation" />
+    <!--
+         SECTION 1   ENQUIRY HEADER
+    -->
+    <div class="pb-card mb-3">
+        <div class="form-section-title">
+            <i class="bi bi-clipboard2-text"></i>
+            Enquiry Details
+        </div>
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Enquiry Date</label>
+                    <input asp-for="Enquiry.EnquiryDate"
+                           type="date" class="pb-input"
+                           id="txtProposalDate" readonly />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Enquiry No <span class="req-star">*</span></label>
+                    <input asp-for="Enquiry.SalesNO"
+                           class="pb-input" id="txtSalesNO"
+                           placeholder="e.g. ENQ-001"
+                           autocomplete="off" readonly/>
+                    <div id="salesNoError" class="form-field-error" style="display:none;">
+                        <i class="bi bi-exclamation-circle"></i>
+                        This Enquiry No is already in use.
+                    </div>
+                    <span asp-validation-for="Enquiry.SalesNO" class="form-field-error"></span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Sales Engineer</label>
+                    <select class="pb-input" id="drpSalesEngineer"
+                            asp-for="Enquiry.SalesEngineerId"
+                            asp-items="Model.SalesEngineers">
+                        <option value="">-- Select --</option>
+                    </select>
+                    <span asp-validation-for="Enquiry.SalesEngineerId" class="text-danger"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--
+         SECTION 2   COMPANY DETAILS
+    -->
+    <div class="pb-card mb-3">
+        <div class="form-section-title">
+            <i class="bi bi-building"></i>
+            Company Details
+        </div>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="pb-form-group">
+                    <label class="pb-label">Company Name <span class="req-star">*</span></label>
+                    <div class="enq-autocomplete-wrap">
+                        <input type="text" class="pb-input"
+                               id="txtCompanyName" asp-for="customer.CompanyName"
+                               placeholder="Type to search company..."
+                               autocomplete="off" readonly/>
+                        <div id="companyDropdown" class="enq-dropdown"></div>
+                    </div>
+                    <span asp-validation-for="customer.CompanyName" class="form-field-error"></span>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="pb-form-group">
+                    <label class="pb-label">Address</label>
+                    <input type="text" class="pb-input" id="txtAddress" readonly asp-for="customer.Address" />
+                </div>
+            </div>
+        </div>
+        <div class="row g-3 mt-1">
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Contact Person</label>
+                    <input type="text" class="pb-input" id="txtContactPerson" readonly asp-for="customer.ContactPerson" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Designation</label>
+                    <input type="text" class="pb-input" id="txtDesignation" readonly asp-for="customer.Designation" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Mobile No</label>
+                    <input type="text" class="pb-input" id="txtMobile" readonly asp-for="customer.MobileNo" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Email ID</label>
+                    <input type="text" class="pb-input" id="txtEmail" readonly asp-for="customer.Email" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--
+         SECTION 3   BASIS OF DESIGN
+     -->
+    <div class="pb-card mb-3">
+        <div class="form-section-title">
+            <i class="bi bi-gear-wide-connected"></i>
+            Basis of Design
+        </div>
+
+        <!-- Component & File Upload -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Component Name  <span class="req-star">*</span></label>
+                    <input asp-for="Component.Component" class="pb-input"
+                           placeholder="Component name" />
+                </div>
+                <span asp-validation-for="Component.Component" class="form-field-error"></span>
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Material of Construction</label>
+                    <input asp-for="Component.MaterialofConstruction" class="pb-input"
+                           placeholder="MS Sheet / Alloy / ..." />
+                </div>
+            </div>
+            @* <div class="col-md-4">
+                <div class="pb-form-group">
+                    <label class="pb-label">Upload Drawings / Attachments</label>
+                    <div class="enq-file-wrap">
+                        <label class="enq-file-btn" for="imageFileInput">
+                            <i class="bi bi-paperclip"></i> Choose Files
+                        </label>
+                        <input type="file" name="imageFile" id="imageFileInput"
+                               multiple class="enq-file-hidden" />
+                        <span id="fileNameDisplay" class="enq-file-name">No file chosen</span>
+                        <button type="button" class="enq-show-files-btn"
+                                id="showFilesBtn" disabled>
+                            <i class="bi bi-eye"></i> Show Files
+                        </button>
+                    </div>
+                </div>
+            </div> *@
+            <div class="col-md-4">
+                <div class="pb-form-group">
+                    <label class="pb-label">Upload Drawings / Attachments</label>
+                    <div class="enq-file-wrap">
+                        <label class="enq-file-btn" for="imageFileInput">
+                            <i class="bi bi-paperclip"></i> Choose Files
+                        </label>
+                        <input type="file" name="imageFile" id="imageFileInput"
+                               multiple class="enq-file-hidden" />
+
+                        <span id="fileNameDisplay" class="enq-file-name">
+                            @if (!string.IsNullOrEmpty(Model.Component.Image_Path))
+                            {
+                                @System.IO.Path.GetFileName(Model.Component.Image_Path)
+                            }
+                            else
+                            {
+                                <text>No file chosen</text>
+                            }
+                        </span>
+
+                        @* Show Files button — enabled if existing file, disabled if none *@
+                        <button type="button" class="enq-show-files-btn"
+                                id="showFilesBtn"
+                                @(string.IsNullOrEmpty(Model.Component.Image_Path) ? "disabled" : "")
+                                data-existing-path="@Model.Component.Image_Path">
+                            <i class="bi bi-eye"></i> Show Files
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- ?? COATING ROW   all 6 fields in one row ?????????? -->
+        <div class="row g-3 mb-3">
+            <!-- Coating Type radio -->
+            <div class="col-md-2">
+                <div class="pb-form-group">
+                    <label class="pb-label enq-label-accent">Coating Type <span class="req-star">*</span></label>
+                    <div class="enq-radio-group">
+                        <label class="enq-radio-label">
+                            <input type="radio" name="Component.ConsumptionPerDay"
+                                   value="Paint" id="radioPaint"
+                                   @(Model.Component.ConsumptionPerDay == "Paint" ? "checked" : "") />
+                            Paint
+                        </label>
+                        <label class="enq-radio-label">
+                            <input type="radio" name="Component.ConsumptionPerDay"
+                                   value="Powder" id="radioPowder"
+                                   @(Model.Component.ConsumptionPerDay == "Powder" ? "checked" : "") />
+                            Powder
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Type of Paint (shown when Paint selected) -->
+            <div class="col-md-3" id="paintTypeDiv" style="display:none;">
+                <div class="pb-form-group">
+                    <label class="pb-label">Type of Paint <span class="req-star">*</span></label>
+                    <select asp-for="Component.TypeOfPaint" class="pb-select">
+                        <option value="">-- Select --</option>
+                        <option value="Water Based">Water Based</option>
+                        <option value="PU Paint">PU Paint</option>
+                        <option value="Epoxy">Epoxy</option>
+                    </select>
+                </div>
+                <span asp-validation-for="Component.TypeOfPaint" class="form-field-error"></span>
+            </div>
+
+            <!-- Type of Powder (shown when Powder selected) -->
+            <div class="col-md-3" id="powderTypeDiv" style="display:none;">
+                <div class="pb-form-group">
+                    <label class="pb-label">Type of Powder</label>
+                    <select asp-for="Component.TypeOfPowder" class="pb-select">
+                        <option value="">-- Select --</option>
+                        <option value="PU">PU</option>
+                        <option value="Epoxy">Epoxy</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Paint Consumption (shown when Paint selected) -->
+            <div class="col-md-3" id="paintConsDiv" style="display:none;">
+                <div class="pb-form-group">
+                    <label class="pb-label">Paint Consumption/Day (ltr)</label>
+                    <input asp-for="Component.Paint" class="pb-input" placeholder="0" />
+                </div>
+            </div>
+
+            <!-- Powder Consumption (shown when Powder selected) -->
+            <div class="col-md-3" id="powderConsDiv" style="display:none;">
+                <div class="pb-form-group">
+                    <label class="pb-label">Powder Consumption/Day (kg)</label>
+                    <input asp-for="Component.Powder" class="pb-input" placeholder="0" />
+                </div>
+            </div>
+        </div>
+        <!-- PaintBooth Type, Draft, SubType -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">PaintBooth Type <span class="req-star">*</span></label>
+                    <select asp-for="Component.Category" class="pb-select" id="drpCategory">
+                        <option value="">-- Select --</option>
+                        @*  <option value="Dry Paint Booth">Dry Paint Booth</option>
+                        <option value="Wet Paint Booth">Wet Paint Booth</option> *@
+                        <option value="Dry back paint booth">Dry back paint booth</option>
+                        <option value="Water wash paint booth">Water wash paint booth</option>
+                    </select>
+                </div>
+                <span asp-validation-for="Component.Category" class="form-field-error"></span>
+
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Draught Type <span class="req-star">*</span></label>
+                    <select asp-for="Enquiry.DraftType" class="pb-select" id="drpDraftType">
+                        <option value="">-- Select --</option>
+                        <option value="1">Side Draught</option>
+                        <option value="3">Semi Down Draught</option>
+                        <option value="2">Down Draught</option>
+                    </select>
+                </div>
+                <span asp-validation-for="Enquiry.DraftType" class="form-field-error"></span>
+
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Sub Type <span class="req-star">*</span></label>
+                    <select asp-for="Enquiry.SubTypeOfDraftType" class="pb-select" id="drpSubType">
+                        <option value="">-- Select --</option>
+                        <option value="1">Front Open</option>
+                        <option value="2">Negative Pressurized Booth</option>
+                        <option value="3">Positive Pressurized Booth</option>
+                        <option value="4">With FAS & Civil</option>
+                        <option value="5">With FAS & Without Civil</option>
+
+                        <option value="8">With FAS</option>
+                        <option value="9">With Filters on Top</option>
+                        @*  <option value="6">With Filters on Top & With Civil</option>
+                        <option value="7">With Filters on Top & Without Civil</option> *@
+                    </select>
+                </div>
+                <span asp-validation-for="Enquiry.SubTypeOfDraftType" class="form-field-error"></span>
+
+            </div>
+
+            <div class="col-md-3" id="divFilterTypes" style="display:none">
+                <div class="pb-form-group">
+                    <label class="pb-label">Filter Type<span class="req-star">*</span></label>
+                    <select asp-for="Enquiry.FilterTypes" class="pb-select" id="drpFilterType">
+                        <option value="">-- Select --</option>
+                        <option value="Ceiling Filters">Ceiling Filters</option>
+                        <option value="Cassette Filters">Cassette Filters</option>
+                    </select>
+                </div>
+                <span asp-validation-for="Enquiry.FilterTypes" class="form-field-error"></span>
+
+            </div>
+        </div>
+        <!-- Shape & Orientation -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Shape  <span class="req-star">*</span></label>
+                    <select asp-for="Component.Shape" class="pb-select" id="drpShape">
+                        <option value="">-- Select --</option>
+                        <option value="Rectangular">Rectangular</option>
+                        <option value="Circular">Circular</option>
+                    </select>
+                </div>
+                <span asp-validation-for="Component.Shape" class="form-field-error"></span>
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Orientation <span class="req-star">*</span></label>
+                    <select asp-for="Component.Orientation" class="pb-select" id="drpOrientation">
+                        <option value="">-- Select --</option>
+                        <option value="Horizontal">Horizontal</option>
+                        <option value="Vertical">Vertical</option>
+                    </select>
+                </div>
+                <span asp-validation-for="Component.Orientation" class="form-field-error"></span>
+            </div>
+        </div>
+
+        <!--  RECTANGULAR DIMENSIONS  -->
+        <div id="rectangularSection" class="enq-shape-section" style="display:none;">
+            <div class="row g-3 mb-3 align-items-center">
+
+                <!-- Left: 3 stacked inputs -->
+                <div class="col-md-5">
+                    <div class="pb-form-group">
+                        <label class="pb-label">MAX Depth (mm)   W <span class="req-star">*</span></label>
+                        <input asp-for="Component.Length" class="pb-input enq-calc"
+                               id="txtLengthSize" placeholder="0" />
+                        <span asp-validation-for="Component.Length" class="form-field-error"></span>
+                    </div>
+                    <div class="pb-form-group mt-2">
+                        <label class="pb-label">MAX Width (mm)   L <span class="req-star">*</span></label>
+                        <input asp-for="Component.WidthSize" class="pb-input enq-calc"
+                               id="txtWidthSize" placeholder="0" />
+                        <span asp-validation-for="Component.WidthSize" class="form-field-error"></span>
+                    </div>
+                    <div class="pb-form-group mt-2">
+                        <label class="pb-label">MAX Height (mm) <span class="req-star">*</span></label>
+                        <input asp-for="Component.HeightSize" class="pb-input enq-calc"
+                               id="txtHeightSize" placeholder="0" />
+                        <span asp-validation-for="Component.HeightSize" class="form-field-error"></span>
+                    </div>
+                </div>
+
+                <!-- preview mount point -->
+                <div class="col-md-7" id="rectPreviewCol"></div>
+                <!-- Right: Shape image card   always white bg -->
+                @* <div class="col-md-3">
+                    <div class="enq-shape-img-card">
+                        <div class="enq-shape-img-label" id="rectOrientationLabel">
+                            Horizontal   Rectangular
+                        </div>
+                        <img src="~/img/Rectangular.PNG"
+                             id="rectImg"
+                             alt="Rectangular shape diagram"
+                             class="enq-shape-img-main" />
+                    </div>
+                </div> *@
+
+            </div>
+        </div>
+
+        <!-- ?? CIRCULAR DIMENSIONS ??????????????????????????? -->
+        <div id="circularSection" class="enq-shape-section" style="display:none;">
+            <div class="row g-3 mb-3 align-items-center">
+
+                <!-- Left: 2 stacked inputs -->
+                <div class="col-md-5">
+                    <div class="pb-form-group">
+                        <label class="pb-label">MAX Diameter (mm) <span class="req-star">*</span></label>
+                        <input type="number" asp-for="Component.Diameter"
+                               class="pb-input enq-calc"
+                               id="txtDiameter" placeholder="0" />
+                        <span asp-validation-for="Component.Diameter" class="form-field-error"></span>
+                    </div>
+                    <div class="pb-form-group mt-2">
+                        <label class="pb-label">MAX Height (mm) <span class="req-star">*</span></label>
+                        <input type="number" asp-for="Component.CircularHeightSize"
+                               class="pb-input enq-calc"
+                               id="txtCircularHeight" placeholder="0" />
+                        <span asp-validation-for="Component.CircularHeightSize" class="form-field-error"></span>
+                    </div>
+                </div>
+                <div class="col-md-7" id="circPreviewCol"></div>
+                <!-- Right: Shape image card   always white bg -->
+                @* <div class="col-md-3">
+                    <div class="enq-shape-img-card">
+                        <div class="enq-shape-img-label" id="circOrientationLabel">
+                            Vertical   Circular
+                        </div>
+                        <img src="~/img/Circular.PNG"
+                             id="circularImg"
+                             alt="Circular shape diagram"
+                             class="enq-shape-img-main" />
+                    </div>
+                </div> *@
+
+            </div>
+        </div>
+
+        <!-- ??????????????????????????????????????????????????????
+             SECTION 4   COMPONENT ENTRY & DOOR TYPES
+        ?????????????????????????????????????????????????????? -->
+        <div class="pb-card mb-3" id="componentEntrySection" style="display:none;">
+            <div class="form-section-title">
+                <i class="bi bi-door-open"></i>
+                Component Entry &amp; Door Types
+            </div>
+            <div class="row g-3">
+                <div id="componentEntryDoorDiv" class="row" style="display:none;">
+                    <div class="col-md-3">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Component Entry <span class="req-star">*</span></label>
+                            <select asp-for="Component.ComponentEntry" id="drpComponentEntry" class="pb-select">
+                                <option value="">-- Select --</option>
+                                <option value="Front">Front</option>
+                                <option value="Side">Side</option>
+                            </select>
+                        </div>
+                        <span asp-validation-for="Component.ComponentEntry" class="form-field-error"></span>
+
+                    </div>
+                    <div class="col-md-3">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Door Type</label>
+                            <select asp-for="Component.DoorType" class="pb-select" id="drpDoorType">
+                                <option value="">-- Select --</option>
+                                <option value="Manual">Manual</option>
+                                <option value="Motorised">Motorised</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3" id="manualOperationDiv" style="display:none;">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Type of Operation <span class="req-star">*</span></label>
+                        <select asp-for="Component.DoorSubType" class="pb-select"
+                                id="drpManualOperation">
+                            <option value="">-- Select --</option>
+                            <option value="Hinged">Hinged</option>
+                            <option value="Sliding">Sliding</option>
+                            <option value="Rolling Shutter">Rolling Shutter</option>
+                        </select>
+                    </div>
+                    <span asp-validation-for="Component.DoorSubType" class="form-field-error"></span>
+
+                </div>
+                <div class="col-md-3" id="hingedDoorDiv" style="display:none;">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Type of Hinged Door <span class="req-star">*</span></label>
+                        <select asp-for="Component.TypeOfHingedDoor" class="pb-select">
+                            <option value="">-- Select --</option>
+                            <option value="Split Doors">Split Doors</option>
+                            <option value="4 Fold Doors">4 Fold Doors</option>
+                        </select>
+                    </div>
+                    <span asp-validation-for="Component.TypeOfHingedDoor" class="form-field-error"></span>
+
+                </div>
+                <div class="col-md-3" id="hingesTypeDiv" style="display:none;">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Type of Hinges <span class="req-star">*</span></label>
+                        <select asp-for="Component.TypeOfHinges" class="pb-select">
+                            <option value="">-- Select --</option>
+                            <option value="Ball Bearing Hinges">Ball Bearing Hinges</option>
+                            <option value="Fabricated Hinge">Fabricated Hinge</option>
+                        </select>
+                    </div>
+                    <span asp-validation-for="Component.TypeOfHinges" class="form-field-error"></span>
+
+                </div>
+                <div class="col-md-3" id="motorisedOperationDiv" style="display:none;">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Type of Operation (Motorised)</label>
+                        <select asp-for="Component.DoorSubType" class="pb-select">
+                            <option value="">-- Select --</option>
+                            <option value="Sliding">Sliding</option>
+                            <option value="Rolling">Rolling</option>
+                        </select>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>   <!-- ← end of #componentEntrySection -->
+    <div id="entryPreviewWrap" style="display:none;">
+        <label class="pb-label enq-label-accent">Component Entry Preview</label>
+        <div id="entryViewer"
+             style="position:relative;width:100%;height:340px;background:#171b22;
+                border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+            <div id="entryDirBadge"
+                 style="position:absolute;top:10px;left:10px;z-index:2;background:rgba(20,25,34,.72);
+                    border:1px solid #2c333f;border-radius:8px;padding:5px 9px;
+                    font-size:11px;color:#8a94a4;">
+                Entry direction: <b style="color:#f4c430">FRONT →</b>
+            </div>
+        </div>
+    </div>
+    <div class="pb-card mb-3">
+
+        <!-- Key Properties -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label enq-label-accent">MAX Weight (kg)</label>
+                    <input asp-for="Component.Weight" class="pb-input" placeholder="0" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label enq-label-accent">Surface Area (Sq.mtr)</label>
+                    <input asp-for="Component.SurfaceArea" class="pb-input"
+                           id="txtSurfaceArea" placeholder="0" readonly />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label enq-label-accent">Wall Thickness (mm)</label>
+                    <input asp-for="Component.WallThickness" class="pb-input" placeholder="0" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label enq-label-accent">Viscosity (Sec)</label>
+                    <input asp-for="Component.Viscosity" class="pb-input" placeholder="0" />
+                </div>
+            </div>
+        </div>
+
+        <!-- DFT & Specific Heat -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label enq-label-accent">DFT (micron)</label>
+                    <input asp-for="Component.DFT" class="pb-input" placeholder="0" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label enq-label-accent">Specific Heat (kcal/hr)</label>
+                    <input asp-for="Component.SpecificHeat" class="pb-input" placeholder="0" />
+                </div>
+            </div>
+            <!-- No of Colours   always visible -->
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label enq-label-accent">No of Colours</label>
+                    <input asp-for="Component.NoOfColors" class="pb-input" placeholder="0" />
+                </div>
+            </div>
+
+            <!-- No of Coats   always visible -->
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label enq-label-accent">No of Coats</label>
+                    <input asp-for="Component.NoOfCoats" class="pb-input" placeholder="0" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Component Handling -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label enq-label-accent">Component Handling <span class="req-star">*</span></label>
+                    <select asp-for="Component.ComponentHandling" class="pb-select"
+                            id="drpComponentHandling">
+                        <option value="">-- Select --</option>
+                        <option value="Applicable">Applicable</option>
+                        <option value="Not-Applicable">Not-Applicable</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3" id="conveyorTypeDiv" style="display:none;">
+                <div class="pb-form-group">
+                    <label class="pb-label">Conveyor Types <span class="req-star">*</span></label>
+                    <select asp-for="Component.Conveyor" class="pb-select" id="drpConveyor">
+                        <option value="">-- Select --</option>
+                        <option value="1">EOT Crane</option>
+                        <option value="2">Hoist</option>
+                        <option value="3">Overhead Conveyor</option>
+                       @*  <option value="4">Four Wheel (Biplanar)</option> *@
+                        <option value="4">Overhead Manual Push Pull</option>
+                        <option value="5">Motorized Floor Conveyor</option>
+                        <option value="6">Motorized Floor Trolley</option>
+                        <option value="7">Manually Push Pull Trolley</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3" id="conveyorSubTypeDiv" style="display:none;">
+                <div class="pb-form-group">
+                    <label class="pb-label">Conveyor Sub Types</label>
+                    <select asp-for="Component.OverheadConveyorSubTypes" class="pb-select">
+                        <option value="">-- Select --</option>
+                        <option value="Continous">Continous</option>
+                        <option value="Stop & Go">Stop &amp; Go</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3" id="carryCapacityDiv" style="display:none;">
+                <div class="pb-form-group">
+                    <label class="pb-label">Carrying Capacity (Kg)</label>
+                    <input asp-for="Component.CarringCapacity" class="pb-input" placeholder="0" />
+                </div>
+            </div>
+            <div class="col-md-3" id="conveyorNumberDiv" style="display:none;">
+                <div class="pb-form-group">
+                    <label class="pb-label">Conveyor Number</label>
+                    <select asp-for="Component.ConveyorNumber" class="pb-select">
+                        <option value="">-- Select --</option>
+                        <option value="348">348</option>
+                        <option value="458">458</option>
+                        <option value="678">678</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3" id="pitchDiv" style="display:none;">
+                <div class="pb-form-group">
+                    <label class="pb-label enq-label-accent">Pitch (mm)</label>
+                    <input asp-for="Component.Pitch" class="pb-input" placeholder="0" />
+                </div>
+            </div>
+            <div class="col-md-3" id="speedDiv" style="display:none;">
+                <div class="pb-form-group">
+                    <label class="pb-label enq-label-accent">Speed (m/min)</label>
+                    <input asp-for="Component.Speed" class="pb-input" placeholder="0" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label enq-label-accent">Loading &amp; Unloading <span class="req-star">*</span></label>
+                    <select asp-for="Component.LoadingUnloading" class="pb-select">
+                        <option value="">-- Select --</option>
+                        <option value="Manual">Manual</option>
+                        <option value="Automatic">Automatic</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Production -->
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label enq-label-accent">Production / Shift <span class="req-star">*</span></label>
+                    <input asp-for="Component.ProductionRequirement" class="pb-input"
+                           placeholder="0" />
+
+                </div>
+                <span asp-validation-for="Component.ProductionRequirement" class="form-field-error"></span>
+
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label enq-label-accent">No. of Shifts / Day <span class="req-star">*</span></label>
+                    <input asp-for="Component.NumberofShifts" class="pb-input" placeholder="0" />
+                </div>
+                <span asp-validation-for="Component.NumberofShifts" class="form-field-error"></span>
+
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label enq-label-accent">Effective Working Hrs / Shift <span class="req-star">*</span></label>
+                    <input asp-for="Component.EffectiveWorking" class="pb-input" placeholder="0" />
+                </div>
+                <span asp-validation-for="Component.EffectiveWorking" class="form-field-error"></span>
+
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label enq-label-accent">Working Days / Year <span class="req-star">*</span></label>
+                    <input asp-for="Component.Workingdays" class="pb-input" placeholder="0" />
+                </div>
+                <span asp-validation-for="Component.Workingdays" class="form-field-error"></span>
+
+            </div>
+        </div>
+
+    </div>
+
+   
+    <!--  SECTION 5   MOTOR & CHAMBER -->
+    <div class="pb-card mb-3">
+        <div class="form-section-title">
+            <i class="bi bi-cpu"></i>
+            Motor &amp; Chamber
+        </div>
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Motor Type <span class="req-star">*</span></label>
+                    <select asp-for="MotorDetails.MotorTypes" class="pb-select" id="drpMotorType">
+                        <option value="">-- Select --</option>
+                        <option value="NFLP">NFLP</option>
+                        <option value="FLP">FLP</option>
+                    </select>
+                </div>
+                <span asp-validation-for="MotorDetails.MotorTypes" class="form-field-error"></span>
+
+            </div>
+            <div class="col-md-3" id="plenumHeightDiv" style="display:none;">
+                <div class="pb-form-group">
+                    <label class="pb-label">Plenum Height (mm) <span class="req-star">*</span></label>
+                    <input asp-for="Enquiry.PlenumHeight" class="pb-input"
+                           id="txtPlenumHeight" placeholder="800" />
+                </div>
+                <span asp-validation-for="Enquiry.PlenumHeight" class="form-field-error"></span>
+
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label" id="lblExtractionHeight">Extraction Chamber Height (mm) <span class="req-star">*</span></label>
+                    <input asp-for="Component.ExtractionChamberHeight" class="pb-input"
+                           id="txtExtractionHeight" placeholder="2100" />
+                </div>
+                <span asp-validation-for="Component.ExtractionChamberHeight" class="form-field-error"></span>
+
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group" id="divWashingChamberTank" style="display:none;">
+                    <label class="pb-label">Washing chamber tank <span class="req-star">*</span></label>
+                    <select asp-for="Component.WashingChamberTank" class="pb-select"
+                            id="drpWashingChamberTank">
+                        <option value="">-- Select --</option>
+                        <option value="Civil">Civil</option>
+                        <option value="Fabricated">Fabricated</option>
+                    </select>
+                </div>
+                <span asp-validation-for="Component.WashingChamberTank" class="form-field-error"></span>
+
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group" id="divMOC" style="display:none;">
+                    <label class="pb-label">MOC</label>
+                    <select asp-for="Component.MOC" class="pb-select" id="drpMOC">
+                        <option value="">-- Select --</option>
+                        <option value="G.I">G.I</option>
+                        <option value="MS">MS</option>
+                        <option value="SS304">SS304</option>
+                        <option value="Al">Al</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ??????????????????????????????????????????????????????
+         SECTION 6   MAINTENANCE DOOR IN FAS
+         Shown only when SubType = "Enclosed with FAS"
+    ?????????????????????????????????????????????????????? -->
+    <div class="pb-card mb-3" id="maintenanceDoorSection" style="display:none;">
+        <div class="form-section-title">
+            <i class="bi bi-tools"></i>
+            Maintenance Door in FAS
+        </div>
+        <div class="row g-3">
+            <div class="col-12">
+                <label class="enq-checkbox-label">
+                    <input type="checkbox" asp-for="Enquiry.IsMaintenanceDoorAdded"
+                           id="chkMaintenanceDoor" />
+                    Add maintenance door in FAS?
+                </label>
+            </div>
+        </div>
+        <div id="maintenanceDoorFields" style="display:none;">
+            <div class="row g-3 mt-2">
+                <div class="col-md-3">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Side Location</label>
+                        <select asp-for="Enquiry.SideLocationDoorFAS" class="pb-select">
+                            <option value="">-- Select --</option>
+                            <option value="Left">Left</option>
+                            <option value="Right">Right</option>
+                            <option value="Front">Front</option>
+                            <option value="Rear">Rear</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Width (mm)</label>
+                        <input asp-for="Enquiry.MaintainanceDoorWidth"
+                               class="pb-input" id="txtDoorWidth" placeholder="0" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="pb-form-group">
+                        <label class="pb-label">Height (mm)</label>
+                        <input asp-for="Enquiry.MaintainanceDoorHeight"
+                               class="pb-input" id="txtDoorHeight" placeholder="0" />
+                        <div id="doorHeightError" class="form-field-error" style="display:none;">
+                            <i class="bi bi-exclamation-circle"></i>
+                            Door height cannot exceed plenum height.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ?? BUTTONS ????????????????????????????????????????????? -->
+    <div class="form-btn-row">
+        <button type="submit" class="btn-pb-primary" id="submitBtn">
+            <div class="btn-spinner"></div>
+            <span class="btn-text">
+                <i class="bi bi-plus-lg"></i>
+                @(isEdit ? "Update Enquiry" : "Save Enquiry")
+            </span>
+        </button>
+        <button type="reset" class="btn-pb-secondary" id="clearBtn">
+            <i class="bi bi-arrow-counterclockwise"></i> Clear
+        </button>
+        <a asp-controller="Enquiry" asp-action="Index" class="btn-pb-secondary">
+            <i class="bi bi-x-lg"></i> Cancel
+        </a>
+    </div>
+
+</form>
+
+<!-- ?? UPLOADED FILES MODAL ??????????????????????????????????? -->
+<div id="filesModalOverlay" class="enq-modal-overlay" style="display:none;">
+    <div class="enq-modal">
+        <div class="enq-modal-header">
+            <span>Uploaded Files</span>
+            <button type="button" id="closeFilesModal" class="enq-modal-close">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <div class="enq-modal-body">
+            <ul id="uploadedFilesList" class="enq-files-list"></ul>
+        </div>
+        <div class="enq-modal-footer">
+            <button type="button" class="btn-pb-secondary" id="closeFilesModal2">Close</button>
+            <button type="button" class="btn-pb-primary" id="downloadAllBtn">
+                <i class="bi bi-download"></i> Download All
+            </button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="~/js/enquiry.js" asp-append-version="true"></script>
+}
