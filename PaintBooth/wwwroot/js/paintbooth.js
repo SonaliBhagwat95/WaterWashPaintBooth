@@ -335,7 +335,9 @@ function calculatePanelHeightAboveFilterFrame() {
         $('#submitbtn').prop('disabled', true);
         $('#SubmitError').show();
     } else if (ph <= 0 && H > 0) {
-        $msg.html('Booth height H (' + H + ' mm) must be greater than EC height (' + EC + ' mm).');
+        var chamberLbl = currentEnquiryCategory === 'Water wash paint booth' ? 'WC' : 'EC';
+        $msg.html('Booth height H (' + H + ' mm) must be greater than ' + chamberLbl + ' height (' + EC + ' mm).');
+        /*$msg.html('Booth height H (' + H + ' mm) must be greater than EC height (' + EC + ' mm).');*/
         $err.show();
         $('#submitbtn').prop('disabled', true);
         $('#SubmitError').show();
@@ -438,11 +440,21 @@ function validateServiceDoor() {
     }
     $errDiv.hide(); return true;
 }
+//function updateFilterFrameTitle(category) {
+//    var label = category === 'Water wash paint booth'
+//        ? 'Washing Chamber Internal Design'
+//        : 'Filter Frame Design';
+//    $('#filterFrameSectionTitle').text(label);
+//}
 function updateFilterFrameTitle(category) {
-    var label = category === 'Water wash paint booth'
-        ? 'Washing Chamber Internal Design'
-        : 'Filter Frame Design';
-    $('#filterFrameSectionTitle').text(label);
+    var isWaterWash = category === 'Water wash paint booth';
+
+    $('#filterFrameSectionTitle').text(
+        isWaterWash ? 'Washing Chamber Internal Design' : 'Filter Frame Design'
+    );
+    $('#lblChamberHeight').text(
+        isWaterWash ? 'WC Height (mm)' : 'EC Height (mm)'
+    );
 }
 function generateBlowerItemCode() {
     var capacityRoundOf  = parseFloat($('#txtCapacityofBlowerRoundOf').val())    || 0;
@@ -691,26 +703,51 @@ $(function () {
     renderDuctThreeD();
     setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 100);
     // Only set defaults in create mode — edit mode has model-bound values
-    var isEditMode = $.trim($('#txtEnquiryCode').val()).length > 0;
-    if (!isEditMode) {
-        $('#txtD1').val('1200');
-        $('#txtD2').val('700');
-        $('#txtD3').val('800');
-        $('#txtw1').val('500');
-        $('#txtw2').val('500');
-        $('#txtH1').val('700');
-        $('#txtH2').val('1000');
-        $('#txtExhaustThickness').val('2');
-        $('#BetweenCenterDistance').val('2000');
+    //var isEditMode = $.trim($('#txtEnquiryCode').val()).length > 0;
+    //if (!isEditMode) {
+    //    $('#txtD1').val('1200');
+    //    $('#txtD2').val('700');
+    //    $('#txtD3').val('800');
+    //    $('#txtw1').val('500');
+    //    $('#txtw2').val('500');
+    //    $('#txtH1').val('700');
+    //    $('#txtH2').val('1000');
+    //    $('#txtExhaustThickness').val('2');
+    //    $('#BetweenCenterDistance').val('2000');
         
-       // $('#txtHingedDoorHeight').val('2100');
-        $('#txtVelocityofBlower').val('0.5');
-        $('#txtVelocityofFilterFrame').val('0.5');
-        $('#txtDoorHeight').val('1180');
-        $('#txtDoorWidth').val('580');
-        $('#drpServiceDoorLocation').val('RightSide');
+    //   // $('#txtHingedDoorHeight').val('2100');
+    //    $('#txtVelocityofBlower').val('0.5');
+    //    $('#txtVelocityofFilterFrame').val('0.5');
+    //    $('#txtDoorHeight').val('1180');
+    //    $('#txtDoorWidth').val('580');
+    //    $('#drpServiceDoorLocation').val('RightSide');
+    //}
+    // Edit mode = record already exists (PaintBoothID > 0)
+    var isEditMode = (parseInt($('#PaintBoothID').val()) || 0) > 0;
+
+    // Only fill a field if it has no value
+    function setDefault(selector, value) {
+        var $el = $(selector);
+        var cur = $.trim($el.val() || '');
+        if (!cur || cur === '0') $el.val(value);
     }
 
+    if (!isEditMode) {
+        setDefault('#txtD1', '1200');
+        setDefault('#txtD2', '700');
+        setDefault('#txtD3', '800');
+        setDefault('#txtw1', '500');
+        setDefault('#txtw2', '500');
+        setDefault('#txtH1', '700');
+        setDefault('#txtH2', '1000');
+        setDefault('#txtExhaustThickness', '2');
+        setDefault('#BetweenCenterDistance', '2000');
+        setDefault('#txtVelocityofBlower', '0.5');
+        setDefault('#txtVelocityofFilterFrame', '0.5');
+        setDefault('#txtDoorHeight', '1180');
+        setDefault('#txtDoorWidth', '580');
+        setDefault('#drpServiceDoorLocation', 'RightSide');
+    }
 
     /* ── 1. ENQUIRY CODE AUTOCOMPLETE ───────────────────────── */
     $('#txtEnquiryCode').on('input', function () {

@@ -36,8 +36,8 @@ namespace PaintBooth.Business
             double LegA = 33;           // short leg at 126°                        (CHECK)
             double TopHoleD = 8;
             double TopHoleE = 28.5;         // 243 pitch
-            double TopHoleZ = -LegV / 2;    // hole centre height                       (CHECK)
-
+            //double TopHoleZ = -LegV / 2;    // hole centre height                       (CHECK)
+            double TopHoleZ = -13;          // Ø8 bolt hole 13 below top (same as tie bar)
             // 90° hanger angle (separate piece, wall side)
             double AngT = 3;            // thickness
             double AngTopL = 35;           // top leg, outer face to tip               (CHECK)

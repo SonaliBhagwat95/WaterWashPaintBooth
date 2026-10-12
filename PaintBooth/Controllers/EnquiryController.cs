@@ -20,21 +20,7 @@ namespace PaintBooth.Controllers
             var list = _repo.GetAll();
             return View(list);
         }
-
-        // ── GET /Enquiry/Create ───────────────────────────────────
-        //public IActionResult Create()
-        //{
-        //    var vm = new EnquiryFormViewModel
-        //    {
-        //        Enquiry = new EnquiryMaster { EnquiryDate = DateTime.Today },
-        //        Component = new ComponentTable { ExtractionChamberHeight = "2100" },
-        //        SalesEngineers = _repo.GetSalesEngineersDropdown()
-        //    };
-        //    return View(vm);
-        //}
-
-
-
+       
         // ── GET /Enquiry/Create ───────────────────────────────────
         public async Task<IActionResult> Create(string opportunityName = null)
         {
@@ -68,21 +54,7 @@ namespace PaintBooth.Controllers
                             CustomerLocation = opp.customer_location   // ← NEW: carried through the form
 
                         };
-                        //// ── Try to match an existing local customer by name ──
-                       // // Uses your EXISTING GetCompanyInfo() — no repo changes needed
-                        //var localMatch = _repo.GetCompanyInfo(opp.customer_name);
-                        //if (localMatch != null)
-                        //{
-                        //    vm.Enquiry.CustomerID = localMatch.CustomerID; // sets hdnCustomerID correctly
-                        //                                                   // Prefer local DB contact details if ERP fields were blank
-                        //    if (string.IsNullOrWhiteSpace(vm.customer.Address))
-                        //        vm.customer.Address = localMatch.CustomerAddress;
-                        //}
-                        //else
-                        //{
-                        //    TempData["Error"] = $"No matching customer found locally for '{opp.customer_name}'. " +
-                        //                          "Please select/confirm the company manually before saving.";
-                        //}
+                        
                     }
                     else
                     {
@@ -128,6 +100,7 @@ namespace PaintBooth.Controllers
 
                 vm.Enquiry.CreatedBy = userId;
                 vm.Component.CreatedBy = userId;
+              
                 if (vm.Enquiry.SubTypeOfDraftType == "1")
                     vm.Enquiry.SideLocationDoorFAS = "";
                 if (vm.Enquiry.FilterTypes == null)

@@ -541,14 +541,13 @@ namespace PaintBooth.Controllers
                         //service.designdictionary["DeflectorGusset_219"] = new List<DesignDocument> { DeflectorGusset_219 };
                         #endregion
 
-                        #region Eliminator 201
-                        var el = new Eliminator(_configuration);
-                        DesignDocument Eliminator1 = el.DrawEliminator(model, "Eliminator1", 1150);//1150 is Extrude length
-                        DesignDocument Eliminator2 = el.DrawEliminator(model, "Eliminator2", 510);
+                        //#region Eliminator 201
+                        //var el = new Eliminator(_configuration);
+                        //DesignDocument Eliminator1 = el.DrawEliminator(model, "Eliminator1", 1150);//1150 is Extrude length
+                        //DesignDocument Eliminator2 = el.DrawEliminator(model, "Eliminator2", 510);
 
-                        //service.designdictionary["Eliminator1"] = new List<DesignDocument> { Eliminator1 };
-                        //service.designdictionary["Eliminator2"] = new List<DesignDocument> { Eliminator2 };
-                        #endregion
+                      
+                        //#endregion
 
                         #region FrontPlate
                         var fp = new FrontPlate(_configuration);
@@ -636,6 +635,105 @@ namespace PaintBooth.Controllers
                         service.designdictionary["BasePlate_PipeSupport"] = new List<DesignDocument> { pipeSupports };
                         #endregion
 
+                        #endregion
+
+                        #region Pipe Support Flat (Tie Bar)
+                        var psf = new PipeSupportFlat(_configuration);
+                        DesignDocument pipeSupportFlat = psf.DrawTieBar(model);
+
+                        double tbBarL = 300;                 // tie bar flat bar length (Y)
+                        double psBrT = 3;                   // pipe support bracket thickness
+
+                        // flat bar against inner face of pipe-support bracket, tops level, bolted through same holes
+                        double pfX = psX - psBrT;            // tie bar outer face = bracket inner face
+                        double pfZ = psZ;                    // tie bar top = bracket top
+
+                        var tieBars = new DesignDocument();
+                        tieBars.Units = pipeSupportFlat.Units;
+
+                        foreach (double y in brY)            // same Y as pipe supports -> holes line up
+                        {
+                            double ty = y + tbBarL;          // 180° turn: bar spans y .. y+300, same as bracket
+                            foreach (Entity e in pipeSupportFlat.Entities)
+                            {
+                                Entity c = (Entity)e.Clone();
+                                c.Rotate(Math.PI, Vector3D.AxisZ, Point3D.Origin);
+                                c.Translate(pfX, ty, pfZ);
+                                tieBars.Entities.Add(c);
+                            }
+                        }
+                        service.designdictionary["Tie_Bar"] = new List<DesignDocument> { tieBars };
+                        #endregion
+
+
+                        #region Eliminator 1 (1215 005 05 201)
+                        var el = new Eliminator(_configuration);
+                        DesignDocument Eliminator1 = el.DrawEliminator(model, "Eliminator1", 1150);   // 1150 = width along Y
+
+                        // ---- Laid on slope, top end resting on the 90° hanger angle ----
+                        double elSlopeDeg = 9;                                         // band slope                 (CHECK)
+                        double sA = Math.Sin(elSlopeDeg * Math.PI / 180.0);
+                        double cA = Math.Cos(elSlopeDeg * Math.PI / 180.0);
+                        double elRot = (90 - elSlopeDeg) * Math.PI / 180.0;            // local Z -> up the slope
+
+                        double elH = 1028;                                            // eliminator overall height (local Z)
+                        double elT = 1.6;                                             // plate thickness
+
+                        // resting point = lowest corner of the top end (local x = 1.6, z = 1028)
+                        double restX = wallIn - 9;                                     // ~9 in from wall            (CHECK)
+                        double restZ = psZ + 3 + 3;                                    // top face of 90° angle (gap 3 + thk 3)
+
+                        // where that local corner goes after the 81° rotation (relative to part origin)
+                        double cornerDx = elT * sA + elH * cA;
+                        double cornerDz = -elT * cA + elH * sA;
+
+                        double elX = restX - cornerDx;                                 // part origin (lower end) in world
+                        double elZ = restZ - cornerDz;
+                        double elY = 0;                                                // Y start along booth length (CHECK)
+
+                        var eliminators = new DesignDocument();
+                        eliminators.Units = Eliminator1.Units;
+
+                        foreach (Entity e in Eliminator1.Entities)
+                        {
+                            Entity c = (Entity)e.Clone();
+                            c.Rotate(elRot, Vector3D.AxisY, Point3D.Origin);
+                            c.Translate(elX, elY, elZ);
+                            eliminators.Entities.Add(c);
+                        }
+
+                        service.designdictionary["Eliminator1"] = new List<DesignDocument> { eliminators };
+                        #endregion
+
+                        #region Eliminator - middle (reversed slope) & top
+                        var elUpper = new DesignDocument();
+                        elUpper.Units = Eliminator1.Units;
+
+                        double elW = 1150;                                   // eliminator width along Y
+
+                        // ---- MIDDLE: slopes down toward the wall, lower (45° cut) end at the wall ----
+                        double midX = restX;                                 // lower end ~9 in from wall      (CHECK)
+                        double midZ = restZ + 197;                           // 197 above bottom eliminator    (right-side dim)
+
+                        foreach (Entity e in Eliminator1.Entities)
+                        {
+                            Entity c = (Entity)e.Clone();
+                            c.Rotate(elRot, Vector3D.AxisY, Point3D.Origin);     // same tilt
+                            c.Rotate(Math.PI, Vector3D.AxisZ, Point3D.Origin);   // turn round: slope reversed, angles stay on top
+                            c.Translate(midX, elY + elW, midZ);                  // +W: Y range back to elY .. elY+1150
+                            elUpper.Entities.Add(c);
+                        }
+
+                        // ---- TOP: same direction as bottom, 197 + 508 higher ----
+                        foreach (Entity e in Eliminator1.Entities)
+                        {
+                            Entity c = (Entity)e.Clone();
+                            c.Rotate(elRot, Vector3D.AxisY, Point3D.Origin);
+                            c.Translate(elX, elY, elZ + 197 + 508);
+                            elUpper.Entities.Add(c);
+                        }
+
+                        service.designdictionary["Eliminator_Upper"] = new List<DesignDocument> { elUpper };
                         #endregion
 
                         #region EntrainmentPlate 214

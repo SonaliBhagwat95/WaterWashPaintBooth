@@ -530,7 +530,7 @@ $(function () {
 
         $('#lblExtractionHeight').text(
             val === 'Water wash paint booth'
-                ? 'Water Wash Tank Height (mm)'
+                ? 'Water Wash Height (mm)'
                 : 'Extraction Chamber Height (mm)'
         );
     }

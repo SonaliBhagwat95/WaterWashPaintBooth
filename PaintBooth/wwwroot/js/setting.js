@@ -7,7 +7,15 @@
    IN-MEMORY SETTINGS LIST
 ───────────────────────────────────────────────────────────── */
 var settingsList = [];
-
+/* ─────────────────────────────────────────────────────────────
+   SETTING TYPE LABEL — display text for a stored type value
+   (Extraction → "Washing Chamber" for water wash booths)
+───────────────────────────────────────────────────────────── */
+function getSettingTypeLabel(value) {
+    if (!value) return '';
+    var $opt = $('#SettingType option[value="' + value + '"]');
+    return $opt.length ? $opt.text() : value;
+}
 /* ─────────────────────────────────────────────────────────────
    BUILD GRID — renders settingsList into the table
 ───────────────────────────────────────────────────────────── */
@@ -31,7 +39,8 @@ function buildGrid() {
     settingsList.forEach(function (item, index) {
         var row =
             '<tr class="setting-data-row" data-index="' + index + '">' +
-                '<td><span class="badge-status badge-inprogress">' + (item.SettingType || '') + '</span></td>' +
+            /*'<td><span class="badge-status badge-inprogress">' + (item.SettingType || '') + '</span></td>' +*/
+            '<td><span class="badge-status badge-inprogress">' + getSettingTypeLabel(item.SettingType) + '</span></td>' +
                 '<td>' + (item.PanelWidth  || '—') + '</td>' +
                 '<td>' + (item.PanelHeight || '—') + '</td>' +
                 '<td>' + (item.SheetThickness || '—') + '</td>' +
@@ -352,6 +361,7 @@ $(function () {
                 if (res.success)
                 updateSettingTypeLabel(res.category);
                 applyPaintboothTypeRestrictions(res.paintboothType); 
+                buildGrid();   // refresh badges with the new label
             }
         });
     }
@@ -380,18 +390,6 @@ $(function () {
         $('#txtCustomBendSection').hide().val('');
     }
 
-    //$('#drpSection').on('change', function () {
-    //    var val = $(this).val();
-
-    //    if (val === 'Bend Section') {
-    //        populateBendDropdown(bendOptions);
-    //    } else if (val === 'Structural member') {
-    //        populateBendDropdown(structuralOptions);
-    //    } else {
-    //        $('#drpBendStructural').empty().append('<option value="">-- Select --</option>');
-    //        $('#txtCustomBendSection').hide().val('');
-    //    }
-    //});
     $('#drpSection').on('change', function () {
         var val = $(this).val();
 
@@ -453,11 +451,16 @@ $(function () {
         var exists = settingsList.some(function (s) {
             return s.SettingType === type;
         });
+        var typeLabel = getSettingTypeLabel(type);
 
         if (exists) {
-            PB.toast(type + ' setting already exists. Use the row Edit button to modify it.', 'warning');
+            PB.toast(typeLabel + ' setting already exists. Use the row Edit button to modify it.', 'warning');
             return;
         }
+        //if (exists) {
+        //    PB.toast(type + ' setting already exists. Use the row Edit button to modify it.', 'warning');
+        //    return;
+        //}
         // ── Required field validation ─────────────────────────────
         var errors = [];
 

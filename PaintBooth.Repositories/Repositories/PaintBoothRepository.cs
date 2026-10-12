@@ -357,6 +357,16 @@ namespace PaintBooth.Repositories
                     record.BetweenCenterDistance = (double)(betweenCenterDistance == null ? 0 : betweenCenterDistance);
                     record.NoOfBlowers = model.NoOfBlowers;
                     record.CapacityPerBlower = model.CapacityofEachBlower;
+                    record.D1 = model.D1;
+                    record.D2 = model.D2;
+                    record.D3 = model.D3;
+                    record.D = model.D;
+                    record.W1 = model.W1;
+                    record.W2 = model.W2;
+                    record.W = model.W;
+                    record.H = model.H;
+                    record.H1 = model.H1;
+                    record.H2 = model.H2;
                     record.ModifiedBy = 1;
                     record.ModifiedDate = DateTime.Now;
                     _db.SaveChanges();

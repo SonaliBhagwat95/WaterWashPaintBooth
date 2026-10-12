@@ -316,6 +316,8 @@ namespace PaintBooth.Repositories
                 existingComponent.DoorWidth = component.DoorWidth ?? 0;
                 existingComponent.DoorHeight = component.DoorHeight ?? 0;
                 existingComponent.TypeOfHinges = component.TypeOfHinges ?? "";
+                existingComponent.WashingChamberTank = component.WashingChamberTank;
+                existingComponent.MOC = component.MOC;
                 existingComponent.ModifiedBy = component.ModifiedBy;
                 existingComponent.ModifiedDate = DateTime.Now;
             }
