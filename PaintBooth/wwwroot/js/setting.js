@@ -7,6 +7,18 @@
    IN-MEMORY SETTINGS LIST
 ───────────────────────────────────────────────────────────── */
 var settingsList = [];
+var currentCategory = '';
+
+function isWaterWash() {
+    return $.trim(currentCategory).toLowerCase() === 'water wash paint booth';
+}
+
+/* Water Curtain — only for Washing Chamber (Extraction + water wash) */
+function toggleWaterCurtain() {
+    var show = $('#SettingType').val() === 'Extraction' && isWaterWash();
+    $('#divWaterCurtain').toggle(show);
+    if (!show) $('#drpWaterCurtain').val('').removeClass('pb-input-error');
+}
 /* ─────────────────────────────────────────────────────────────
    SETTING TYPE LABEL — display text for a stored type value
    (Extraction → "Washing Chamber" for water wash booths)
@@ -114,6 +126,8 @@ function editSetting(index) {
     var item = settingsList[index];
 
     $('#SettingType').val(item.SettingType);
+    toggleWaterCurtain();
+    $('#drpWaterCurtain').val(item.WaterCurtain || '');
     $('#txtPanelWidth').val(item.PanelWidth);
     $('#txtPanelHeight').val(item.PanelHeight);
     $('#SheetThickness').val(item.SheetThickness);
@@ -148,6 +162,7 @@ function editSetting(index) {
     // Remove from list — user will re-add after editing
     settingsList.splice(index, 1);
     buildGrid();
+    toggleWaterCurtain();
     buildHiddenInputs();
 
     $('#txtLuxLevel').trigger('change');
@@ -221,7 +236,8 @@ function loadSettingsForEnquiry(enquiryCode, onComplete) {
                         ItemCode      : item.itemCode,    // ← NEW
                         Rate          : item.rate,        // ← NEW
                         ItemCodeForStructuralM : item.itemCodeForStructuralM,
-                        RateForStructuralM     :item.rateForStructuralM
+                        RateForStructuralM: item.rateForStructuralM,
+                        WaterCurtain: item.waterCurtain
                         
                     });
                 });
@@ -350,18 +366,22 @@ $(function () {
     });
     $('#SettingType').on('change', function () {
         $('#txtLuxLevel').trigger('change');
+        toggleWaterCurtain(); 
     });
     function fetchEnquiryCategory(salesNo) {
         $.ajax({
             url: '/PanelSetting/GetEnquiryCategory',
             type: 'GET',
             data: { salesNo: salesNo },
-            success: function (res)
-            {
-                if (res.success)
-                updateSettingTypeLabel(res.category);
-                applyPaintboothTypeRestrictions(res.paintboothType); 
-                buildGrid();   // refresh badges with the new label
+            success: function (res) {
+                console.log('Category response:', res);   // remove after testing
+                if (res.success) {
+                    currentCategory = res.category || '';  // ← this was missing
+                    updateSettingTypeLabel(res.category);
+                    applyPaintboothTypeRestrictions(res.paintboothType);
+                    buildGrid();
+                    toggleWaterCurtain();
+                }
             }
         });
     }
@@ -538,7 +558,8 @@ $(function () {
             ItemCode      : $('#txtItemCode').val(),   // ← NEW
             Rate: $('#txtRate').val() ,       // ← NEW
             ItemCodeForStructuralM: $('#txtItemCodeForStructuralM').val(),   // ← NEW
-            RateForStructuralM: $('#txtRateForStructuralM').val()        // ← NEW
+            RateForStructuralM: $('#txtRateForStructuralM').val(),        // ← NEW
+            WaterCurtain: $('#drpWaterCurtain').val(),
         };
 
         settingsList.push(setting);

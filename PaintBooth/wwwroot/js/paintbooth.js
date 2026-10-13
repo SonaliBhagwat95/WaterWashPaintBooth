@@ -1103,21 +1103,70 @@ $(function () {
                     $('#pressureDropSection').show();
                     return;
                 }
+                // ── Display order: listed items first, everything else after (original order) ──
+                var pdOrder = [
+                    'washing chamber pressure drop',
+                    'ec transition piece',
+                    'transition piece',
+                    'damper'
+                ];
 
+                function pdRank(desc) {
+                    var idx = pdOrder.indexOf($.trim(desc || '').toLowerCase());
+                    return idx === -1 ? pdOrder.length : idx;
+                }
+
+                data.pressureDropDetails = data.pressureDropDetails
+                    .map(function (item, i) { return { item: item, i: i }; })
+                    .sort(function (a, b) {
+                        return (pdRank(a.item.description) - pdRank(b.item.description)) || (a.i - b.i);
+                    })
+                    .map(function (x) { return x.item; });
+                //$.each(data.pressureDropDetails, function (i, item) {
+                //    var qty = item.description === '90 Deg. Bend' ? bendCount : '';
+                //    $body.append(
+                //        '<tr>' +
+                //        '<td><input type="checkbox" class="pd-chk" data-id="' + item.itemNumber + '" checked /></td>' +
+                //        '<td style="text-align:center;">' + item.itemNumber + '</td>' +
+                //        '<td>' + item.description + '</td>' +
+                //        '<td style="text-align:center;">' + item.pressureDrop_mm + '</td>' +
+                //        '<td><input type="number" class="pb-input pd-qty" style="width:70px;" value="' + qty + '" /></td>' +
+                //        '<td><input type="number" class="pb-input pd-total" style="width:70px;" readonly /></td>' +
+                //        '</tr>'
+                //    );
+                //});
                 $.each(data.pressureDropDetails, function (i, item) {
-                    var qty = item.description === '90 Deg. Bend' ? bendCount : '';
+                    /* var qty = item.description === '90 Deg. Bend' ? bendCount : '';*/
+                    var d = $.trim(item.description || '').toLowerCase();
+                    var qty = d === '90 deg. bend' ? bendCount
+                        : d === 'washing chamber pressure drop' ? 1
+                            : d === '135 deg. bend' ? 1
+                                : '';
+                    var pd = parseFloat(item.pressureDrop_mm) || 0;
+                    var editable = pd === 0;
+                    var desc = item.description;
+                    if (currentEnquiryCategory === 'Water wash paint booth' &&
+                        $.trim(desc).toLowerCase() === 'ec transition piece') {
+                        desc = 'WC Transition piece';
+                    }
+                    // Editable input when DB value is 0, otherwise plain text
+                    var pdCell = editable
+                        ? '<input type="number" class="pb-input pd-pressure pd-pressure-edit" ' +
+                        'style="width:80px;" min="0" step="0.1" placeholder="Enter" />'
+                        : '<span class="pd-pressure">' + pd + '</span>';
+
                     $body.append(
-                        '<tr>' +
+                        '<tr' + (editable ? ' data-pd-editable="1"' : '') + '>' +
                         '<td><input type="checkbox" class="pd-chk" data-id="' + item.itemNumber + '" checked /></td>' +
-                        '<td style="text-align:center;">' + item.itemNumber + '</td>' +
-                        '<td>' + item.description + '</td>' +
-                        '<td style="text-align:center;">' + item.pressureDrop_mm + '</td>' +
+                        '<td style="text-align:center;">' + (i + 1) + '</td>' +          // ← Sr. No.
+                        '<td>' + desc + '</td>' +
+                        /* '<td>' + item.description + '</td>' +*/
+                        '<td style="text-align:center;">' + pdCell + '</td>' +
                         '<td><input type="number" class="pb-input pd-qty" style="width:70px;" value="' + qty + '" /></td>' +
                         '<td><input type="number" class="pb-input pd-total" style="width:70px;" readonly /></td>' +
                         '</tr>'
                     );
                 });
-
                 bindPressureDropEvents();
                 $('#pressureDropSection').show();
 
@@ -1131,23 +1180,52 @@ $(function () {
         });
     });
 
+    //function bindPressureDropEvents() {
+    //    $(document).off('change', '.pd-chk').on('change', '.pd-chk', function () {
+    //        var $row = $(this).closest('tr');
+    //        $row.find('.pd-qty, .pd-total').prop('disabled', !$(this).prop('checked'));
+    //        if (!$(this).prop('checked')) $row.find('.pd-total').val('');
+    //        updateGrandTotal();
+    //    });
+    //    $(document).off('input', '.pd-qty').on('input', '.pd-qty', function () {
+    //        var $row     = $(this).closest('tr');
+    //        var qty      = parseFloat($(this).val()) || 0;
+    //        var pressure = parseFloat($row.find('td:nth-child(4)').text()) || 0;
+    //        $row.find('.pd-total').val((qty * pressure).toFixed(2));
+    //        updateGrandTotal();
+    //    });
+    //    $('#additionFactor').off('input').on('input', updateGrandTotal);
+    //}
+    function getRowPressure($row) {
+        var $p = $row.find('.pd-pressure');
+        if (!$p.length) return 0;
+        return parseFloat($p.is('input') ? $p.val() : $p.text()) || 0;
+    }
+
+    function recalcPdRow($row) {
+        var qty = parseFloat($row.find('.pd-qty').val()) || 0;
+        var pressure = getRowPressure($row);
+        var on = $row.find('.pd-chk').prop('checked');
+        $row.find('.pd-total').val(on && qty && pressure ? (qty * pressure).toFixed(2) : '');
+    }
+
     function bindPressureDropEvents() {
         $(document).off('change', '.pd-chk').on('change', '.pd-chk', function () {
             var $row = $(this).closest('tr');
-            $row.find('.pd-qty, .pd-total').prop('disabled', !$(this).prop('checked'));
-            if (!$(this).prop('checked')) $row.find('.pd-total').val('');
+            $row.find('.pd-qty, .pd-pressure-edit').prop('disabled', !$(this).prop('checked'));
+            recalcPdRow($row);
             updateGrandTotal();
         });
-        $(document).off('input', '.pd-qty').on('input', '.pd-qty', function () {
-            var $row     = $(this).closest('tr');
-            var qty      = parseFloat($(this).val()) || 0;
-            var pressure = parseFloat($row.find('td:nth-child(4)').text()) || 0;
-            $row.find('.pd-total').val((qty * pressure).toFixed(2));
-            updateGrandTotal();
-        });
+
+        // Quantity OR editable pressure drop → recalc row + grand total
+        $(document).off('input', '.pd-qty, .pd-pressure-edit')
+            .on('input', '.pd-qty, .pd-pressure-edit', function () {
+                recalcPdRow($(this).closest('tr'));
+                updateGrandTotal();
+            });
+
         $('#additionFactor').off('input').on('input', updateGrandTotal);
     }
-
     function updateGrandTotal() {
         var total = 0;
         var rows  = [];

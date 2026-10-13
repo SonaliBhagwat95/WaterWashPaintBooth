@@ -172,7 +172,8 @@ namespace PaintBooth.Repositories
                     RateForStructuralM = item.RateForStructuralM,                  // ← NEW
                     IsActive      = true,
                     CreatedBy      = userId,
-                    CreatedDate    = DateTime.Now
+                    CreatedDate    = DateTime.Now,
+                    WaterCurtain   =   item.WaterCurtain==null ? "" : item.WaterCurtain
                 });
             }
 

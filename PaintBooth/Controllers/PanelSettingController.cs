@@ -38,16 +38,7 @@ namespace PaintBooth.Controllers
         [HttpGet]
         public JsonResult GetEnquiryCategory(string salesNo)
         {
-            //try
-            //{
-            //    var category = _repo.GetCategoryBySalesNo(salesNo ?? "");
-            //    return Json(new { success = true, category });
-            //}
-            //catch (Exception ex)
-            //{
-            //    _Ex.SaveException("PanelSettingController", "GetEnquiryCategory", ex.Message, userId);
-            //    return Json(new { success = false, category = "" });
-            //}
+            
             try
             {
                 var category = _repo.GetCategoryBySalesNo(salesNo ?? "");

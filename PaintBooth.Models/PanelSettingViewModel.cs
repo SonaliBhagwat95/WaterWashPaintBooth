@@ -44,6 +44,8 @@ namespace PaintBooth.Models
         public int W { get; set; }
         public int T { get; set; }
         public int Quantity { get; set; }
+        public string WaterCurtain { get; set; }
+
 
         //Code added by Ajay for BO Calculations
         public string ItemCode { get; set; }

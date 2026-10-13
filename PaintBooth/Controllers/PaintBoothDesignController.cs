@@ -402,7 +402,7 @@ namespace PaintBooth.Controllers
                 _repo.UpdateDoorDetails(componentID, model);
                 #endregion
 
-                #region All Panels methods
+                
                 // DELETE OLD PANEL DETAILS FIRST
                 panel.DeleteOldPanelDetails((int)enquiryId);
                 PaintBoothService service = new PaintBoothService(_context, _configuration);
@@ -450,8 +450,6 @@ namespace PaintBooth.Controllers
                         service.designdictionary["QSection_Left"] = new List<DesignDocument> { qSectionLeftDoc };
                         service.designdictionary["QSection_Right"] = new List<DesignDocument> { qSectionRightDoc };
                         service.designdictionary["BackQSection"] = new List<DesignDocument> { BackqSectionDoc };
-                        #endregion
-
                         #endregion
 
                         #region Base Plate Return
@@ -528,27 +526,19 @@ namespace PaintBooth.Controllers
                         #region ReturnTroughBracket
                         ReturnTroughBracket r = new(_configuration);
                         DesignDocument rBracket = r.DrawReturnTroughBracket(model,2390);
-                       
+
                         //service.designdictionary["ReturnTroughBracket"] = new List<DesignDocument> { rBracket };
                         #endregion
 
-                        #region Deflector Gusset
-                        var dg = new DeflectorGusset(_configuration);
-                        DesignDocument DeflectorGusset_218 =   dg.DrawDeflectorGusset(model, "DeflectorGusset_218", +1);
-                        DesignDocument DeflectorGusset_219 =   dg.DrawDeflectorGusset(model, "DeflectorGusset_219", -1);
+                        //#region Deflector Gusset
+                        //var dg = new DeflectorGusset(_configuration);
+                        //DesignDocument DeflectorGusset_218 =   dg.DrawDeflectorGusset(model, "DeflectorGusset_218", +1);
+                        //DesignDocument DeflectorGusset_219 =   dg.DrawDeflectorGusset(model, "DeflectorGusset_219", -1);
 
-                        //service.designdictionary["DeflectorGusset_218"] = new List<DesignDocument> { DeflectorGusset_218 };
-                        //service.designdictionary["DeflectorGusset_219"] = new List<DesignDocument> { DeflectorGusset_219 };
-                        #endregion
-
-                        //#region Eliminator 201
-                        //var el = new Eliminator(_configuration);
-                        //DesignDocument Eliminator1 = el.DrawEliminator(model, "Eliminator1", 1150);//1150 is Extrude length
-                        //DesignDocument Eliminator2 = el.DrawEliminator(model, "Eliminator2", 510);
-
-                      
+                        ////service.designdictionary["DeflectorGusset_218"] = new List<DesignDocument> { DeflectorGusset_218 };
+                        ////service.designdictionary["DeflectorGusset_219"] = new List<DesignDocument> { DeflectorGusset_219 };
                         //#endregion
-
+                       
                         #region FrontPlate
                         var fp = new FrontPlate(_configuration);
                         DesignDocument frontPlate_203 = fp.DrawFrontPlate(model, "FrontPlate_203", 1158);
@@ -665,7 +655,6 @@ namespace PaintBooth.Controllers
                         service.designdictionary["Tie_Bar"] = new List<DesignDocument> { tieBars };
                         #endregion
 
-
                         #region Eliminator 1 (1215 005 05 201)
                         var el = new Eliminator(_configuration);
                         DesignDocument Eliminator1 = el.DrawEliminator(model, "Eliminator1", 1150);   // 1150 = width along Y
@@ -736,6 +725,89 @@ namespace PaintBooth.Controllers
                         service.designdictionary["Eliminator_Upper"] = new List<DesignDocument> { elUpper };
                         #endregion
 
+                        #region Deflector Gusset
+                        var dg = new DeflectorGusset(_configuration);
+                        DesignDocument DeflectorGusset_218 = dg.DrawDeflectorGusset(model, "DeflectorGusset_218", +1);
+                        DesignDocument DeflectorGusset_219 = dg.DrawDeflectorGusset(model, "DeflectorGusset_219", -1);
+
+                        // ---- gusset local geometry (same numbers as DrawDeflectorGusset) ----
+                        double gA = 25 * Math.PI / 180.0;
+                        double gEx = 203 * Math.Cos(gA), gEz = 203 * Math.Sin(gA);
+                        double gRx = gEx + 38;                     // right (vertical) edge X
+                        double gRz = gEz + 10;                     // bottom of right edge Z
+                        double gHoleX = gRx - 16;                   // plate hole X (local)
+                        double gHoleZ = gRz + 64;                   // lower plate hole Z (local)
+                        double gT = 1.6;
+
+                        // ---- tie bar flat-end hole (world) ----
+                        double tieHoleX = pfX - 1004;
+                        double tieHoleZ = pfZ - 259;
+
+                        // after 180° turn: world = (gx - x, gy - y, gz + z)  -> put lower hole on tie bar hole
+                        double gx = tieHoleX + gHoleX;
+                        double gz = tieHoleZ - gHoleZ;
+
+                        var gussets = new DesignDocument();
+                        gussets.Units = DeflectorGusset_218.Units;
+
+                        foreach (double y in brY)                   // one pair per tie bar
+                        {
+                            double tongueY = y + 152.5;             // tie bar flat-end centre (Y)
+                            double tHalf = 2.5;                   // half of 5 thk tongue
+
+                            // 218 on -Y face of tongue (flange points -Y), 219 on +Y face (flange points +Y)
+                            var pair = new (DesignDocument doc, double gy)[]
+                            {
+                                (DeflectorGusset_218, tongueY - tHalf),
+                                (DeflectorGusset_219, tongueY + tHalf + gT)
+                            };
+
+                            foreach (var (doc, gy) in pair)
+                            {
+                                foreach (Entity e in doc.Entities)
+                                {
+                                    Entity c = (Entity)e.Clone();
+                                    c.Rotate(Math.PI, Vector3D.AxisZ, Point3D.Origin);   // vertical edge to front, tip toward wall
+                                    c.Translate(gx, gy, gz);
+                                    gussets.Entities.Add(c);
+                                }
+                            }
+                        }
+
+                        service.designdictionary["Deflector_Gusset"] = new List<DesignDocument> { gussets };
+
+                        #region Deflector Plate 1
+                        var dp = new DeflectorPlate(_configuration);
+                        DesignDocument deflectorPlate1 = dp.DrawDeflectorPlate(model, "DeflectorPlate1", 2318);
+
+                        double dfA = 25 * Math.PI / 180.0;
+                        double dfT = 1.6;
+                        double dfOver = 2;                       // lower edge runs past gusset tip (54 vs 52)
+                        double dfLen = 2318;
+                        double dfY0 = 0;                       // Y start (same as Base Plate 1 / Distribution Plate 1)  (CHECK)
+
+                        // sloped leg TOP face on the gusset bottom edge (flange underside), after 180° turn
+                        double dfX1 = gx + dfOver * Math.Cos(dfA) - (dfT / 2) * Math.Sin(dfA);
+                        double dfZ1 = gz - dfOver * Math.Sin(dfA) - (dfT / 2) * Math.Cos(dfA);
+
+                        var deflectors = new DesignDocument();
+                        deflectors.Units = deflectorPlate1.Units;
+
+                        foreach (Entity e in deflectorPlate1.Entities)
+                        {
+                            Entity c = (Entity)e.Clone();
+                            c.Rotate(Math.PI, Vector3D.AxisZ, Point3D.Origin);
+                            c.Translate(dfX1, dfY0 + dfLen, dfZ1);
+                            deflectors.Entities.Add(c);
+                        }
+
+                        service.designdictionary["Deflector_Plate1"] = new List<DesignDocument> { deflectors };
+                        #endregion
+
+
+
+
+                        #endregion
                         #region EntrainmentPlate 214
                         var ep = new EntrainmentPlate(_configuration);
                         DesignDocument EntrainmentPlate1 = ep.DrawEntrainmentPlate(model, "EntrainmentPlate1", 1152);

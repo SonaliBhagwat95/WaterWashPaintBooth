@@ -29,7 +29,7 @@ namespace PaintBooth.Database
         public int H { get; set; }
         public int W { get; set; }
         public int T { get; set; }
-
+        public string? WaterCurtain { get; set; }
 
         // ── Material ──────────────────────────────────────────────
         public string? Materials { get; set; }
