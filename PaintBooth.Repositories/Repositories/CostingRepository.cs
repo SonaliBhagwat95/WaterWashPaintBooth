@@ -380,25 +380,19 @@ namespace PaintBooth.Repositories.Repositories
             // Step 1 — check if record already exists
             var existing = _db.PriceDetailsTable
                               .FirstOrDefault(x => x.SalesNo == enquiryCode && x.IsActive == true);
-           
-
 
             if (existing != null)
             {
-
-                // ✅ UPDATE
-                // ── Calculate next revision only when updating ────────
-                int nextRevision = _db.PriceDetailsTable
-                                      .Where(x => x.SalesNo == enquiryCode)
-                                      .Select(x => (int?)x.RevisionNo)
-                                      .Max() ?? 0;
-                nextRevision += 1;
+                // Only start a new revision if the previous one was finalised
+                if (existing.ConfirmPriceBID == true)
+                {
+                    existing.RevisionNo = existing.RevisionNo + 1;   // use (existing.RevisionNo ?? 0) + 1 if nullable
+                    existing.ConfirmPriceBID = false;                // new revision is a draft again
+                }
 
                 existing.TotalPriceOfRawMaterials = RMModel.TotalCostOfRM;
-
                 existing.TotalPriceOfBoughtOut = model.BoughtOut;
                 existing.IsBOApproved = model.IsBOApproved;
-                existing.RevisionNo = nextRevision;
                 existing.ModifiedBy = UserId;
                 existing.ModifiedDate = DateTime.Now;
             }

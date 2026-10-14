@@ -458,7 +458,6 @@ namespace PaintBooth.Controllers
         }
         #endregion
 
-
         #region Price Bid
 
         // ── GET /Costing/PriceBID_Index ───────────────────────────────

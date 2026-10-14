@@ -540,8 +540,10 @@
                         <td>Centrifugal Blower - @Model.BlowerDetails.MountingTypes</td>
                     </tr>
                     <tr><td></td><td>MOC</td><td>MS with Epoxy painting.</td></tr>
-                    <tr><td></td><td>Exhaust Capacity</td><td>@Model.MaterialList?.EXhaustCapacity m³/hr</td></tr>
-                    <tr><td></td><td>Motor Capacity</td><td>@Model.MaterialList?.MotorCapacity HP @Model.MaterialList?.MotorType Motor IE 3</td></tr>
+                    @* <tr><td></td><td>Exhaust Capacity</td><td>@Model.MaterialList?.EXhaustCapacity m³/hr</td></tr>
+                    <tr><td></td><td>Motor Capacity</td><td>@Model.MaterialList?.MotorCapacity HP @Model.MaterialList?.MotorType Motor IE 3</td></tr> *@
+                    <tr><td></td><td>Exhaust Capacity</td><td>@string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0:N0}", Model.MaterialList?.EXhaustCapacity) m³/hr</td></tr>
+                    <tr><td></td><td>Motor Capacity</td><td>@string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0:0.0}", Model.MaterialList?.MotorCapacity) HP @Model.MaterialList?.MotorType Motor IE 3</td></tr>
                     <tr><td></td><td>Qty</td><td>@Model.ProposalDetails?.NoOfBlowers</td></tr>
                     <tr><td></td><td>Blower Mounting</td><td>1.6 mm thk MOC- M.S. rectangular to round transformation Piece with Blower supports MOC-MS</td></tr>
                     <tr>
@@ -658,8 +660,8 @@
                     </tr>
                     <tr>
                         <td style="text-align:center;">@(++sr)</td>
-                        <td>scaffolding</td>
-                        <td>
+                        <td>Scaffolding</td>
+                        <td class="prop-radio-group">
                             <label><input type="radio" name="scaffolding" value="Provided" /> Provided</label>
                             <label><input type="radio" name="scaffolding" value="Not Provided" checked />Not Provided</label>
                         </td>
@@ -675,7 +677,6 @@
                             &#64; 85 +/- 2 DBA when measured from 3 Mtr distance from noise generating source (Blower).<br />
                             Our blowers can be supplied without acoustic enclosure (Not quoted, can be quoted separately) so as to keep the noise level
                             &#64; 80 dB +/- 2 DBA from 3 Mtr distance of noise generating source (Blower).<br />
-                            Water Hydrant line upto booth customer scope.
                         </td>
                     </tr>
                 </tfoot>
@@ -724,7 +725,14 @@
                     <tr>
                         <td style="color:var(--text-muted); text-align:center;">2</td>
                         <td>Type of Control panel</td>
-                        <td>Wall Mounted/ Floor Mounted</td>
+                        @* <td>Wall Mounted/ Floor Mounted</td> *@
+                        <td>
+                            <div class="prop-radio-group">
+                                
+                                <label><input type="radio" name="TypeOfControlPanel" value="Wall Mounted" />Wall Mounted</label>
+                                <label><input type="radio" name="TypeOfControlPanel" value="Floor Mounted" checked />Floor Mounted</label>
+                            </div>
+                        </td>
                     </tr>
                     <tr>
                         <td style="color:var(--text-muted); text-align:center;">3</td>
