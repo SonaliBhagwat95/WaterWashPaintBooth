@@ -60,5 +60,6 @@ namespace PaintBooth.Repositories.Interface
         public void UpdateTubelightDetails(PaintBoothModel model, decimal LuxLevel, decimal Lumens);
         public string GetFilterType(int enquiryID);
         public string FetchCatagoryType(int ComponentId);
+        public string FetchWashingTankType(int ComponentId);
     }
 }

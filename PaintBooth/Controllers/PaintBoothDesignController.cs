@@ -4,6 +4,7 @@ using devDept.Eyeshot.Translators;
 using devDept.Geometry;
 using Microsoft.AspNetCore.Mvc;
 using PaintBooth.Business;
+using PaintBooth.Business.Water_Wash_Parts;
 using PaintBooth.Database;
 using PaintBooth.Model;
 using PaintBooth.Models;
@@ -11,8 +12,6 @@ using PaintBooth.Repositories.Interface;
 using PaintBooth.Service;
 using System.Drawing;
 using System.IO.Compression;
-using System.Runtime.Intrinsics.Arm;
-using Xbim.Ifc2x3.GeometricModelResource;
 
 namespace PaintBooth.Controllers
 {
@@ -120,17 +119,18 @@ namespace PaintBooth.Controllers
                     H = existing.H,
                     CrossSectionalArea = (double)existing.CrossSectionalAreaOfBlower,
                     VelocityofBlower = existing.VelocityofBlower,
-                    NoOfBlowers=existing.NoOfBlowers,
-                    CapacityofEachBlower= existing.CapacityPerBlower,
+                    NoOfBlowers = existing.NoOfBlowers,
+                    CapacityofEachBlower = existing.CapacityPerBlower,
                     CapacityofBlower = (double)existing.CapacityofBlowerincubicm,
                     CapacityofBlowerinH = (double)existing.CapacityofBlowerinHr,
                     CapacityofBlowerRoundOf = (double)existing.RoundingCapacity,
                     VelocityofFilterFrame = (double)0.5m,
                     BetweenCenterDistance = existing.BetweenCenterDistance,
                     HingedDoorHeight = 2100,
-                    DoorHeight = 1180,
-                    DoorWidth = 580,
-                    ServiceDoorLocation = "RightSide",
+                    chkServiceDoor = existing.IsServiceDoor,
+                    DoorHeight = (double)existing.ServiceDoorHeight ==null?1170: (double)existing.ServiceDoorHeight,
+                    DoorWidth = (double)existing.ServiceDoorWidth == null ? 470 : (double)existing.ServiceDoorWidth,
+                    ServiceDoorLocation =existing.ServiceDoorLocation == null ? "LeftSide" :existing.ServiceDoorLocation,
                     BlowerOrientation = "90",
                     ExhaustDuctingListJson = ductJson,
                     ExhaustWidth = ductRows.Any() ? (double)ductRows.First().DuctWidth : 0,
@@ -293,6 +293,7 @@ namespace PaintBooth.Controllers
                 int ComponentID = _repo.FetchComponentId(enquiryId);
                 string CatagoryType = _repo.FetchCatagoryType(ComponentID);
 
+
                 int PlenumHeight = 0; string filterType = "";
                 var PaintBoothTypefromEnquiry = _repo.FetchPaintBoothType(model.SalesNO);
                 if (PaintBoothTypefromEnquiry != "1")
@@ -370,7 +371,7 @@ namespace PaintBooth.Controllers
                 HttpContext.Session.SetInt32("settingPanelWidth", (int)paintBoothSetting.PanelWidth);
                 HttpContext.Session.SetInt32("settingPanelHeight", (int)paintBoothSetting.PanelHeight);
                 _repo.UpdateTubelightDetails(model, paintBoothSetting.LuxLevel, paintBoothSetting.Lumens);
-
+                panel.CalculateTubeLights(model);
                 string selectedLocation = model.ServiceDoorLocation;
 
                 // Check if the record already exists
@@ -402,7 +403,7 @@ namespace PaintBooth.Controllers
                 _repo.UpdateDoorDetails(componentID, model);
                 #endregion
 
-                
+
                 // DELETE OLD PANEL DETAILS FIRST
                 panel.DeleteOldPanelDetails((int)enquiryId);
                 PaintBoothService service = new PaintBoothService(_context, _configuration);
@@ -420,415 +421,47 @@ namespace PaintBooth.Controllers
                 {
                     service.TopPanels(model, panel, PaintBoothTypefromEnquiry);
                 }
-                if (PaintBoothTypefromEnquiry != "4" && PaintBoothTypefromEnquiry != "5" && PaintBoothTypefromEnquiry != "6" && PaintBoothTypefromEnquiry != "7")
+                //if (PaintBoothTypefromEnquiry != "4" && PaintBoothTypefromEnquiry != "5" && PaintBoothTypefromEnquiry != "6" && PaintBoothTypefromEnquiry != "7")
+                //{
+                //    service.D3Panels(model, panel, ExtractionC_Height, PaintBoothTypefromEnquiry);
+                //    service.CreateLoft(model, panel, ExtractionC_Height, PaintBoothTypefromEnquiry, model.NoOfBlowers);
+                //    string? WashingchamberTankType = _repo.FetchWashingTankType(ComponentID);
+
+                //    if (CatagoryType != "Water wash paint booth")
+                //    {
+                //        service.FiltersAndBaffles(model, panel, ExtractionC_Height, PaintBoothTypefromEnquiry);
+                //    }
+                //    else
+                //    {
+                //       if(WashingchamberTankType== "Fabricated")
+                //       {
+                //            new WaterWashAssembly(_configuration).Build(model, panel, service.designdictionary);
+                //       }
+                //    }
+                //    service.backPanels(model, panel, ExtractionC_Height, PaintBoothTypefromEnquiry);
+                //}
+                if (PaintBoothTypefromEnquiry != "4" && PaintBoothTypefromEnquiry != "5" &&
+                    PaintBoothTypefromEnquiry != "6" && PaintBoothTypefromEnquiry != "7")
                 {
                     service.D3Panels(model, panel, ExtractionC_Height, PaintBoothTypefromEnquiry);
-                    service.CreateLoft(model, panel, ExtractionC_Height, PaintBoothTypefromEnquiry,model.NoOfBlowers);
-                    if(CatagoryType != "Water wash paint booth")
+                    service.CreateLoft(model, panel, ExtractionC_Height, PaintBoothTypefromEnquiry, model.NoOfBlowers);
+
+                    if (CatagoryType != "Water wash paint booth")
                     {
                         service.FiltersAndBaffles(model, panel, ExtractionC_Height, PaintBoothTypefromEnquiry);
                     }
                     else
                     {
-                        #region PQ Sections
-                        PSection p = new(_configuration);
+                        string? washingTankType = _repo.FetchWashingTankType(ComponentID)?.Trim();
 
-                        double baseFrameH = panel.Section == "Bend Section" ? panel.SettingH : 75;
-                        double zBottom = panel.SheetThickness - baseFrameH;   // underside of base frame
-
-                        DesignDocument pSectionDoc = p.DrawPSection(model, zBottom);
-
-                        double qTotal = (double)model.D + (double)model.D3;
-                        double qSegment = 2390;   // or (double)paintBoothSetting.PanelHeight if 2390 comes from Panel Settings
-
-                        DesignDocument qSectionLeftDoc = p.DrawQSection(model, zBottom, qTotal, qSegment, false);
-                        DesignDocument qSectionRightDoc = p.DrawQSection(model, zBottom, qTotal, qSegment, true);
-                        DesignDocument BackqSectionDoc = p.DrawbackQSection(model, zBottom, qTotal);
-
-                        service.designdictionary["PSection"] = new List<DesignDocument> { pSectionDoc };
-
-                        service.designdictionary["QSection_Left"] = new List<DesignDocument> { qSectionLeftDoc };
-                        service.designdictionary["QSection_Right"] = new List<DesignDocument> { qSectionRightDoc };
-                        service.designdictionary["BackQSection"] = new List<DesignDocument> { BackqSectionDoc };
-                        #endregion
-
-                        #region Base Plate Return
-                        
-
-                        BasePlateReturn bReturn = new(_configuration);
-                        DesignDocument baseFrameReturn = bReturn.DrawBasePlateReturn(model, zBottom);
-
-                        // ---- Position in booth ----
-                        double W = (double)model.W;                 // booth width along Y (2500)
-                        double wallT = 38;                              // tank wall
-                        double gap = 20;                              // leg clearance from wall       (CHECK)
-                        double partD = 131 + 2 * 1.6;                   // part depth 134.2
-
-                        double retX = model.D + model.D3 - wallT - gap;  // vertical leg just inside tank end wall
-                        double retZ = zBottom - 460;                     // tank floor                    (CHECK)
-                                             // tank floor                    (CHECK)
-
-                        double[] retY = { 800};     // 3 Nos, centred in 3 equal bays across W
-
-                        var baseReturns = new List<DesignDocument>();
-                        foreach (double y in retY)
-                            baseReturns.Add(CopyMoved(baseFrameReturn, retX, y + partD / 2, retZ, rotZDeg: 180));
-
-                        service.designdictionary["BasePlate_Return"] = baseReturns;
-
-                        #endregion
-                       
-                        #region Base Plate 1
-                        BasePlate1 b = new(_configuration);
-                        DesignDocument baseFrame1 = b.DrawBasePlate1(model);
-
-                        double bpDepth = 2318;                                // same as Depth in DrawBasePlate1
-                        double bpY0 = 0;                                   // Y where the plate starts   (CHECK)
-                        double T = 1.6;                                 // return top plate thickness
-                        double slope = Math.Atan2(211 - 30, 682);           // 14.86°
-                        double wallIn = model.D + model.D3 - wallT;          // inner face of tank end wall
-
-                        double bpX = wallIn;                                  // lip end against wall
-                        double bpZ = retZ + 368 - 30
-                                   - (bpX - retX) * Math.Tan(slope)
-                                   + T / Math.Cos(slope);                     // sits on return top flange
-
-                        DesignDocument baseFrame1Placed = CopyMoved(baseFrame1, bpX, bpY0 + bpDepth, bpZ, rotZDeg: 180);
-
-                        service.designdictionary["BasePlate_1"] = new List<DesignDocument> { baseFrame1Placed };
-                        #endregion
-                      
-                        #region DistributionPlate1
-                        DistributionPlate1 d = new(_configuration);
-                        DesignDocument plate1 = d.DrawDistributionPlate(model, "DistributionPlate1", 2318, 5 + 1128);
-                        DesignDocument plate2 = d.DrawDistributionPlate(model, "DistributionPlate2", 1678, 5 + 1130);
-                        // ---- Base Plate 1: top corner at the end of the short 120 leg (world) ----
-                        double bpA1 = Math.Atan2(211 - 30, 682);                      // 14.86°
-                        double bpA2 = bpA1 - (Math.PI - 154 * Math.PI / 180.0);       // -11.14°
-                        double legEndX = 682 + 120 * Math.Cos(bpA2);                    // local x of leg end (~799.7)
-                        double legTopZ = 211 + 120 * Math.Sin(bpA2) + 25 / Math.Cos(bpA2); // flange top at leg end (~213.3)
-
-                        double cornerX = bpX - legEndX;                                 // after Base Plate 1's 180° turn
-                        double cornerZ = bpZ + legTopZ;
-
-                        // ---- Hook top sits on that corner: up-leg outside the end face, flat on top ----
-                        double tD = 1.6;
-                        double dpX = cornerX - tD / 2 + d.HookTopX;
-                        double dpZ = cornerZ + tD / 2 - d.HookTopZ;
-                        double dpY = bpY0 + 2318;                                       // same Y span as Base Plate 1
-
-                        DesignDocument plate1Placed = CopyMoved(plate1, dpX, dpY, dpZ, rotZDeg: 180);
-
-                        service.designdictionary["Distribution_Plate1"] = new List<DesignDocument> { plate1Placed };
-                        //service.designdictionary["DistributionPlate2"] = new List<DesignDocument> { plate2 };
-                        #endregion
-
-                        #region ReturnTroughBracket
-                        ReturnTroughBracket r = new(_configuration);
-                        DesignDocument rBracket = r.DrawReturnTroughBracket(model,2390);
-
-                        //service.designdictionary["ReturnTroughBracket"] = new List<DesignDocument> { rBracket };
-                        #endregion
-
-                        //#region Deflector Gusset
-                        //var dg = new DeflectorGusset(_configuration);
-                        //DesignDocument DeflectorGusset_218 =   dg.DrawDeflectorGusset(model, "DeflectorGusset_218", +1);
-                        //DesignDocument DeflectorGusset_219 =   dg.DrawDeflectorGusset(model, "DeflectorGusset_219", -1);
-
-                        ////service.designdictionary["DeflectorGusset_218"] = new List<DesignDocument> { DeflectorGusset_218 };
-                        ////service.designdictionary["DeflectorGusset_219"] = new List<DesignDocument> { DeflectorGusset_219 };
-                        //#endregion
-                       
-                        #region FrontPlate
-                        var fp = new FrontPlate(_configuration);
-                        DesignDocument frontPlate_203 = fp.DrawFrontPlate(model, "FrontPlate_203", 1158);
-                        DesignDocument frontPlate_204 = fp.DrawFrontPlate(model, "FrontPlate_204", 518);
-
-                        // ---- Position (from client RHS view) ----
-                        double fpX = model.D;          // plate front face X  (scaled from RHS view ≈1020 from end wall)   (CHECK)
-                        double fpZ = zBottom;           // plate bottom Z      (145 tank top -> entrainment bottom, minus 69) (CHECK)
-                        double[] fpY = { 0, 1158/*, 2316*/ };    // Y start of each plate, QTY 3 Nos side by side                    (CHECK)
-
-                        // all copies in ONE document, so the GA merge doesn't add its X offset
-                        var frontPlates = new DesignDocument();
-                        frontPlates.Units = frontPlate_203.Units;
-                        foreach (double y in fpY)
+                        if (string.Equals(washingTankType, "Fabricated", StringComparison.OrdinalIgnoreCase))
                         {
-                            foreach (Entity e in frontPlate_203.Entities)
-                            {
-                                Entity c = (Entity)e.Clone();
-                                c.Translate(fpX, y, fpZ);
-                                frontPlates.Entities.Add(c);
-                            }
+                            new WaterWashAssembly(_configuration).Build(model, panel, service.designdictionary);
                         }
-                        service.designdictionary["Front_Plate"] = new List<DesignDocument> { frontPlates };
-                        //service.designdictionary["frontPlate_204"] = new List<DesignDocument> { frontPlate_204 };
-                        #endregion
-
-                        #region Pipe Support Bracket
-                        var psb = new PipeSupportBracket(_configuration);
-                        DesignDocument bracket = psb.DrawPipeSupportBracket(model, 300);
-
-                        double brT = 3;
-                        double brX = cornerX - 1.6 - brT / 2;     // inner face on Distribution Plate hook (1.6) outside base plate end
-                        double brZ = cornerZ + 15;                // bend ~15 above base plate flange top        (CHECK)
-                        double brLen = 300;
-                        double[] brY = { 400/*, 1600, 2800*/ };        // start Y of each bracket, 3 Nos (one per pipe support)  (CHECK)
-
-                        var brackets = new DesignDocument();
-                        brackets.Units = bracket.Units;
-
-                        foreach (double y in brY)
-                        {
-                            foreach (Entity e in bracket.Entities)
-                            {
-                                Entity c = (Entity)e.Clone();
-                                c.Translate(brX, y, brZ);
-                                brackets.Entities.Add(c);
-                            }
-                        }
-
-                        service.designdictionary["PipeSupport_Bracket"] = new List<DesignDocument> { brackets };
-
-                        #region Base Plate Pipe Support
-                        var bps = new BasePlatePipeSupport(_configuration);
-                        DesignDocument pipeSupport = bps.DrawBasePlatePipeSupport(model);
-                        double psTopL = 300;
-                        double ang = bps.PipeDeg * Math.PI / 180.0;
-                        double ux = Math.Cos(ang), uz = Math.Sin(ang);           // up the slope in world (after 180° turn)
-                        double nx = -Math.Sin(ang), nz = Math.Cos(ang);
-                        //double off = 3.0 / 2 + 19.05 / 2;                        // bracket half-thk + pipe radius
-                        double off = 3.0 / 2 + bps.PipeOD / 2;      // bracket half-thk + pipe radius
-                        double axX = brX + nx * off;                             // world line the pipe axis must follow
-                        double axZ = brZ + nz * off;
-
-                        double psX = wallIn - 3;                                     // vertical leg outer face on wall
-                        double wX = psX - bps.AxisX;                            // where local axis point lands in X
-                        double wZ = axZ + (wX - axX) / ux * uz;                 // its Z on the world axis line
-                        double psZ = wZ - bps.AxisZ;
-
-                        var pipeSupports = new DesignDocument();
-                        pipeSupports.Units = pipeSupport.Units;
-
-                        foreach (double y in brY)                            // same Y as the 126° brackets
-                        {
-                            double psY = y + psTopL;                         // 180° turn: centres pipe on bracket (Y = y + 150)
-                            foreach (Entity e in pipeSupport.Entities)
-                            {
-                                Entity c = (Entity)e.Clone();
-                                c.Rotate(Math.PI, Vector3D.AxisZ, Point3D.Origin);
-                                c.Translate(psX, psY, psZ);
-                                pipeSupports.Entities.Add(c);
-                            }
-                        }
-
-                        service.designdictionary["BasePlate_PipeSupport"] = new List<DesignDocument> { pipeSupports };
-                        #endregion
-
-                        #endregion
-
-                        #region Pipe Support Flat (Tie Bar)
-                        var psf = new PipeSupportFlat(_configuration);
-                        DesignDocument pipeSupportFlat = psf.DrawTieBar(model);
-
-                        double tbBarL = 300;                 // tie bar flat bar length (Y)
-                        double psBrT = 3;                   // pipe support bracket thickness
-
-                        // flat bar against inner face of pipe-support bracket, tops level, bolted through same holes
-                        double pfX = psX - psBrT;            // tie bar outer face = bracket inner face
-                        double pfZ = psZ;                    // tie bar top = bracket top
-
-                        var tieBars = new DesignDocument();
-                        tieBars.Units = pipeSupportFlat.Units;
-
-                        foreach (double y in brY)            // same Y as pipe supports -> holes line up
-                        {
-                            double ty = y + tbBarL;          // 180° turn: bar spans y .. y+300, same as bracket
-                            foreach (Entity e in pipeSupportFlat.Entities)
-                            {
-                                Entity c = (Entity)e.Clone();
-                                c.Rotate(Math.PI, Vector3D.AxisZ, Point3D.Origin);
-                                c.Translate(pfX, ty, pfZ);
-                                tieBars.Entities.Add(c);
-                            }
-                        }
-                        service.designdictionary["Tie_Bar"] = new List<DesignDocument> { tieBars };
-                        #endregion
-
-                        #region Eliminator 1 (1215 005 05 201)
-                        var el = new Eliminator(_configuration);
-                        DesignDocument Eliminator1 = el.DrawEliminator(model, "Eliminator1", 1150);   // 1150 = width along Y
-
-                        // ---- Laid on slope, top end resting on the 90° hanger angle ----
-                        double elSlopeDeg = 9;                                         // band slope                 (CHECK)
-                        double sA = Math.Sin(elSlopeDeg * Math.PI / 180.0);
-                        double cA = Math.Cos(elSlopeDeg * Math.PI / 180.0);
-                        double elRot = (90 - elSlopeDeg) * Math.PI / 180.0;            // local Z -> up the slope
-
-                        double elH = 1028;                                            // eliminator overall height (local Z)
-                        double elT = 1.6;                                             // plate thickness
-
-                        // resting point = lowest corner of the top end (local x = 1.6, z = 1028)
-                        double restX = wallIn - 9;                                     // ~9 in from wall            (CHECK)
-                        double restZ = psZ + 3 + 3;                                    // top face of 90° angle (gap 3 + thk 3)
-
-                        // where that local corner goes after the 81° rotation (relative to part origin)
-                        double cornerDx = elT * sA + elH * cA;
-                        double cornerDz = -elT * cA + elH * sA;
-
-                        double elX = restX - cornerDx;                                 // part origin (lower end) in world
-                        double elZ = restZ - cornerDz;
-                        double elY = 0;                                                // Y start along booth length (CHECK)
-
-                        var eliminators = new DesignDocument();
-                        eliminators.Units = Eliminator1.Units;
-
-                        foreach (Entity e in Eliminator1.Entities)
-                        {
-                            Entity c = (Entity)e.Clone();
-                            c.Rotate(elRot, Vector3D.AxisY, Point3D.Origin);
-                            c.Translate(elX, elY, elZ);
-                            eliminators.Entities.Add(c);
-                        }
-
-                        service.designdictionary["Eliminator1"] = new List<DesignDocument> { eliminators };
-                        #endregion
-
-                        #region Eliminator - middle (reversed slope) & top
-                        var elUpper = new DesignDocument();
-                        elUpper.Units = Eliminator1.Units;
-
-                        double elW = 1150;                                   // eliminator width along Y
-
-                        // ---- MIDDLE: slopes down toward the wall, lower (45° cut) end at the wall ----
-                        double midX = restX;                                 // lower end ~9 in from wall      (CHECK)
-                        double midZ = restZ + 197;                           // 197 above bottom eliminator    (right-side dim)
-
-                        foreach (Entity e in Eliminator1.Entities)
-                        {
-                            Entity c = (Entity)e.Clone();
-                            c.Rotate(elRot, Vector3D.AxisY, Point3D.Origin);     // same tilt
-                            c.Rotate(Math.PI, Vector3D.AxisZ, Point3D.Origin);   // turn round: slope reversed, angles stay on top
-                            c.Translate(midX, elY + elW, midZ);                  // +W: Y range back to elY .. elY+1150
-                            elUpper.Entities.Add(c);
-                        }
-
-                        // ---- TOP: same direction as bottom, 197 + 508 higher ----
-                        foreach (Entity e in Eliminator1.Entities)
-                        {
-                            Entity c = (Entity)e.Clone();
-                            c.Rotate(elRot, Vector3D.AxisY, Point3D.Origin);
-                            c.Translate(elX, elY, elZ + 197 + 508);
-                            elUpper.Entities.Add(c);
-                        }
-
-                        service.designdictionary["Eliminator_Upper"] = new List<DesignDocument> { elUpper };
-                        #endregion
-
-                        #region Deflector Gusset
-                        var dg = new DeflectorGusset(_configuration);
-                        DesignDocument DeflectorGusset_218 = dg.DrawDeflectorGusset(model, "DeflectorGusset_218", +1);
-                        DesignDocument DeflectorGusset_219 = dg.DrawDeflectorGusset(model, "DeflectorGusset_219", -1);
-
-                        // ---- gusset local geometry (same numbers as DrawDeflectorGusset) ----
-                        double gA = 25 * Math.PI / 180.0;
-                        double gEx = 203 * Math.Cos(gA), gEz = 203 * Math.Sin(gA);
-                        double gRx = gEx + 38;                     // right (vertical) edge X
-                        double gRz = gEz + 10;                     // bottom of right edge Z
-                        double gHoleX = gRx - 16;                   // plate hole X (local)
-                        double gHoleZ = gRz + 64;                   // lower plate hole Z (local)
-                        double gT = 1.6;
-
-                        // ---- tie bar flat-end hole (world) ----
-                        double tieHoleX = pfX - 1004;
-                        double tieHoleZ = pfZ - 259;
-
-                        // after 180° turn: world = (gx - x, gy - y, gz + z)  -> put lower hole on tie bar hole
-                        double gx = tieHoleX + gHoleX;
-                        double gz = tieHoleZ - gHoleZ;
-
-                        var gussets = new DesignDocument();
-                        gussets.Units = DeflectorGusset_218.Units;
-
-                        foreach (double y in brY)                   // one pair per tie bar
-                        {
-                            double tongueY = y + 152.5;             // tie bar flat-end centre (Y)
-                            double tHalf = 2.5;                   // half of 5 thk tongue
-
-                            // 218 on -Y face of tongue (flange points -Y), 219 on +Y face (flange points +Y)
-                            var pair = new (DesignDocument doc, double gy)[]
-                            {
-                                (DeflectorGusset_218, tongueY - tHalf),
-                                (DeflectorGusset_219, tongueY + tHalf + gT)
-                            };
-
-                            foreach (var (doc, gy) in pair)
-                            {
-                                foreach (Entity e in doc.Entities)
-                                {
-                                    Entity c = (Entity)e.Clone();
-                                    c.Rotate(Math.PI, Vector3D.AxisZ, Point3D.Origin);   // vertical edge to front, tip toward wall
-                                    c.Translate(gx, gy, gz);
-                                    gussets.Entities.Add(c);
-                                }
-                            }
-                        }
-
-                        service.designdictionary["Deflector_Gusset"] = new List<DesignDocument> { gussets };
-
-                        #region Deflector Plate 1
-                        var dp = new DeflectorPlate(_configuration);
-                        DesignDocument deflectorPlate1 = dp.DrawDeflectorPlate(model, "DeflectorPlate1", 2318);
-
-                        double dfA = 25 * Math.PI / 180.0;
-                        double dfT = 1.6;
-                        double dfOver = 2;                       // lower edge runs past gusset tip (54 vs 52)
-                        double dfLen = 2318;
-                        double dfY0 = 0;                       // Y start (same as Base Plate 1 / Distribution Plate 1)  (CHECK)
-
-                        // sloped leg TOP face on the gusset bottom edge (flange underside), after 180° turn
-                        double dfX1 = gx + dfOver * Math.Cos(dfA) - (dfT / 2) * Math.Sin(dfA);
-                        double dfZ1 = gz - dfOver * Math.Sin(dfA) - (dfT / 2) * Math.Cos(dfA);
-
-                        var deflectors = new DesignDocument();
-                        deflectors.Units = deflectorPlate1.Units;
-
-                        foreach (Entity e in deflectorPlate1.Entities)
-                        {
-                            Entity c = (Entity)e.Clone();
-                            c.Rotate(Math.PI, Vector3D.AxisZ, Point3D.Origin);
-                            c.Translate(dfX1, dfY0 + dfLen, dfZ1);
-                            deflectors.Entities.Add(c);
-                        }
-
-                        service.designdictionary["Deflector_Plate1"] = new List<DesignDocument> { deflectors };
-                        #endregion
-
-
-
-
-                        #endregion
-                        #region EntrainmentPlate 214
-                        var ep = new EntrainmentPlate(_configuration);
-                        DesignDocument EntrainmentPlate1 = ep.DrawEntrainmentPlate(model, "EntrainmentPlate1", 1152);
-                        DesignDocument EntrainmentPlate2 = ep.DrawEntrainmentPlate(model, "EntrainmentPlate2", 518);
-
-                        //service.designdictionary["frontPlate_214"] = new List<DesignDocument> { EntrainmentPlate1 };
-                        //service.designdictionary["frontPlate_215"] = new List<DesignDocument> { EntrainmentPlate2 };
-                        #endregion
-
-                        #region BasePlateReturnThrough 212
-                        var bprt = new BasePlateReturnTrough(_configuration);
-                        double[] holeYs = { 127, 587 };
-                        DesignDocument basePlateReturnThrough = bprt.DrawBasePlateReturnTrough(model, holeYs);
-                        //service.designdictionary["basePlateReturnThrough_212"] = new List<DesignDocument> { basePlateReturnThrough };
-
-                        #endregion
-
+                        // else: civil / other tank type - add its parts here if needed
                     }
                     service.backPanels(model, panel, ExtractionC_Height, PaintBoothTypefromEnquiry);
                 }
-
 
                 // ── Top filter frames — Types 2, 6, 7, 9 have filters on top instead of solid panels ──
                 // Type 2: Filters On Top or Door
@@ -869,7 +502,7 @@ namespace PaintBooth.Controllers
                     service.FASPanelsRightAndLeft(model, panel, PlenumHeight, FASDoor);
                     service.FASPanelsForTop(model, panel, PlenumHeight);
                 }
-              
+
 
                 #region WriteFile
                 //string BaseFilePath = "C:/Bullows/Paintbooth_Drawing";
@@ -924,7 +557,86 @@ namespace PaintBooth.Controllers
                    //filepathforLoft,
                    //filepathforstandardframe,
                 };
-                AllFilesPath.Add(paintBoothClass.lstpath);
+                //AllFilesPath.Add(paintBoothClass.lstpath);
+
+                #region Client style GA (without ducting)
+                // 1) Check the Output window once for the real key names, then fill gaSkip
+                foreach (var k in service.designdictionary.Keys) System.Diagnostics.Debug.WriteLine("GA key: " + k);
+                var gaSkip = new HashSet<string> { "ExhaustDucting" };   // ← put your duct/bend keys here
+
+                var gaDict = service.designdictionary
+                    .Where(kv => !gaSkip.Contains(kv.Key))
+                    .ToDictionary(kv => kv.Key, kv => kv.Value.Select(CloneDoc).ToList());
+
+                DesignDocument gaModel = CombineAssemblies2(gaDict, (double)paintBoothSetting.PanelHeight,
+                    (double)paintBoothSetting.PanelWidth, PaintBoothTypefromEnquiry, ExtractionC_Height,
+                    SameSpaceBetweenDoors, doorModel);
+
+                double D = model.D, D3 = model.D3, W = model.W, H = model.H;
+                // same rule as TubeLights(): fixtures shown along the depth
+                int lightsAlong = Math.Max(1, Math.Min(model.Lights, (int)Math.Round(D / 1000.0)));
+                double firstLightX = ClientGADrawing.LightCentres(D, (double)paintBoothSetting.PanelWidth, model.Lights)
+                                     .Select(c => c.x).DefaultIfEmpty(D / 2).First();
+                var gaInfo = new ClientGAInfo
+                {
+                    SalesNo = EnquiryNo,
+                    BoothType = PaintBoothTypefromEnquiry,
+                    ExtractionHeight = ExtractionC_Height,
+                    OverallWidth = W + 2 * (double)paintBoothSetting.StandardBend2,   // client: 2550 → 2626 (CHECK)
+                    OverallHeight = H + (double)paintBoothSetting.StandardBend2,       // client: 2379 → 2416 (CHECK)
+                    Lights = model.Lights,   // or model.Lights if that's filled
+                    PanelWidth = (double)paintBoothSetting.PanelWidth,
+                    DrawnBy = " ",
+                    CheckedBy = " ",
+                    ApprovedBy = " ",   // from user/login if you have it
+                    Product = "Booth",
+                    Model = "",                                                   // e.g. "S.D." for side draft
+                    Part1 = (CatagoryType ?? "").ToUpper(),                       // e.g. "DRY BACK"
+                    Part2 = "SPRAY PAINTING BOOTH",
+                    Material = "G.I.",
+                    DrawingNo = EnquiryNo,
+                    HasBaffles = CatagoryType != "Water wash paint booth" &&
+             PaintBoothTypefromEnquiry != "4" && PaintBoothTypefromEnquiry != "5" &&
+             PaintBoothTypefromEnquiry != "6" && PaintBoothTypefromEnquiry != "7",
+                    Scope =
+                    {
+                        new GAScopeItem { Title = "EXHAUST BLOWER", Lines = {
+                            $"CAPACITY : {model.CapacityofBlowerRoundOf:0} M3/HR",
+                            $"MOTOR CAPACITY : {model.RatedOutputHP:0.##} H.P.",
+                            model.MotorTypes ?? "", $"QTY : {model.NoOfBlowers} NO." } },
+                        new GAScopeItem { Title = CatagoryType == "Water wash paint booth" ? "WATER WASH CHAMBER" : "EXTRACTION CHAMBER",
+                            Lines = { "METAL BAFFLE + P.A. FILTER", "QTY : 1 SET." } },
+                        new GAScopeItem { Title = "TUBE LIGHT FIXTURE FLAME PROOF",
+                            Lines = { $"QTY : {PaintBoothDesignBusiness.TubeLightCalculations} NOS." } },
+                        new GAScopeItem { Title = "INCLINED TUBE MANOMETER", Lines = { "QTY : 1 NO." } },
+                        new GAScopeItem { Title = "STAR DELTA STARTER + MCB", Lines = { "QTY : 1 NO." } },
+                    },
+                    Notes =
+                    {
+                        "Civil work, foundation and floor levelling by customer.",
+                        "Wall cut-outs and making good after erection by customer.",
+                        "Electrical cabling up to starter by customer.",
+                        "Platform, ladder and lifting tackle not in our scope.",
+                        "Unloading and material handling at site by customer.",
+                    },
+                    Balloons =   // targets in ORIGINAL model coords; Dx/Dy = paper-mm offset, tune visually
+                    {
+                        new GABalloon { No = 1, View = "ELEV", Target = new Point3D(D + D3 / 2, W / 2, ExtractionC_Height + 450), Dx = -20, Dy = 25 },
+                        new GABalloon { No = 2, View = "ELEV", Target = new Point3D(D + D3 / 2, 0, 300),  Dx = 5,  Dy = -35 },
+                        new GABalloon { No = 3, View = "ELEV", Target = new Point3D(firstLightX, W / 2, H - 70), Dx = 25, Dy = 20 },
+                        new GABalloon { No = 4, View = "PLAN", Target = new Point3D(D, W, 0),             Dx = 5,  Dy = -25 },
+                        new GABalloon { No = 5, View = "ELEV", Target = new Point3D(D * 0.25, 0, 1400),   Dx = 25, Dy = 15 },
+                    }
+                };
+
+                string clientGaPath = new ClientGADrawing(_configuration).Build(gaModel, model, gaInfo);
+
+                AllFilesPath.Add(clientGaPath);
+                #endregion
+
+
+
+
                 // Store the values needed for FilterFrameCalculations in session
                 HttpContext.Session.SetString("FilterArea", model.FilterArea.ToString());
                 HttpContext.Session.SetString("FF_W", model.W.ToString());
@@ -939,7 +651,6 @@ namespace PaintBooth.Controllers
                 return Json(new { success = false, message = ex.Message });
             }
         }
-
 
         private DesignDocument CombineAssemblies2(Dictionary<string, List<DesignDocument>> designDocument, double panelheight, double panelWidth, string DraftSubType, double extractionCHeight, double SameSpaceBetweenDoors, DoorDimensionsModel doorModel)
         {
@@ -1047,7 +758,7 @@ namespace PaintBooth.Controllers
                             drawings = kvp.Value,
                             panelcount = 1,
                             //xoffset = DraftSubType == "5" /*|| DraftSubType == "4"*/ ? (double)D3Panel : 0,
-                            xoffset =  0,
+                            xoffset = 0,
                             yOffset = 0,
                             Zoffset = 0,
                             paintboothSide = "FilterAssembly"
@@ -1927,7 +1638,6 @@ namespace PaintBooth.Controllers
         }
 
         [HttpPost]
-
         public IActionResult FilterFrameBox(PaintBoothModel model)
         {
             string tempFolderPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -1996,8 +1706,30 @@ namespace PaintBooth.Controllers
             }
             return dst;
         }
-    }
+        private static DesignDocument CloneDoc(DesignDocument src)
+        {
+            var dst = new DesignDocument { Units = src.Units };
 
+            // 1) layers first — entities reference them by name
+            foreach (Layer l in src.Layers)
+                if (!dst.Layers.Any(x => x.Name == l.Name))
+                    dst.Layers.Add(new Layer(l.Name, l.Color));
+
+            // 2) blocks (STEP hinges, handles, blower etc.)
+            foreach (var b in src.Blocks)
+                if (!dst.Blocks.Contains(b.Name)) dst.Blocks.Add(b);
+
+            // 3) entities — safety net for any layer name still missing
+            foreach (Entity e in src.Entities)
+            {
+                Entity c = (Entity)e.Clone();
+                if (!string.IsNullOrEmpty(c.LayerName) && !dst.Layers.Any(x => x.Name == c.LayerName))
+                    dst.Layers.Add(new Layer(c.LayerName));
+                dst.Entities.Add(c);
+            }
+            return dst;
+        }
+    }
     public class AssemblyValueModel
     {
         public DesignDocument combinedDrawing { get; set; }

@@ -50,6 +50,12 @@ namespace PaintBooth.Database
         public decimal RoundingCapacity { get; set; }
         public int NoOfBlowers { get; set; }
         public int CapacityPerBlower { get; set; }
+        //service door 
+        public bool IsServiceDoor { get; set; }
+        public string? ServiceDoorLocation { get; set; }
+        public double? ServiceDoorWidth { get; set; }
+        public double? ServiceDoorHeight { get; set; }
+
         public int? CreatedBy { get; set; }
         public DateTime CreatedDate { get; set; }
         public int? ModifiedBy { get; set; }

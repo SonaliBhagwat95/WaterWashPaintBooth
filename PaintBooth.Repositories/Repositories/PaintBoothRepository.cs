@@ -258,7 +258,10 @@ namespace PaintBooth.Repositories
         {
             return _db.ComponentTables.Where(c => c.ComponentID == ComponentId && c.IsActive == true).Select(c => c.Category).FirstOrDefault();
         }
-
+        public string FetchWashingTankType(int ComponentId)
+        {
+            return _db.ComponentTables.Where(c => c.ComponentID == ComponentId && c.IsActive == true).Select(c => c.WashingChamberTank).FirstOrDefault();
+        }
         public decimal FetchRatedOutputHP(int MotorCatalogID)
         {
             return (decimal)_db.MotorFlange.Where(c => c.MotorCatalogID == MotorCatalogID).Select(c => c.RatedOutputHP).FirstOrDefault();
@@ -332,6 +335,11 @@ namespace PaintBooth.Repositories
                     objtbl.NoOfBlowers = model.NoOfBlowers;
                     objtbl.CapacityPerBlower = model.CapacityofEachBlower;
                     objtbl.BetweenCenterDistance = model.BetweenCenterDistance == null ? 0 : model.BetweenCenterDistance;
+                    objtbl.IsServiceDoor = model.chkServiceDoor;
+                    objtbl.ServiceDoorLocation = model.ServiceDoorLocation == null ? "" : model.ServiceDoorLocation;
+                    objtbl.ServiceDoorWidth = model.DoorWidth;
+                    objtbl.ServiceDoorHeight = model.DoorHeight;
+
                     objtbl.CreatedBy = 1;
                     objtbl.CreatedDate = DateTime.Now;
                     objtbl.ModifiedBy = 0;
@@ -367,6 +375,11 @@ namespace PaintBooth.Repositories
                     record.H = model.H;
                     record.H1 = model.H1;
                     record.H2 = model.H2;
+                    record.IsServiceDoor = model.chkServiceDoor;
+                    record.ServiceDoorLocation = model.ServiceDoorLocation == null ? "" : model.ServiceDoorLocation;
+                    record.ServiceDoorWidth = model.DoorWidth;
+                    record.ServiceDoorHeight = model.DoorHeight;
+
                     record.ModifiedBy = 1;
                     record.ModifiedDate = DateTime.Now;
                     _db.SaveChanges();

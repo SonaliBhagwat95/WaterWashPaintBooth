@@ -59,6 +59,7 @@
         public string LightSubType { get; set; }
         public string LightType { get; set; }
         public int SalesEngineerId { get; set; }
+        public string? DoorType { get; set; }
         public string DoorSubType { get; set; }
         public string TypeOfHingedDoor { get; set; }
         public decimal DoorWidth { get; set; }

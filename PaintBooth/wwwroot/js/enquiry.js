@@ -645,8 +645,8 @@ $(function () {
     var subTypeOptions = {
         "1": [ // Side Draft
             { val: "1", text: "Front Open" },
-            { val: "2", text: "Negative Pressurized Booth" },
-            { val: "3", text: "Positive Pressurized Booth" }
+            { val: "2", text: "Negative Pressurized" },
+            { val: "3", text: "Positive Pressurized" }
         ],
         "2": [ // Down Draft
             { val: "4", text: "With FAS & Civil" },

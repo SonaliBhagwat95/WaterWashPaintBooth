@@ -736,8 +736,8 @@ namespace PaintBooth.Controllers
                         viewModel.ProposalDetails.SubTypeOfDraftType switch
                         {
                             "1" => viewModel.ProposalDetails.SubTypeOfDraftType = "Front Open",
-                            "2" => viewModel.ProposalDetails.SubTypeOfDraftType = "Negative Pressurized Booth",
-                            "3" => viewModel.ProposalDetails.SubTypeOfDraftType = "Positive Pressurized Booth",
+                            "2" => viewModel.ProposalDetails.SubTypeOfDraftType = "Negative Pressurized",
+                            "3" => viewModel.ProposalDetails.SubTypeOfDraftType = "Positive Pressurized",
                             "4" => viewModel.ProposalDetails.SubTypeOfDraftType = "With FAS & Civil",
                             "5" => viewModel.ProposalDetails.SubTypeOfDraftType = "With FAS & Without Civil",
                             "8" => viewModel.ProposalDetails.SubTypeOfDraftType = "With FAS",

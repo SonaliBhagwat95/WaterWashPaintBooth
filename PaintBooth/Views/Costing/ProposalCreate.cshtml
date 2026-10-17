@@ -399,7 +399,7 @@
                         </th>
                     </tr>
                     <tr>
-                        <th style="width:60px; text-align:center;">Sr. No.</th>
+                        <th style="width:60px; text-align:center;">Sr.No.</th>
                         <th style="width:35%;">Description</th>
                         <th>Specification</th>
                     </tr>
@@ -408,7 +408,7 @@
                     <tr>
                         <td style="text-align:center;">@(++sr)</td>
                         <td>Type</td>
-                        <td>@Model.ProposalDetails.DraftType @Model.ProposalDetails.Category</td>
+                    <td>@Model.ProposalDetails.SubTypeOfDraftType @Model.ProposalDetails.DraftType @Model.ProposalDetails.Category</td>
                     </tr>
                     <tr>
                         <td style="text-align:center;">@(++sr)</td>
@@ -599,6 +599,8 @@
                         <tr>
                             <td style="text-align:center;">@(++sr)</td>
                             <td>Suction Filters</td>
+                            <img src="~/img/MettleBaffle.png" alt="Primary Metallic Filter"
+                                 style="max-width:220px; height:auto; margin-top:8px;" />
                             <td>Suction filter will be provided 20-25 micron</td>
                         </tr>
                     }
@@ -622,6 +624,7 @@
                         <td style="text-align:center;">@(++sr)</td>
                         <td>Door</td>
                         <td>
+                            @Model.ProposalDetails?.DoorType
                             @doorLine
                             @if (showDoorSize)
                             {
@@ -1157,7 +1160,7 @@
                     <tr>
                         <td style="color:var(--text-muted); text-align:center;">4.</td>
                         <td>Tube-Light</td>
-                        <td>TRI FLP</td>
+                        <td>TRI-FLP / Equivalent.</td>
                     </tr>
 
                     @* Section divider *@

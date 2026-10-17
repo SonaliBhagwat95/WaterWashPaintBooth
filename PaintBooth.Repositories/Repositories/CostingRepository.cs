@@ -619,55 +619,56 @@ namespace PaintBooth.Repositories.Repositories
         // ─────────────────────────────────────────────────────────
         public ProposalModel GetAllDetails(string enquiryCode)
         {
-            return (from e  in _db.EnquiryMasters
-                    join c  in _db.CustomerMasters   on e.CustomerID  equals c.CustomerID
+            return (from e in _db.EnquiryMasters
+                    join c in _db.CustomerMasters on e.CustomerID equals c.CustomerID
                     join cp in _db.CustomerContactPersons on e.CustomerID equals cp.CustomerID
-                    join co in _db.ComponentTables   on e.ComponentID  equals co.ComponentID
-                    join p  in _db.PaintBoothDetails on e.EnquiryID    equals p.EnquiryId
+                    join co in _db.ComponentTables on e.ComponentID equals co.ComponentID
+                    join p in _db.PaintBoothDetails on e.EnquiryID equals p.EnquiryId
                     where e.SalesNO == enquiryCode
                     select new ProposalModel
                     {
-                        EnquiryID             = e.EnquiryID,
-                        CompanyName           = c.CompanyName,
-                        CompEmail             = c.EmailId,
-                        DraftType             = e.DraftType,
-                        SubTypeOfDraftType=e.SubTypeOfDraftType,
-                        CompAddress           = c.CustomerAddress,
-                        ContactPerson         = cp.ContactPerson,
-                        Designation           = cp.Designation,
-                        MobileNo              = cp.Mobile,
-                        SalesNO               = e.SalesNO,
-                        Component=co.Component,
-                        MaterialOfConstruction=co.MaterialofConstruction,
-                        WidthSize             = (double)co.WidthSize,
-                        HeightSize            = (double)co.HeightSize,
-                        Length                = (double)co.Length,
-                        Workingdays           = (double)co.Workingdays,
-                        NumberofShifts        = (double)co.NumberofShifts,
-                        EffectiveWorking      = (double)co.EffectiveWorking,
-                        Weight                = (double)co.Weight,
+                        EnquiryID = e.EnquiryID,
+                        CompanyName = c.CompanyName,
+                        CompEmail = c.EmailId,
+                        DraftType = e.DraftType,
+                        SubTypeOfDraftType = e.SubTypeOfDraftType,
+                        CompAddress = c.CustomerAddress,
+                        ContactPerson = cp.ContactPerson,
+                        Designation = cp.Designation,
+                        MobileNo = cp.Mobile,
+                        SalesNO = e.SalesNO,
+                        Component = co.Component,
+                        MaterialOfConstruction = co.MaterialofConstruction,
+                        WidthSize = (double)co.WidthSize,
+                        HeightSize = (double)co.HeightSize,
+                        Length = (double)co.Length,
+                        Workingdays = (double)co.Workingdays,
+                        NumberofShifts = (double)co.NumberofShifts,
+                        EffectiveWorking = (double)co.EffectiveWorking,
+                        Weight = (double)co.Weight,
                         ProductionRequirement = (int)co.ProductionRequirement,
-                        ComponentHandling     = co.ComponentHandling,
-                        Viscosity             = (double)co.Viscosity,
-                        DFT                   = (double)co.DFT,
-                        SpecificHeat          = (double)co.SpecificHeat,
-                        LoadingUnloading      = co.LoadingUnloading,
+                        ComponentHandling = co.ComponentHandling,
+                        Viscosity = (double)co.Viscosity,
+                        DFT = (double)co.DFT,
+                        SpecificHeat = (double)co.SpecificHeat,
+                        LoadingUnloading = co.LoadingUnloading,
                         ImagePath = co.Image_Path,
                         NoOfCoats = (int)co.NoOfCoats,
-                        Paint= (int)co.Paint,
+                        Paint = (int)co.Paint,
                         NoOfColors = (int)co.NoOfColors,
-                        Category              = co.Category,
-                        TypeOfPaint           = co.TypeOfPaint,
+                        Category = co.Category,
+                        TypeOfPaint = co.TypeOfPaint,
                         ExtractionChamberHeight = co.ExtractionChamberHeight,
-                        ComponantWeight       = (double)co.Weight,
-                        D= (float)p.D,
-                        W= (float)p.W,
-                        H= (float)p.H,
-                        NoOfBlowers= p.NoOfBlowers,
+                        ComponantWeight = (double)co.Weight,
+                        D = (float)p.D,
+                        W = (float)p.W,
+                        H = (float)p.H,
+                        NoOfBlowers = p.NoOfBlowers,
                         SalesEngineerId = (int)e.SalesEngineerId,
-                        DoorSubType=co.DoorSubType,
-                        DoorWidth= (decimal)co.DoorWidth,
-                        DoorHeight= (decimal)co.DoorHeight
+                        DoorType = co.DoorType,
+                        DoorSubType = co.DoorSubType,
+                        DoorWidth = (decimal)co.DoorWidth,
+                        DoorHeight = (decimal)co.DoorHeight
                     }).FirstOrDefault();
         }
 
