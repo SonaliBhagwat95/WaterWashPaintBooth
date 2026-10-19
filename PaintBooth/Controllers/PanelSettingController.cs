@@ -161,7 +161,8 @@ namespace PaintBooth.Controllers
                         luxLevel = x.LuxLevel,
                         lumens = x.Lumens,
                         itemCode = x.ItemCode,   // ← NEW
-                        rate = x.Rate            // ← NEW
+                        rate = x.Rate ,          // ← NEW
+                        waterCurtain=x.WaterCurtain
                     })
                 });
             }

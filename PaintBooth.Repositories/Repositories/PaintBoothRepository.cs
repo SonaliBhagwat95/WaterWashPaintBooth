@@ -296,7 +296,8 @@ namespace PaintBooth.Repositories
                                        Section = s.Section,
                                        LightTypes = s.LightTypes,
                                        LuxLevel = (decimal)s.LuxLevel,
-                                       Lumens = (decimal)s.Lumens
+                                       Lumens = (decimal)s.Lumens,
+                                       WaterCurtain=s.WaterCurtain
                                    }).ToList()
             };
             return paintBoothModel;

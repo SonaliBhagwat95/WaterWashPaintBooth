@@ -106,7 +106,8 @@ namespace PaintBooth.Repositories
                           ItemCode = x.ItemCode ?? "",   // ← NEW
                           Rate = x.Rate ?? 0 ,    // ← NEW
                           ItemCodeForStructuralM = x.ItemCodeForStructuralM ?? "",   // ← NEW,
-                          RateForStructuralM= x.RateForStructuralM ??0    // ← NEW
+                          RateForStructuralM= x.RateForStructuralM ??0,    // ← NEW
+                          WaterCurtain=x.WaterCurtain
                       })
                       .ToList();
         }

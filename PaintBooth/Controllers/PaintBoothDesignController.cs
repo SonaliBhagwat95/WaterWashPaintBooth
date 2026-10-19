@@ -366,6 +366,7 @@ namespace PaintBooth.Controllers
                     ECPitchDistance = (double)extractionSetting.PitchDistance == null ? 0 : (double)extractionSetting.PitchDistance,
                     plenumHeight = PlenumHeight,
                     paintboothType = PaintBoothTypefromEnquiry
+
                 };
                 model.PitchDistance = (decimal)paintBoothSetting.PitchDistance;
                 HttpContext.Session.SetInt32("settingPanelWidth", (int)paintBoothSetting.PanelWidth);
@@ -421,25 +422,7 @@ namespace PaintBooth.Controllers
                 {
                     service.TopPanels(model, panel, PaintBoothTypefromEnquiry);
                 }
-                //if (PaintBoothTypefromEnquiry != "4" && PaintBoothTypefromEnquiry != "5" && PaintBoothTypefromEnquiry != "6" && PaintBoothTypefromEnquiry != "7")
-                //{
-                //    service.D3Panels(model, panel, ExtractionC_Height, PaintBoothTypefromEnquiry);
-                //    service.CreateLoft(model, panel, ExtractionC_Height, PaintBoothTypefromEnquiry, model.NoOfBlowers);
-                //    string? WashingchamberTankType = _repo.FetchWashingTankType(ComponentID);
-
-                //    if (CatagoryType != "Water wash paint booth")
-                //    {
-                //        service.FiltersAndBaffles(model, panel, ExtractionC_Height, PaintBoothTypefromEnquiry);
-                //    }
-                //    else
-                //    {
-                //       if(WashingchamberTankType== "Fabricated")
-                //       {
-                //            new WaterWashAssembly(_configuration).Build(model, panel, service.designdictionary);
-                //       }
-                //    }
-                //    service.backPanels(model, panel, ExtractionC_Height, PaintBoothTypefromEnquiry);
-                //}
+                
                 if (PaintBoothTypefromEnquiry != "4" && PaintBoothTypefromEnquiry != "5" &&
                     PaintBoothTypefromEnquiry != "6" && PaintBoothTypefromEnquiry != "7")
                 {
@@ -459,7 +442,7 @@ namespace PaintBooth.Controllers
                         if (string.Equals(washingTankType, "Fabricated", StringComparison.OrdinalIgnoreCase))
                         {
                             // new WaterWashAssembly(_configuration).Build(model, panel, service.designdictionary);
-                            new WaterWashAssembly(_configuration).Build(model, panel, service.designdictionary, ExtractionC_Height);
+                            new WaterWashAssembly(_configuration).Build(model, panel, service.designdictionary, ExtractionC_Height, extractionSetting.WaterCurtain);
                         }
                         // else: civil / other tank type - add its parts here if needed
                     }

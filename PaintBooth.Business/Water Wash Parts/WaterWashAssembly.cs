@@ -33,7 +33,7 @@ namespace PaintBooth.Business.Water_Wash_Parts
         public WaterWashAssembly(IConfiguration configuration) { _cfg = configuration; }
         public void Build(PaintBoothModel model, PaintBoothDesignBusiness panel,
                           Dictionary<string, List<DesignDocument>> designDictionary,
-                          double extractionH)
+                          double extractionH,string WaterCurtain)
         {
             _m = model;
             _dict = designDictionary;
@@ -49,8 +49,30 @@ namespace PaintBooth.Business.Water_Wash_Parts
             hdrY0 = 140;                   // elevation: header left flange face along width
             trY = 40;                    // elevation: trough start along width
 
-            DeliveryPipes();
-            HeaderPipe();
+            //DeliveryPipes();
+            //HeaderPipe();
+            //PQSections();
+            //BasePlateReturn();
+            //BasePlate1();
+            //DistributionPlate();
+            //ReturnTroughBracket();
+            //FrontPlate();
+            //PipeSupportBracket();
+            //BasePlatePipeSupport();
+            //TieBar();
+            //Eliminators();
+            //DeflectorGusset();
+            //DeflectorPlate();
+            //EntrainmentPlate();
+            //BasePlateReturnTrough();
+            //WaterTrough();          // sets trX, trY, trZ
+            //DrainPipes();           // uses them - must come after
+            //WaterScreenPanels();
+            //WCTopPanels();
+
+            bool hasCurtain = string.Equals(WaterCurtain?.Trim(), "Yes", StringComparison.OrdinalIgnoreCase);
+
+            // ---------- chamber structure - always ----------
             PQSections();
             BasePlateReturn();
             BasePlate1();
@@ -65,10 +87,17 @@ namespace PaintBooth.Business.Water_Wash_Parts
             DeflectorPlate();
             EntrainmentPlate();
             BasePlateReturnTrough();
-            WaterTrough();          // sets trX, trY, trZ
-            DrainPipes();           // uses them - must come after
-            WaterScreenPanels();
             WCTopPanels();
+
+            // ---------- water curtain - pipes, trough, screen panels ----------
+            if (hasCurtain)
+            {
+                DeliveryPipes();
+                HeaderPipe();
+                WaterTrough();          // sets trX, trY, trZ
+                DrainPipes();           // uses them - must come after
+                WaterScreenPanels();
+            }
         }
         private void Put(string key, DesignDocument doc) =>
             _dict[key] = new List<DesignDocument> { doc };
