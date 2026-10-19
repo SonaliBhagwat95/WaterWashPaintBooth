@@ -25,20 +25,32 @@ namespace PaintBooth.Business.Water_Wash_Parts
         private double psX, psZ;
         private double pfX, pfZ;
         private double gx, gz;
+        private double trX, trY, trZ;          // trough local origin placed in booth
+        private double hdrX, hdrY0, hdrZ;      // header (item 6): axis X, left flange face Y, centre Z
+        private const double TroughH = 340;    // side plate height (local Z 0..340)
+        private double chamberH;
 
         public WaterWashAssembly(IConfiguration configuration) { _cfg = configuration; }
-
         public void Build(PaintBoothModel model, PaintBoothDesignBusiness panel,
-                          Dictionary<string, List<DesignDocument>> designDictionary)
+                          Dictionary<string, List<DesignDocument>> designDictionary,
+                          double extractionH)
         {
             _m = model;
             _dict = designDictionary;
+            chamberH = extractionH;
 
             double baseFrameH = panel.Section == "Bend Section" ? panel.SettingH : 75;
             zBottom = panel.SheetThickness - baseFrameH;          // underside of base frame
             wallIn = _m.D + _m.D3 - WallT;                        // inner face of tank end wall
+                                                                  // ================= LAYOUT - adjust positions HERE =================   (CHECK from GA)
+                                                                  //hdrX = _m.D + _m.D3 - 1067;   // side view: back of chamber -> header / delivery axis
+            hdrX = _m.D - 138;
+            hdrZ = zBottom + 3370;        // side view: tank top -> header centre
+            hdrY0 = 140;                   // elevation: header left flange face along width
+            trY = 40;                    // elevation: trough start along width
+
             DeliveryPipes();
-            DrainPipes();
+            HeaderPipe();
             PQSections();
             BasePlateReturn();
             BasePlate1();
@@ -53,10 +65,11 @@ namespace PaintBooth.Business.Water_Wash_Parts
             DeflectorPlate();
             EntrainmentPlate();
             BasePlateReturnTrough();
-            WaterTrough();
+            WaterTrough();          // sets trX, trY, trZ
+            DrainPipes();           // uses them - must come after
             WaterScreenPanels();
+            WCTopPanels();
         }
-
         private void Put(string key, DesignDocument doc) =>
             _dict[key] = new List<DesignDocument> { doc };
 
@@ -313,17 +326,30 @@ namespace PaintBooth.Business.Water_Wash_Parts
 
             // drain pipe with flange - 100 from right end, hanging under Plate 3 base
             double pipeX = 70;                                              // across trough     (CHECK)
-            AddCopy(doc, pipe, tx + pipeX, ty + total - 100, tz + p3z);
+            //AddCopy(doc, pipe, tx + pipeX, ty + total - 100, tz + p3z);
+            AddCopy(doc, pipe, tx + pipeX, ty + 100, tz + p3z);
 
-            // ---- Export DWG ----
+            // ---- Export DWG (local trough, as before) ----
             var path = _cfg["FolderPathConfig:DrawingPath"].ToString();
             if (!Directory.Exists(path + "/PaintBooth drawing"))
                 Directory.CreateDirectory(path + "/PaintBooth drawing");
             string dwgFilePath = $"{path}/PaintBooth drawing/WaterTrough {DateTime.Now:hh - mm}.dwg";
             new WriteAutodesk(new WriteAutodeskParams(doc), dwgFilePath).DoWork();
 
-            Put("Water_Trough", doc);
+            
+            // ---- Place trough in booth: just under chamber top, on booth side ----   (CHECK)
+            double topGap = 50;                       // chamber top -> top of trough
+            double frontGap = 20;                     // clear of chamber front panel
+                                                      // ---- Place trough (from LAYOUT) ----                          (CHECK)
+            trX = hdrX + 73;                  // Plate 1 outer face 73 on chamber side of pipe axis
+            trZ = hdrZ - 180 - TroughH;       // trough top 180 below pipe centre
+
+            var placed = NewDoc(doc);
+            AddCopy(placed, doc, trX, trY + total, trZ, rotZDeg: 180);
+
+            Put("Water_Trough", placed);
         }
+        
         private void WaterScreenPanels()
         {
             var wsp = new WaterScreenPanel(_cfg);
@@ -331,13 +357,21 @@ namespace PaintBooth.Business.Water_Wash_Parts
             var p2 = wsp.DrawWaterScreenPanel(_m, "WaterScreenPanel2", 1140, 1130, -1, -1);   // QTY 2
             var p3 = wsp.DrawWaterScreenPanel(_m, "WaterScreenPanel3", 572, 570, -1, +1);   // QTY 1
 
-            // ---- Position in booth ----                                   (CHECK - not placed yet)
-            double x = 0, z = 0;
+            // ---- Position: hang from trough, lean out toward booth (client side view) ----   (CHECK)
+            double panelH = 2348;                           // panel length (use the height inside DrawWaterScreenPanel)
+            double tilt = 2.5;                            // deg, bottom leans toward booth (-X)
+            double t = tilt * Math.PI / 180.0;
+
+            // panel origin assumed at its BOTTOM edge, panel built upward (+Z)
+            //double x = trX - 221 - panelH * Math.Sin(t);    // so the TOP lands on the trough clips
+            double x = trX - 221 - panelH * Math.Sin(t);
+            double z = trZ - panelH * Math.Cos(t);          // top edge at trough underside
+
             var doc = NewDoc(p1);
-            AddCopy(doc, p1, x, 0, z);
-            AddCopy(doc, p2, x, 1140, z);
-            AddCopy(doc, p2, x, 2 * 1140, z);
-            AddCopy(doc, p3, x, 3 * 1140, z);
+            AddCopy(doc, p1, x, trY + 0, z, rotYDeg: tilt);
+            AddCopy(doc, p2, x, trY + 1140, z, rotYDeg: tilt);
+            AddCopy(doc, p2, x, trY + 2 * 1140, z, rotYDeg: tilt);
+            AddCopy(doc, p3, x, trY + 3 * 1140, z, rotYDeg: tilt);
             // ---- Export DWG ----
             var path = _cfg["FolderPathConfig:DrawingPath"].ToString();
             if (!Directory.Exists(path + "/PaintBooth drawing"))
@@ -347,27 +381,40 @@ namespace PaintBooth.Business.Water_Wash_Parts
 
             Put("Water_Screen_Panel", doc);
         }
+        
         private void DeliveryPipes()
         {
             var dlp = new DeliveryPipe(_cfg);
-            var pipe3 = dlp.DrawDeliveryPipe(_m, "DeliveryPipe3", 1516, 88.9, 683);   // 1215-005-15-104, QTY 1
+            var pipe3 = dlp.DrawDeliveryPipe(_m, "DeliveryPipe3", 1516, 88.9, 683);   // item 4: 1215-005-15-104
+            var pipe4 = dlp.DrawDeliveryPipe4(_m, "DeliveryPipe4", 430, 279, 95.25);   // item 5: 1215-005-15-105
 
-            // ---- Position in booth ----                       (CHECK - not placed yet)
-            double x = 0, y = 0, z = 0;                          // top flange face, on pipe axis
+            // ---------- local frame of the delivery line ----------
+            // origin = bottom flange face of pipe 3 (50NB end, joins item 3 below), on pipe axis
+            double L3 = 1516 + 88.9 + 683;   // 2288
+            double gasket = 3;                    // between pipe 3 top flange & pipe 4 bottom flange   (CHECK)
+
+            // ---------- position in booth (move the whole line with these) ----------   (CHECK - not placed yet)
+            // ---------- position in booth (from LAYOUT) ----------
+            double x = hdrX;
+            double y = hdrY0 - 289 - 279;              // axis 568 before header flange
+            double z = hdrZ - (L3 + gasket + 430);     // pipe 4 leg centre = header centre
+            double rotZ = 90;                          // pipe 4 leg turns toward +Y (along header)
+       
 
             var doc = NewDoc(pipe3);
-            AddCopy(doc, pipe3, x, y, z);
+            AddCopy(doc, pipe3, x, y, z + L3, rotZDeg: rotZ);   // item 4 - top flange face at 2288
+            AddCopy(doc, pipe4, x, y, z + L3 + gasket, rotZDeg: rotZ);   // item 5 - sits on pipe 3 flange
+
+            var pipe2 = dlp.DrawDeliveryPipe2(_m, "DeliveryPipe2", 300);          // item 3: 1215-005-15-103
+            AddCopy(doc, pipe2, x, y, z - gasket, rotZDeg: rotZ);                 // hangs below pipe 3
+
+            var path = _cfg["FolderPathConfig:DrawingPath"].ToString();
+            if (!Directory.Exists(path + "/PaintBooth drawing"))
+                Directory.CreateDirectory(path + "/PaintBooth drawing");
+            string dwgFilePath = $"{path}/PaintBooth drawing/DeliveryPipes {DateTime.Now:hh - mm}.dwg";
+            new WriteAutodesk(new WriteAutodeskParams(doc), dwgFilePath).DoWork();
+
             Put("Delivery_Pipe", doc);
-
-            var pipe4 = dlp.DrawDeliveryPipe4(_m, "DeliveryPipe4", 430, 279, 95.25);   // 1215-005-15-105, 65NB SS304, QTY 1
-
-            // ---- Position in booth ----   (CHECK - not placed yet)
-            double x4 = 0, y4 = 0, z4 = 0;   // bottom flange face, on pipe axis
-
-            var doc4 = NewDoc(pipe4);
-            AddCopy(doc4, pipe4, x4, y4, z4);
-            Put("Delivery_Pipe4", doc4);
-
         }
         private void DrainPipes()
         {
@@ -375,11 +422,76 @@ namespace PaintBooth.Business.Water_Wash_Parts
             var pipe = drp.DrawDrainPipe(_m, "DrainPipe", 1988, 1845, 100);   // 1215-005-15-108, 50NB SS304, QTY 1
 
             // ---- Position in booth ----   (CHECK - not placed yet)
-            double x = 0, y = 0, z = 0;     // top flange face, on pipe axis
+            // top flange face = bottom flange face of trough drain stub
+            double stubL = 300;                  // PipeWithFlange length (DrawPipeWithFlange(_m, 300))
+            double gasket = 3;                    // (CHECK)
+            double x = trX - 70;                    // stub after 180° turn
+            double y = trY + 3996 - 100;            // stub 100 from far end
+            double z = trZ + 38 - stubL - gasket;   // under the stub's bottom flange
 
             var doc = NewDoc(pipe);
             AddCopy(doc, pipe, x, y, z);
             Put("Drain_Pipe", doc);
+        }
+
+        private void HeaderPipe()
+        {
+            var dp = new DistributionPipe(_cfg);
+            double[] sockY = { 251, 251 + 800, 251 + 1600, 251 + 2400, 251 + 3200 };   // (CHECK from item 6)
+            var hdr = dp.DrawDistributionPipe(_m, "DistributionPipe", 3800, sockY);  // item 6: 1215-005-15-106
+            var flow = new FlowPipe(_cfg).DrawFlowPipe(_m, "FlowPipe", 330, 30);      // item 7: 1215-005-15-107
+
+            var doc = NewDoc(hdr);
+            AddCopy(doc, hdr, hdrX, hdrY0, hdrZ);                 // first flange face at hdrY0, axis at hdrX / hdrZ
+
+            // flow pipes screwed into sockets, thread engaged 20 into socket          (CHECK)
+            double flowZ = hdrZ + dp.SocketBottom + 20 - 330;     // bottom end of flow pipe
+            foreach (double y in sockY)
+                AddCopy(doc, flow, hdrX, hdrY0 + y, flowZ);
+
+            Put("Distribution_Pipe", doc);
+        }
+
+        private void WCTopPanels()
+        {
+            var tp = new WCTopPanel(_cfg);
+            double depth = _m.D3;                     // 1067 - full chamber depth
+            double wallT = 38;
+            double outerW = _m.W + 2 * wallT;          // 2500 → 2576
+
+            double w1 = Math.Min(2038, outerW);        // first panel - standard 2038
+            double w2 = outerW - w1;                   // last panel - remaining (538 here)
+
+            var p1 = tp.DrawWCTopPanel(_m, "WCTopPanel1", depth, w1, mirror: false);   // 1215 005 05 109
+
+            // ---- Position: on top of washing chamber ----                (CHECK)
+            double x = _m.D;
+            double y0 = -wallT;                        // outer face of chamber side wall
+            double z = chamberH;
+
+            var doc = NewDoc(p1);
+            AddCopy(doc, p1, x, y0, z);                // Panel 1 - delivery-line end
+
+            if (w2 > 0)
+            {
+                var p2 = tp.DrawWCTopPanel(_m, "WCTopPanel2", depth, w2, mirror: true);  // 1215 005 05 110
+                AddCopy(doc, p2, x, y0 + w1, z);       // last panel - remaining width
+            }
+
+            Put("WC_Top_Panel", doc);
+            // ---- C frames on each opening (welded to panel in shop) ----   1215 005 05 111
+            var cf = new CFrameTopPanel(_cfg).DrawCFrame(_m, "CFrameTopPanel");
+
+            var centres = new List<double>();
+            double m1 = w1 - 398 - 200 - 800;
+            if (m1 >= 300) centres.Add(y0 + m1 + 400);                     // panel 1 cutout
+            if (w2 > 0) centres.Add(y0 + w1);                           // joint opening (398 + 398)
+            double m2 = w2 - 398 - 200 - 800;
+            if (m2 >= 300) centres.Add(y0 + w1 + 398 + 200 + 400);         // last panel cutout
+
+            double fx = x + depth / 2;                                     // centred across chamber depth
+            foreach (double yc in centres)
+                AddCopy(doc, cf, fx, yc, z);                               // sits on panel top face
         }
     }
 }

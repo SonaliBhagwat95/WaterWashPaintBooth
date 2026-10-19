@@ -185,5 +185,35 @@ namespace PaintBooth.Business.Water_Wash_Parts
             }
             return new devDept.Eyeshot.Entities.Region(curves.ToArray()).ExtrudeAsBrep(new Vector3D(0, 0, dz));
         }
+
+        // Straight 50NB spool, slip-on flange both ends.
+        // Origin = axis at top face of top flange, pipe runs down -Z.
+        // Delivery Pipe 2: DrawDeliveryPipe2(model, "DeliveryPipe2", 300)
+        public DesignDocument DrawDeliveryPipe2(PaintBoothModel model, string name, double L)
+        {
+            DesignDocument design = new DesignDocument();
+            design.Units = linearUnitsType.Millimeters;
+
+            // ---- 50NB, Sch 10S ----                                         (CHECK wall)
+            double OD50 = 60.3, W50 = 2.77;
+
+            // ---- BS10 Table D slip-on flange, 50NB ----                     (CHECK)
+            double Fl50OD = 152.4, Fl50PCD = 114.3, Fl50T = 12.7;
+            double BoltHole = 17.5;
+            int NBolts = 4;
+
+            AddTube(design, 0, -L, OD50, W50);                                        // 300 face to face
+            AddFlange(design, 0, -Fl50T, OD50, Fl50OD, Fl50PCD, BoltHole, NBolts);   // top
+            AddFlange(design, -L, +Fl50T, OD50, Fl50OD, Fl50PCD, BoltHole, NBolts);   // bottom
+
+            // ================= Export DWG =================
+            var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
+            if (!Directory.Exists(path + "/PaintBooth drawing"))
+                Directory.CreateDirectory(path + "/PaintBooth drawing");
+            string dwgFilePath = $"{path}/PaintBooth drawing/{name} {DateTime.Now:hh - mm}.dwg";
+            new WriteAutodesk(new WriteAutodeskParams(design), dwgFilePath).DoWork();
+
+            return design;
+        }
     }
 }

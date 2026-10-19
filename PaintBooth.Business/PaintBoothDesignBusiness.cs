@@ -888,6 +888,241 @@ namespace PaintBooth.Business
 
         //}
 
+        //public PanelDrawResult D3Panels(int i, PaintBoothModel model, double ExtractionChemberHeight)
+        //{
+        //    drawing = new();
+        //    drawing.Units = linearUnitsType.Millimeters;
+        //    const string Layer = "OuterDoorFrame";
+        //    drawing.Layers.Add(new Layer(Layer, Color.Gray));
+        //    ExtractionChamberHeight = ExtractionChemberHeight;
+        //    double x = model.D;
+        //    PanelLength = (i == 0) ? 0 : model.W;
+
+        //    #region Panel sheet
+        //    var rectangle = devregion.CreatePolygon(new Point3D[]
+        //    {
+        //new Point3D(0,  PanelLength, 0),
+        //new Point3D(0,  PanelLength, ExtractionChemberHeight),
+        //new Point3D(D3, PanelLength, ExtractionChemberHeight),
+        //new Point3D(D3, PanelLength, 0)
+        //    });
+        //    Brep brep = rectangle.ExtrudeAsBrep(ECSheetThickness);
+        //    Material mat = new Material(ECMaterials);
+        //    brep.Regen(0.1);
+        //    double massofRectangle = brep.GetMass(mat, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity);
+        //    double Rectangle_Weight = Math.Round(massofRectangle, 3);
+        //    drawing.Entities.Add(brep, Color.Green);
+        //    #endregion
+
+        //    #region Panel frame
+        //    LinearPath rail = new LinearPath(new Point3D[]
+        //    {
+        //new Point3D(0,  PanelLength, 0),
+        //new Point3D(0,  PanelLength, ExtractionChemberHeight),
+        //new Point3D(D3, PanelLength, ExtractionChemberHeight),
+        //new Point3D(D3, PanelLength, 0),
+        //new Point3D(0,  PanelLength, 0)
+        //    });
+        //    devregion section = CreatePolygonForEC(i);
+        //    Solid frame = section.SweepAsSolid(rail, 0);
+        //    frame.Translate(0, PanelLength, ECSheetThickness);
+        //    GenerateHolesForEC(frame);
+
+        //    Material mat1 = new Material(ECMaterials);
+        //    frame.Regen(0.1);
+        //    double massofFrame = frame.GetMass(mat1, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity1);
+        //    double Frame_Weight = Math.Round(massofFrame, 3);
+        //    D3Panels_weight = Rectangle_Weight + Frame_Weight;
+        //    drawing.Entities.Add(frame, Color.Yellow);
+        //    #endregion
+
+        //    #region Service door variables
+        //    double doorWidth = model.DoorWidth;
+        //    double doorHeight = model.DoorHeight;
+        //    double doorPositionX = (D3 - doorWidth) / 2;
+        //    double doorStartHeight = 100;               // keep same value as the GA label
+        //    double sectionDoorTHK = ECSheetThickness;
+        //    double sectionDoorHeight = 76;
+        //    double sectionDoorWidth = 38;
+
+        //    double frameY = 0;                          // door is always built on the y = 0 side, turned for left panel
+        //    double z0 = doorStartHeight;
+        //    double z1 = doorStartHeight + doorHeight;
+        //    double x0 = doorPositionX;
+        //    double T = sectionDoorTHK;
+        //    double L = sectionDoorWidth - (2 * T);
+        //    #endregion
+
+        //    #region Service door (RightSide / LeftSide / Both Side)
+        //    bool doorHere = model.chkServiceDoor &&
+        //                    ((model.ServiceDoorLocation == "RightSide" && i == 0) ||
+        //                     (model.ServiceDoorLocation == "LeftSide" && i == 1) ||
+        //                      model.ServiceDoorLocation == "Both Side");
+        //    if (doorHere)
+        //    {
+        //        // 1) cut the opening in THIS panel (PanelLength is already 0 or W)
+        //        var cutout1 = devregion.CreatePolygon(new Point3D[]
+        //        {
+        //    new Point3D(doorPositionX,             PanelLength, doorStartHeight),
+        //    new Point3D(doorPositionX,             PanelLength, doorStartHeight + doorHeight),
+        //    new Point3D(doorPositionX + doorWidth, PanelLength, doorStartHeight + doorHeight),
+        //    new Point3D(doorPositionX + doorWidth, PanelLength, doorStartHeight)
+        //        });
+        //        brep.ExtrudeRemove(cutout1, ECSheetThickness);
+
+        //        // 2) everything added from here is a door part → turned later for the left panel
+        //        int firstDoorEntity = drawing.Entities.Count;
+
+        //        #region Door sheet
+        //        var Door = devregion.CreatePolygon(new Point3D[]
+        //        {
+        //    new Point3D(doorPositionX,             0, doorStartHeight),
+        //    new Point3D(doorPositionX,             0, doorStartHeight + doorHeight),
+        //    new Point3D(doorPositionX + doorWidth, 0, doorStartHeight + doorHeight),
+        //    new Point3D(doorPositionX + doorWidth, 0, doorStartHeight)
+        //        });
+        //        Brep DoorBrep = Door.ExtrudeAsBrep(-ECSheetThickness);
+        //        drawing.Entities.Add(DoorBrep, Color.Aquamarine);
+        //        #endregion
+
+        //        #region outer frame
+        //        #region top frame section
+        //        var topsectionframe = devregion.CreatePolygon(new Point3D[]
+        //        {
+        //    new Point3D(x0 - sectionDoorWidth, -frameY - T, z1),
+        //    new Point3D(x0 - sectionDoorWidth, -frameY - T, z1 - sectionDoorHeight + T),
+        //    new Point3D(x0 - sectionDoorWidth,  0,          z1 - sectionDoorHeight + T),
+        //    new Point3D(x0 - sectionDoorWidth,  0,          z1 + T),
+        //    new Point3D(x0 - sectionDoorWidth, -L - T - T,  z1 + T),
+        //    new Point3D(x0 - sectionDoorWidth, -L - T - T,  z1 - sectionDoorHeight + T),
+        //    new Point3D(x0 - sectionDoorWidth, -L - T,      z1 - sectionDoorHeight + T),
+        //    new Point3D(x0 - sectionDoorWidth, -L - T,      z1),
+        //        });
+        //        Brep topsectionframeBrep = topsectionframe.ExtrudeAsBrep(doorWidth + (2 * sectionDoorWidth));
+        //        drawing.Entities.Add(topsectionframeBrep, Layer);
+        //        #endregion
+
+        //        #region Base Frame Section
+        //        var basesectionframe = devregion.CreatePolygon(new Point3D[]
+        //        {
+        //    new Point3D(x0 - sectionDoorWidth, -frameY - T, z0 - L + T),
+        //    new Point3D(x0 - sectionDoorWidth, -frameY - T, z0),
+        //    new Point3D(x0 - sectionDoorWidth,  0,          z0),
+        //    new Point3D(x0 - sectionDoorWidth,  0,          z0 - L),
+        //    new Point3D(x0 - sectionDoorWidth, -L - T - T,  z0 - L),
+        //    new Point3D(x0 - sectionDoorWidth, -L - T - T,  z0),
+        //    new Point3D(x0 - sectionDoorWidth, -L - T,      z0),
+        //    new Point3D(x0 - sectionDoorWidth, -L - T,      z0 - L + T),
+        //        });
+        //        Brep basesectionframeBrep = basesectionframe.ExtrudeAsBrep(-doorWidth - (2 * sectionDoorWidth));
+        //        drawing.Entities.Add(basesectionframeBrep, Layer);
+        //        #endregion
+
+        //        #region left L section
+        //        var leftLFrameH = devregion.CreatePolygon(new Point3D[]
+        //        {
+        //    new Point3D(x0 - sectionDoorWidth,     0,         z1 + T),
+        //    new Point3D(x0 - sectionDoorWidth,     -L - T - T, z1 + T),
+        //    new Point3D(x0 - T - sectionDoorWidth, -L - T - T, z1 + T),
+        //    new Point3D(x0 - T - sectionDoorWidth, 0,          z1 + T),
+        //        });
+        //        Brep leftLFrameHBrep = leftLFrameH.ExtrudeAsBrep(doorHeight + L + T);
+        //        drawing.Entities.Add(leftLFrameHBrep, Layer);
+
+        //        var leftLFrameW = devregion.CreatePolygon(new Point3D[]
+        //        {
+        //    new Point3D(x0 - sectionDoorWidth + ECSheetThickness,     0,  z1 - sectionDoorHeight),
+        //    new Point3D(x0 + L - sectionDoorWidth + ECSheetThickness, 0,  z1 - sectionDoorHeight),
+        //    new Point3D(x0 + L - sectionDoorWidth + ECSheetThickness, -T, z1 - sectionDoorHeight),
+        //    new Point3D(x0 - sectionDoorWidth + ECSheetThickness,     -T, z1 - sectionDoorHeight),
+        //        });
+        //        Brep leftLFrameWBrep = leftLFrameW.ExtrudeAsBrep(doorHeight - sectionDoorHeight - ECSheetThickness);
+        //        drawing.Entities.Add(leftLFrameWBrep, Layer);
+        //        #endregion
+
+        //        #region Right L section
+        //        Brep rightLFrameHBrep = (Brep)leftLFrameHBrep.Clone();
+        //        rightLFrameHBrep.Translate(doorWidth + (2 * sectionDoorWidth), 0, 0);
+        //        drawing.Entities.Add(rightLFrameHBrep, Layer);
+
+        //        Brep rightLFrameWBrep = (Brep)leftLFrameWBrep.Clone();
+        //        rightLFrameWBrep.Translate(doorWidth + sectionDoorWidth, 0, 0);
+        //        drawing.Entities.Add(rightLFrameWBrep, Layer);
+        //        #endregion
+        //        #endregion
+
+        //        #region Outer Rectangle
+        //        const string OuterRectangleLayer = "OuterRectangleLayer";
+        //        drawing.Layers.Add(new Layer(OuterRectangleLayer, Color.BlueViolet));
+        //        double yOuter = -frameY - T + ECSheetThickness;
+
+        //        var LeftOuterRectangle = devregion.CreatePolygon(new Point3D[]
+        //        {
+        //    new Point3D(x0 - 22.5, yOuter, z1 + 22.5),
+        //    new Point3D(x0 - 22.5, yOuter, z0 - 22.5),
+        //    new Point3D(x0 + 27.5, yOuter, z0 - 22.5),
+        //    new Point3D(x0 + 27.5, yOuter, z1 + 22.5),
+        //        });
+        //        drawing.Entities.Add(LeftOuterRectangle.ExtrudeAsBrep(-3), OuterRectangleLayer);
+
+        //        var RightOuterRectangle = devregion.CreatePolygon(new Point3D[]
+        //        {
+        //    new Point3D(x0 + doorWidth - 22.5, yOuter, z1 + 22.5),
+        //    new Point3D(x0 + doorWidth - 22.5, yOuter, z0 - 22.5),
+        //    new Point3D(x0 + doorWidth + 27.5, yOuter, z0 - 22.5),
+        //    new Point3D(x0 + doorWidth + 27.5, yOuter, z1 + 22.5),
+        //        });
+        //        drawing.Entities.Add(RightOuterRectangle.ExtrudeAsBrep(-3), OuterRectangleLayer);
+
+        //        var TopOuterRectangle = devregion.CreatePolygon(new Point3D[]
+        //        {
+        //    new Point3D(x0 + 27.5,             yOuter, z1 + 22.5),
+        //    new Point3D(x0 + 27.5,             yOuter, z1 - 22.5),
+        //    new Point3D(x0 + doorWidth - 22.5, yOuter, z1 - 22.5),
+        //    new Point3D(x0 + doorWidth - 22.5, yOuter, z1 + 22.5),
+        //        });
+        //        drawing.Entities.Add(TopOuterRectangle.ExtrudeAsBrep(-3), OuterRectangleLayer);
+
+        //        var BottomOuterRectangle = devregion.CreatePolygon(new Point3D[]
+        //        {
+        //    new Point3D(x0 + 27.5,             yOuter, z0 + 22.5),
+        //    new Point3D(x0 + 27.5,             yOuter, z0 - 22.5),
+        //    new Point3D(x0 + doorWidth - 22.5, yOuter, z0 - 22.5),
+        //    new Point3D(x0 + doorWidth - 22.5, yOuter, z0 + 22.5),
+        //        });
+        //        drawing.Entities.Add(BottomOuterRectangle.ExtrudeAsBrep(-3), OuterRectangleLayer);
+        //        #endregion
+
+        //        // 3) left panel: turn all door parts 180° about Z onto the y = W wall (keeps solids valid, unlike a mirror)
+        //        if (i == 1)
+        //        {
+        //            var turn = new Rotation(Math.PI, Vector3D.AxisZ, new Point3D(D3 / 2, model.W / 2, 0));
+        //            for (int n = firstDoorEntity; n < drawing.Entities.Count; n++)
+        //                drawing.Entities[n].TransformBy(turn);
+        //        }
+        //    }
+        //    #endregion
+
+        //    #region WriteFile
+        //    var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
+        //    if (!Directory.Exists(path + "/PaintBooth drawing"))
+        //        Directory.CreateDirectory(path + "/PaintBooth drawing");
+
+        //    string dwgFilePath = i == 0
+        //        ? $"{path}/PaintBooth drawing/D3Panels Right side  {i} {DateTime.Now:hh - mm}.dwg"
+        //        : $"{path}/PaintBooth drawing/D3Panels Left side {i} {DateTime.Now:hh - mm}.dwg";
+
+        //    new WriteAutodesk(new WriteAutodeskParams(drawing), dwgFilePath).DoWork();
+        //    #endregion
+
+        //    return new PanelDrawResult
+        //    {
+        //        drawing = drawing,
+        //        Weight = Math.Round(Rectangle_Weight + Frame_Weight, 3),
+        //        lstpath = dwgFilePath,
+        //    };
+        //}
+
         public PanelDrawResult D3Panels(int i, PaintBoothModel model, double ExtractionChemberHeight)
         {
             drawing = new();
@@ -936,21 +1171,20 @@ namespace PaintBooth.Business
             drawing.Entities.Add(frame, Color.Yellow);
             #endregion
 
-            #region Service door variables
-            double doorWidth = model.DoorWidth;
-            double doorHeight = model.DoorHeight;
-            double doorPositionX = (D3 - doorWidth) / 2;
-            double doorStartHeight = 100;               // keep same value as the GA label
-            double sectionDoorTHK = ECSheetThickness;
-            double sectionDoorHeight = 76;
-            double sectionDoorWidth = 38;
+            #region Service door variables (client: WC panel cutout, WC door frame 1215 005 05 105, door)
+            double cutW = model.DoorWidth;              // client 572
+            double cutH = model.DoorHeight;             // client 1120
+            double cutFromEdge = 237;                   // cutout edge -> panel edge at x = D3          (CHECK side)
+            double doorStartHeight = 233;               // cutout bottom from panel bottom (keep same in GA label)
 
-            double frameY = 0;                          // door is always built on the y = 0 side, turned for left panel
-            double z0 = doorStartHeight;
-            double z1 = doorStartHeight + doorHeight;
-            double x0 = doorPositionX;
-            double T = sectionDoorTHK;
-            double L = sectionDoorWidth - (2 * T);
+            double cx0 = D3 - cutFromEdge - cutW, cx1 = cx0 + cutW;
+            double cz0 = doorStartHeight, cz1 = cz0 + cutH;
+
+            double frD = 37, frTop = 70, frBot = 37, frSide = 33.5;   // frame 639 x 1228 x 37 (for 572 x 1120 cutout)
+            double dW = cutW + 53, dH = cutH + 60, dD = 25, dT = 1.6; // door tray 625 x 1180 x 25, 1.6 thk
+            double dx0 = cx0 - 26.5, dz0 = cz0 - 30;                   // door centred on cutout
+            double dx1 = dx0 + dW, dz1 = dz0 + dH;
+            double yd0 = -frD, yd1 = -frD - dD;                        // door sits on frame, outward = -Y
             #endregion
 
             #region Service door (RightSide / LeftSide / Both Side)
@@ -963,134 +1197,61 @@ namespace PaintBooth.Business
                 // 1) cut the opening in THIS panel (PanelLength is already 0 or W)
                 var cutout1 = devregion.CreatePolygon(new Point3D[]
                 {
-            new Point3D(doorPositionX,             PanelLength, doorStartHeight),
-            new Point3D(doorPositionX,             PanelLength, doorStartHeight + doorHeight),
-            new Point3D(doorPositionX + doorWidth, PanelLength, doorStartHeight + doorHeight),
-            new Point3D(doorPositionX + doorWidth, PanelLength, doorStartHeight)
+            new Point3D(cx0, PanelLength, cz0),
+            new Point3D(cx0, PanelLength, cz1),
+            new Point3D(cx1, PanelLength, cz1),
+            new Point3D(cx1, PanelLength, cz0)
                 });
                 brep.ExtrudeRemove(cutout1, ECSheetThickness);
 
                 // 2) everything added from here is a door part → turned later for the left panel
                 int firstDoorEntity = drawing.Entities.Count;
 
-                #region Door sheet
-                var Door = devregion.CreatePolygon(new Point3D[]
+                // axis-aligned box, built on the y = 0 side
+                void Box(double bx0, double bx1, double by0, double by1, double bz0, double bz1, Color col, string layer = null)
                 {
-            new Point3D(doorPositionX,             0, doorStartHeight),
-            new Point3D(doorPositionX,             0, doorStartHeight + doorHeight),
-            new Point3D(doorPositionX + doorWidth, 0, doorStartHeight + doorHeight),
-            new Point3D(doorPositionX + doorWidth, 0, doorStartHeight)
-                });
-                Brep DoorBrep = Door.ExtrudeAsBrep(-ECSheetThickness);
-                drawing.Entities.Add(DoorBrep, Color.Aquamarine);
+                    var r = devregion.CreatePolygon(new Point3D[]
+                    {
+                new Point3D(Math.Min(bx0, bx1), Math.Min(by0, by1), bz0),
+                new Point3D(Math.Max(bx0, bx1), Math.Min(by0, by1), bz0),
+                new Point3D(Math.Max(bx0, bx1), Math.Max(by0, by1), bz0),
+                new Point3D(Math.Min(bx0, bx1), Math.Max(by0, by1), bz0)
+                    });
+                    var b = r.ExtrudeAsBrep(new Vector3D(0, 0, bz1 - bz0));
+                    if (layer != null) drawing.Entities.Add(b, layer);
+                    else drawing.Entities.Add(b, col);
+                }
+
+                #region Door frame (1215 005 05 105) - 37 deep, around the cutout
+                Box(cx0 - frSide, cx0, 0, -frD, cz0 - frBot, cz1 + frTop, Color.Gray, Layer);   // left side
+                Box(cx1, cx1 + frSide, 0, -frD, cz0 - frBot, cz1 + frTop, Color.Gray, Layer);   // right side
+                Box(cx0, cx1, 0, -frD, cz0 - frBot, cz0, Color.Gray, Layer);                     // bottom 37
+                Box(cx0, cx1, 0, -frD, cz1, cz1 + frTop, Color.Gray, Layer);                     // top 70
                 #endregion
 
-                #region outer frame
-                #region top frame section
-                var topsectionframe = devregion.CreatePolygon(new Point3D[]
-                {
-            new Point3D(x0 - sectionDoorWidth, -frameY - T, z1),
-            new Point3D(x0 - sectionDoorWidth, -frameY - T, z1 - sectionDoorHeight + T),
-            new Point3D(x0 - sectionDoorWidth,  0,          z1 - sectionDoorHeight + T),
-            new Point3D(x0 - sectionDoorWidth,  0,          z1 + T),
-            new Point3D(x0 - sectionDoorWidth, -L - T - T,  z1 + T),
-            new Point3D(x0 - sectionDoorWidth, -L - T - T,  z1 - sectionDoorHeight + T),
-            new Point3D(x0 - sectionDoorWidth, -L - T,      z1 - sectionDoorHeight + T),
-            new Point3D(x0 - sectionDoorWidth, -L - T,      z1),
-                });
-                Brep topsectionframeBrep = topsectionframe.ExtrudeAsBrep(doorWidth + (2 * sectionDoorWidth));
-                drawing.Entities.Add(topsectionframeBrep, Layer);
+                #region Door tray - face outward, 25 flanges toward frame
+                Box(dx0, dx1, yd1, yd1 + dT, dz0, dz1, Color.Aquamarine);         // face sheet
+                Box(dx0, dx0 + dT, yd1, yd0, dz0, dz1, Color.Aquamarine);         // left flange
+                Box(dx1 - dT, dx1, yd1, yd0, dz0, dz1, Color.Aquamarine);         // right flange
+                Box(dx0, dx1, yd1, yd0, dz0, dz0 + dT, Color.Aquamarine);         // bottom flange
+                Box(dx0, dx1, yd1, yd0, dz1 - dT, dz1, Color.Aquamarine);         // top flange
                 #endregion
 
-                #region Base Frame Section
-                var basesectionframe = devregion.CreatePolygon(new Point3D[]
+                #region Handles - bent strip: 15 lips on door, 42 legs out, 100 grip   (client HANDLE detail)
+                double hz = dz0 + 271.5 + 639 / 2.0;            // middle zone of door
+                double hW = 20, hH = 100, hOut = 42, hLip = 15, hT = 1.6;
+                foreach (double hx in new[] { dx0 + 150, dx0 + 150 + 325 })
                 {
-            new Point3D(x0 - sectionDoorWidth, -frameY - T, z0 - L + T),
-            new Point3D(x0 - sectionDoorWidth, -frameY - T, z0),
-            new Point3D(x0 - sectionDoorWidth,  0,          z0),
-            new Point3D(x0 - sectionDoorWidth,  0,          z0 - L),
-            new Point3D(x0 - sectionDoorWidth, -L - T - T,  z0 - L),
-            new Point3D(x0 - sectionDoorWidth, -L - T - T,  z0),
-            new Point3D(x0 - sectionDoorWidth, -L - T,      z0),
-            new Point3D(x0 - sectionDoorWidth, -L - T,      z0 - L + T),
-                });
-                Brep basesectionframeBrep = basesectionframe.ExtrudeAsBrep(-doorWidth - (2 * sectionDoorWidth));
-                drawing.Entities.Add(basesectionframeBrep, Layer);
-                #endregion
+                    double xa = hx - hW / 2, xb = hx + hW / 2;
+                    double zt = hz + hH / 2, zb = hz - hH / 2;
+                    double yo = yd1 - hOut;                     // grip face, 42 out from door
 
-                #region left L section
-                var leftLFrameH = devregion.CreatePolygon(new Point3D[]
-                {
-            new Point3D(x0 - sectionDoorWidth,     0,         z1 + T),
-            new Point3D(x0 - sectionDoorWidth,     -L - T - T, z1 + T),
-            new Point3D(x0 - T - sectionDoorWidth, -L - T - T, z1 + T),
-            new Point3D(x0 - T - sectionDoorWidth, 0,          z1 + T),
-                });
-                Brep leftLFrameHBrep = leftLFrameH.ExtrudeAsBrep(doorHeight + L + T);
-                drawing.Entities.Add(leftLFrameHBrep, Layer);
-
-                var leftLFrameW = devregion.CreatePolygon(new Point3D[]
-                {
-            new Point3D(x0 - sectionDoorWidth + ECSheetThickness,     0,  z1 - sectionDoorHeight),
-            new Point3D(x0 + L - sectionDoorWidth + ECSheetThickness, 0,  z1 - sectionDoorHeight),
-            new Point3D(x0 + L - sectionDoorWidth + ECSheetThickness, -T, z1 - sectionDoorHeight),
-            new Point3D(x0 - sectionDoorWidth + ECSheetThickness,     -T, z1 - sectionDoorHeight),
-                });
-                Brep leftLFrameWBrep = leftLFrameW.ExtrudeAsBrep(doorHeight - sectionDoorHeight - ECSheetThickness);
-                drawing.Entities.Add(leftLFrameWBrep, Layer);
-                #endregion
-
-                #region Right L section
-                Brep rightLFrameHBrep = (Brep)leftLFrameHBrep.Clone();
-                rightLFrameHBrep.Translate(doorWidth + (2 * sectionDoorWidth), 0, 0);
-                drawing.Entities.Add(rightLFrameHBrep, Layer);
-
-                Brep rightLFrameWBrep = (Brep)leftLFrameWBrep.Clone();
-                rightLFrameWBrep.Translate(doorWidth + sectionDoorWidth, 0, 0);
-                drawing.Entities.Add(rightLFrameWBrep, Layer);
-                #endregion
-                #endregion
-
-                #region Outer Rectangle
-                const string OuterRectangleLayer = "OuterRectangleLayer";
-                drawing.Layers.Add(new Layer(OuterRectangleLayer, Color.BlueViolet));
-                double yOuter = -frameY - T + ECSheetThickness;
-
-                var LeftOuterRectangle = devregion.CreatePolygon(new Point3D[]
-                {
-            new Point3D(x0 - 22.5, yOuter, z1 + 22.5),
-            new Point3D(x0 - 22.5, yOuter, z0 - 22.5),
-            new Point3D(x0 + 27.5, yOuter, z0 - 22.5),
-            new Point3D(x0 + 27.5, yOuter, z1 + 22.5),
-                });
-                drawing.Entities.Add(LeftOuterRectangle.ExtrudeAsBrep(-3), OuterRectangleLayer);
-
-                var RightOuterRectangle = devregion.CreatePolygon(new Point3D[]
-                {
-            new Point3D(x0 + doorWidth - 22.5, yOuter, z1 + 22.5),
-            new Point3D(x0 + doorWidth - 22.5, yOuter, z0 - 22.5),
-            new Point3D(x0 + doorWidth + 27.5, yOuter, z0 - 22.5),
-            new Point3D(x0 + doorWidth + 27.5, yOuter, z1 + 22.5),
-                });
-                drawing.Entities.Add(RightOuterRectangle.ExtrudeAsBrep(-3), OuterRectangleLayer);
-
-                var TopOuterRectangle = devregion.CreatePolygon(new Point3D[]
-                {
-            new Point3D(x0 + 27.5,             yOuter, z1 + 22.5),
-            new Point3D(x0 + 27.5,             yOuter, z1 - 22.5),
-            new Point3D(x0 + doorWidth - 22.5, yOuter, z1 - 22.5),
-            new Point3D(x0 + doorWidth - 22.5, yOuter, z1 + 22.5),
-                });
-                drawing.Entities.Add(TopOuterRectangle.ExtrudeAsBrep(-3), OuterRectangleLayer);
-
-                var BottomOuterRectangle = devregion.CreatePolygon(new Point3D[]
-                {
-            new Point3D(x0 + 27.5,             yOuter, z0 + 22.5),
-            new Point3D(x0 + 27.5,             yOuter, z0 - 22.5),
-            new Point3D(x0 + doorWidth - 22.5, yOuter, z0 - 22.5),
-            new Point3D(x0 + doorWidth - 22.5, yOuter, z0 + 22.5),
-                });
-                drawing.Entities.Add(BottomOuterRectangle.ExtrudeAsBrep(-3), OuterRectangleLayer);
+                    Box(xa, xb, yo, yo + hT, zb, zt, Color.Silver);   // grip 100
+                    Box(xa, xb, yd1, yo, zt - hT, zt, Color.Silver);   // top leg 42
+                    Box(xa, xb, yd1, yo, zb, zb + hT, Color.Silver);   // bottom leg 42
+                    Box(xa, xb, yd1, yd1 - hT, zt, zt + hLip, Color.Silver);   // top lip on door
+                    Box(xa, xb, yd1, yd1 - hT, zb - hLip, zb, Color.Silver);   // bottom lip on door
+                }
                 #endregion
 
                 // 3) left panel: turn all door parts 180° about Z onto the y = W wall (keeps solids valid, unlike a mirror)

@@ -444,11 +444,13 @@ namespace PaintBooth.Controllers
                     PaintBoothTypefromEnquiry != "6" && PaintBoothTypefromEnquiry != "7")
                 {
                     service.D3Panels(model, panel, ExtractionC_Height, PaintBoothTypefromEnquiry);
-                    service.CreateLoft(model, panel, ExtractionC_Height, PaintBoothTypefromEnquiry, model.NoOfBlowers);
+
+                    
 
                     if (CatagoryType != "Water wash paint booth")
                     {
                         service.FiltersAndBaffles(model, panel, ExtractionC_Height, PaintBoothTypefromEnquiry);
+                        service.CreateLoft(model, panel, ExtractionC_Height, PaintBoothTypefromEnquiry, model.NoOfBlowers);
                     }
                     else
                     {
@@ -456,7 +458,8 @@ namespace PaintBooth.Controllers
 
                         if (string.Equals(washingTankType, "Fabricated", StringComparison.OrdinalIgnoreCase))
                         {
-                            new WaterWashAssembly(_configuration).Build(model, panel, service.designdictionary);
+                            // new WaterWashAssembly(_configuration).Build(model, panel, service.designdictionary);
+                            new WaterWashAssembly(_configuration).Build(model, panel, service.designdictionary, ExtractionC_Height);
                         }
                         // else: civil / other tank type - add its parts here if needed
                     }
