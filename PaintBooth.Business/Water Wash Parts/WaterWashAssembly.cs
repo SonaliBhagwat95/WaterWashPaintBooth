@@ -1,6 +1,8 @@
 ﻿using devDept.Eyeshot;
 using devDept.Eyeshot.Control;
+using devDept.Eyeshot.Entities;
 using devDept.Eyeshot.Translators;
+using devDept.Geometry;
 using global::PaintBooth.Models;
 using Microsoft.Extensions.Configuration;
 using PaintBooth.Business.Water_Wash_Parts.Water_Trough;
@@ -29,6 +31,10 @@ namespace PaintBooth.Business.Water_Wash_Parts
         private double hdrX, hdrY0, hdrZ;      // header (item 6): axis X, left flange face Y, centre Z
         private const double TroughH = 340;    // side plate height (local Z 0..340)
         private double chamberH;
+        private double bpTan, bpYWall, bpZDrainTop;    // sloped tank base plate (set in TankBaseSupports)
+
+        /// <summary>Top face Z of the sloped tank base plate at width position y.</summary>
+        private double TankPlateTopZ(double y) => bpZDrainTop + (bpYWall - y) * bpTan;
 
         public WaterWashAssembly(IConfiguration configuration) { _cfg = configuration; }
         public void Build(PaintBoothModel model, PaintBoothDesignBusiness panel,
@@ -49,36 +55,18 @@ namespace PaintBooth.Business.Water_Wash_Parts
             hdrY0 = 140;                   // elevation: header left flange face along width
             trY = 40;                    // elevation: trough start along width
 
-            //DeliveryPipes();
-            //HeaderPipe();
-            //PQSections();
-            //BasePlateReturn();
-            //BasePlate1();
-            //DistributionPlate();
-            //ReturnTroughBracket();
-            //FrontPlate();
-            //PipeSupportBracket();
-            //BasePlatePipeSupport();
-            //TieBar();
-            //Eliminators();
-            //DeflectorGusset();
-            //DeflectorPlate();
-            //EntrainmentPlate();
-            //BasePlateReturnTrough();
-            //WaterTrough();          // sets trX, trY, trZ
-            //DrainPipes();           // uses them - must come after
-            //WaterScreenPanels();
-            //WCTopPanels();
 
             bool hasCurtain = string.Equals(WaterCurtain?.Trim(), "Yes", StringComparison.OrdinalIgnoreCase);
 
             // ---------- chamber structure - always ----------
             PQSections();
-            BasePlateReturn();
+            BasePlateReturn();        // sets retZ
+            TankBaseSupports();       // needs retZ + wallIn - sets base-plate line
             BasePlate1();
             DistributionPlate();
             ReturnTroughBracket();
             FrontPlate();
+            TurnbuckleSupports();     // stands on base plate - must come after TankBaseSupports
             PipeSupportBracket();
             BasePlatePipeSupport();
             TieBar();
@@ -87,8 +75,12 @@ namespace PaintBooth.Business.Water_Wash_Parts
             DeflectorPlate();
             EntrainmentPlate();
             BasePlateReturnTrough();
+            GratingSupports();
+            AngleSupports();
+            Gratings();
             WCTopPanels();
-
+            PumpSump();
+            PumpBase();
             // ---------- water curtain - pipes, trough, screen panels ----------
             if (hasCurtain)
             {
@@ -300,7 +292,26 @@ namespace PaintBooth.Business.Water_Wash_Parts
         }
         private void BasePlateReturnTrough()
         {
-            new BasePlateReturnTrough(_cfg).DrawBasePlateReturnTrough(_m, new double[] { 127, 587 });   // DWG only for now
+            var part = new BasePlateReturnTrough(_cfg).DrawBasePlateReturnTrough(_m, new double[] { 127, 587 });
+
+            double botW = 196, lenTop = 1870;
+
+            // ---- centres along width, measured from drain-end wall (client elevation) ----   (CHECK exact dims)
+            double[] dFromDrain = { 830, 2300, 3095 };
+
+            // ---- across depth: 45° cut end against back wall, square end toward booth ----    (CHECK)
+            double xEnd = wallIn;
+
+            var doc = NewDoc(part);
+            foreach (double d in dFromDrain)
+            {
+                double yc = bpYWall - d;
+                if (yc - botW / 2 < 0) continue;             // narrow booth: skip ones past pump-end wall
+
+                double z = TankPlateTopZ(yc);                // stands on sloped base plate
+                AddCopy(doc, part, xEnd - lenTop, yc + botW / 2, z, rotZDeg: -90);
+            }
+            Put("BasePlate_ReturnTrough", doc);
         }
 
         private void WaterTrough()
@@ -521,6 +532,205 @@ namespace PaintBooth.Business.Water_Wash_Parts
             double fx = x + depth / 2;                                     // centred across chamber depth
             foreach (double yc in centres)
                 AddCopy(doc, cf, fx, yc, z);                               // sits on panel top face
+        }
+
+        private void TurnbuckleSupports()
+        {
+            var ts = new TurnbuckleSupport(_cfg);
+
+            double topZ = zBottom - 215;              // distributor plate underside
+            double x = _m.D + 20 + 50;             // under the plate lip
+
+            double firstY = 400, pitch = 1000;        // (CHECK pitch vs client GA)
+            double[] dSup = { 302, 302 + 1118, 302 + 1118 + 600, 302 + 1118 + 600 + 839, 302 + 1118 + 600 + 839 + 839 };
+            var supY = dSup.Select(d => bpYWall - d).Where(y => y > 100).ToArray();   // skip past pump-end wall
+            //double[] supY = { firstY, firstY + pitch };
+
+            DesignDocument doc = null;
+            foreach (double y in supY)
+            {
+                double footZ = TankPlateTopZ(y);      // bottom angles rest on sloped base plate
+                double L = topZ - footZ;          // different for each support
+                if (L < TurnbuckleSupport.MinL || L > TurnbuckleSupport.MaxL)
+                    System.Diagnostics.Debug.WriteLine($"Turnbuckle at Y={y}: L={L:0} outside {TurnbuckleSupport.MinL}-{TurnbuckleSupport.MaxL}");
+
+                var part = ts.DrawTurnbuckleSupport(_m, $"TurnbuckleSupport_{y:0}", L);
+                doc ??= NewDoc(part);
+                AddCopy(doc, part, x, y, footZ);
+            }
+
+            if (doc != null) Put("Turnbuckle_Support", doc);
+        }
+
+        private void TankBaseSupports()
+        {
+            // ---- sloped base plate: falls 0.5° toward drain end ----              (client elevation)
+            double slopeDeg = 0.5;
+            double tanS = Math.Tan(slopeDeg * Math.PI / 180.0);
+            double plateT = 3;                         // base plate thk
+            double hEnd = 38 - plateT;               // plate underside at drain-end wall (38 = to plate top)
+
+            double yWall = _m.W;                         // drain-end inner wall (drain at high Y)
+            double extraPumpEnd = 0;                     // our tank ends at booth width (no pump compartment)
+            double yPump = yWall - (_m.W + extraPumpEnd);// pump-end inner wall (= 0)
+
+            double first = 538, pitch = 1000, chW = 75;  // S at 538, then every 1000 (R, Q, P)
+            //double x0 = _m.D;                         // channel runs across tank depth       (CHECK)
+            //double len = wallIn - _m.D;
+            double x0  = WallT;                          // from tank front wall (booth entry) ...
+            double len = wallIn - x0;                    // ... to back wall - full tank depth
+            // ---- U-channel supports P / Q / R / S ----
+            var ts = new TankBaseSupport(_cfg);
+            DesignDocument doc = null;
+
+            for (double d = first; yWall - d - chW / 2 >= yPump + 100; d += pitch)   // keep 100 clear of pump-end wall
+            {
+                double hL = hEnd + (d + chW / 2) * tanS;                 // leg toward pump end - taller
+                double hR = hEnd + (d - chW / 2) * tanS;                 // leg toward drain
+                System.Diagnostics.Debug.WriteLine($"Tank support d={d}: {hL:0.0} / {hR:0.0}");
+
+                var part = ts.DrawChannel(_m, hL, hR, len);
+                doc ??= NewDoc(part);
+                AddCopy(doc, part, x0, yWall - d - chW / 2, retZ);       // stands on tank bottom
+            }
+
+            // ---- sloped base plate 3 thk on the support lips ----
+            bpTan = tanS;
+            bpYWall = yWall;
+            double zDrain = retZ + hEnd;                   // plate underside at drain end
+            bpZDrainTop = zDrain + plateT;                 // plate TOP at drain end (= retZ + 38)
+            double zPump = zDrain + (yWall - yPump) * tanS;
+
+            var plateProfile = new LinearPath(new[]
+            {
+                new Point3D(x0, yWall, zDrain),
+                new Point3D(x0, yWall, zDrain + plateT),
+                new Point3D(x0, yPump, zPump  + plateT),
+                new Point3D(x0, yPump, zPump),
+                new Point3D(x0, yWall, zDrain)
+            });
+            var plate = new devDept.Eyeshot.Entities.Region(plateProfile).ExtrudeAsBrep(new Vector3D(len, 0, 0));
+
+            doc ??= new DesignDocument { Units = linearUnitsType.Millimeters };
+            doc.Entities.Add(plate, System.Drawing.Color.BurlyWood);
+
+            Put("Tank_Base_Support", doc);
+        }
+
+       
+        // ---- grating layout: 660 gratings with 5 gaps, ends take the remainder ----
+        private (double L, double y0, double z0, List<double> joints, List<(double start, double len)> segs) GratingLayout()
+        {
+            double L = _m.W - 5;                                   // client 4000 → 3995
+            double y0 = (_m.W - L) / 2;
+            double z0 = zBottom - 30 - 40;                          // support box bottom: grating 30 + box 40 below tank top
+
+            int g = Math.Max(1, (int)Math.Floor((L + 5) / 666));    // gratings that fit (6 on 4000)
+            double mid = 661, gap = 5;
+            double e = (L - (g - 2) * mid - (g - 1) * gap) / 2;      // end segments (663 on 4000)
+            if (g == 1) e = L;
+
+            var segs = new List<(double, double)>();
+            var joints = new List<double>();
+            double y = 0;
+            for (int k = 0; k < g; k++)
+            {
+                double len = (k == 0 || k == g - 1) ? e : mid;
+                segs.Add((y, len));
+                y += len;
+                if (k < g - 1) { joints.Add(y + gap / 2); y += gap; }
+            }
+            return (L, y0, z0, joints, segs);
+        }
+
+        private void GratingSupports()
+        {
+            var lay = GratingLayout();
+            var part = new GratingSupport(_cfg).DrawGratingSupport(_m, "GratingSupport", lay.L, lay.joints.ToArray());
+
+            // client plan: cross supports bolt to tank front wall (booth entry), long member 665 in   (CHECK)
+            double xFront = WallT;                                 // inner face of tank front wall at booth start
+
+            var doc = NewDoc(part);
+            // turned 180°: local X = 675 (cross support far plate) lands on front wall, flat faces into booth
+            AddCopy(doc, part, xFront + 675, lay.y0 + lay.L, lay.z0, rotZDeg: 180);
+            Put("Grating_Support", doc);
+        }
+
+        private void Gratings()
+        {
+            var lay = GratingLayout();
+            var g = new Grating(_cfg).DrawGrating(_m, "Grating");     // 650 x 660 x 30, QTY 6
+
+            double xFront = WallT;                                      // same as GratingSupports()
+            double gW = 650, gL = 660;
+            double xFlat = xFront + 675;                               // inner face of vertical flat (after 180° turn)
+
+            var doc = NewDoc(g);
+            foreach (var (start, len) in lay.segs)
+            {
+                double x = xFlat - gW;                                  // back edge against the flat
+                double y = lay.y0 + start + (len - gL) / 2;             // centred between separators
+                double z = lay.z0 + 40;                                 // on top of 75x40 box / cross supports
+                AddCopy(doc, g, x, y, z);
+            }
+            Put("Grating", doc);
+        }
+        private void AngleSupports()
+        {
+            var lay = GratingLayout();
+            var asp = new AngleSupport(_cfg);
+
+            double xFront = WallT;
+            double xc = xFront + 675 - 75 / 2.0;                // centred under long box (after 180° turn)
+            double zTop = lay.z0;                                 // underside of Grating Support 1
+
+            // joints in world Y (frame turned 180°), numbered from pump end like the client (1..5)
+            var ys = lay.joints.Select(j => lay.y0 + lay.L - j).OrderBy(y => y).ToList();
+
+            DesignDocument doc = null;
+            for (int i = 0; i < ys.Count; i++)
+            {
+                double y = ys[i];
+                double zFloor = TankPlateTopZ(y);                   // sloped base plate top here
+                double angleH = zTop - zFloor - AngleSupport.PlateT;
+                System.Diagnostics.Debug.WriteLine($"Angle support {i + 1}: Y={y:0}, angle {angleH:0}");   // client: 355, 360 …
+
+                var part = asp.DrawAngleSupport(_m, $"AngleSupport_{i + 1}", angleH);
+                doc ??= NewDoc(part);
+                AddCopy(doc, part, xc, y, zFloor);
+            }
+            if (doc != null) Put("Angle_Support", doc);
+        }
+
+        private void PumpSump()
+        {
+            var part = new PumpSump(_cfg).DrawPumpSump(_m, "PumpSump");
+
+            double tankOuterY = 0;                 // outer face of tank pump-end wall in OUR model   (CHECK - measure)
+            double y0 = tankOuterY - 750;          // sump's 750 edge touches the tank wall
+
+            var doc = NewDoc(part);
+            AddCopy(doc, part, 0, y0, retZ);
+            Put("Pump_Sump", doc);
+        }
+        private void PumpBase()
+        {
+            var part = new PumpBaseFrame(_cfg).DrawPumpBaseFrame(_m, "PumpBaseFrame");
+
+            // ---- suction flange position (same numbers as PumpSump) ----
+            double tankOuterY = 0, sumpY0 = tankOuterY - 750;
+            double inner = 498, wall = 38, Dout = inner + 2 * wall;
+            double xFl = (Dout - wall) - 312 + 600;              // flange face, world X (sump at X = 0)
+            double yAx = sumpY0 + wall + 325;                     // pipe axis, world Y
+
+            // ---- frame: 450 along X after 90° turn, centred on pipe axis, on floor ----   (CHECK gap / height)
+            double gap = 50;                                       // flange face → start of frame
+            double z = retZ;                                     // floor = tank bottom level
+
+            var doc = NewDoc(part);
+            AddCopy(doc, part, xFl + gap + 450, yAx - 130, z, rotZDeg: 90);
+            Put("Pump_Base_Frame", doc);
         }
     }
 }

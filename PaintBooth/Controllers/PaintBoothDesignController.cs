@@ -426,7 +426,8 @@ namespace PaintBooth.Controllers
                 if (PaintBoothTypefromEnquiry != "4" && PaintBoothTypefromEnquiry != "5" &&
                     PaintBoothTypefromEnquiry != "6" && PaintBoothTypefromEnquiry != "7")
                 {
-                    service.D3Panels(model, panel, ExtractionC_Height, PaintBoothTypefromEnquiry);
+                    bool waterWash = CatagoryType == "Water wash paint booth";
+                    service.D3Panels(model, panel, ExtractionC_Height, PaintBoothTypefromEnquiry, waterWash);
 
                     
 
@@ -446,7 +447,7 @@ namespace PaintBooth.Controllers
                         }
                         // else: civil / other tank type - add its parts here if needed
                     }
-                    service.backPanels(model, panel, ExtractionC_Height, PaintBoothTypefromEnquiry);
+                    service.backPanels(model, panel, ExtractionC_Height, PaintBoothTypefromEnquiry, waterWash);
                 }
 
                 // ── Top filter frames — Types 2, 6, 7, 9 have filters on top instead of solid panels ──

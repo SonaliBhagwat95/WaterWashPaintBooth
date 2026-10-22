@@ -961,7 +961,7 @@ namespace PaintBooth.Service
 
 
         public void D3Panels(PaintBoothModel model, PaintBoothDesignBusiness paintBooth,
-                     double ExtractionC_Height, string paintboothType)
+                     double ExtractionC_Height, string paintboothType,bool waterWash)
         {
             try
             {
@@ -971,7 +971,7 @@ namespace PaintBooth.Service
                     List<DesignDocument> documents = new List<DesignDocument>();
                     List<DesignDocument> D3beforeD = new List<DesignDocument>();
 
-                    PanelDrawResult panelDrawingPathD3 = paintBooth.D3Panels(i, model, ExtractionC_Height);
+                    PanelDrawResult panelDrawingPathD3 = paintBooth.D3Panels(i, model, ExtractionC_Height, waterWash);
                     documents.Add(panelDrawingPathD3.drawing);
                     filePaths.Add(panelDrawingPathD3.lstpath);
                     paintBooth.SavePanelDetails(
@@ -1023,7 +1023,7 @@ namespace PaintBooth.Service
         #region Back Panels
 
 
-        public void backPanels(PaintBoothModel model, PaintBoothDesignBusiness paintBooth, double ExtractionC_Height, string PaintBoothTypefromEnquiry)
+        public void backPanels(PaintBoothModel model, PaintBoothDesignBusiness paintBooth, double ExtractionC_Height, string PaintBoothTypefromEnquiry,bool waterWash)
         {
             try
             {
@@ -1055,7 +1055,7 @@ namespace PaintBooth.Service
                     for (int j = 0; j < noOfPanelsForBackSide; j++)
                     {
                         PanelDrawResult panelDrawingPath = paintBooth.BackPanelsAfterExtractionChamber(
-                            model, ExtractionC_Height, PaintBoothTypefromEnquiry);
+                            model, ExtractionC_Height, PaintBoothTypefromEnquiry, waterWash);
                         backDrawingList.Add(panelDrawingPath.drawing);
                         filePaths.Add(panelDrawingPath.lstpath);
                         paintBooth.SavePanelDetails(model, "ECRear_Panels", 1, panelDrawingPath.Weight);
@@ -1074,7 +1074,7 @@ namespace PaintBooth.Service
                         paintBooth.BackPanelLength = smallPanelWidthForBackSide;
 
                         PanelDrawResult smallPanelDrawingPath = paintBooth.BackPanelsAfterExtractionChamber(
-                            model, ExtractionC_Height, PaintBoothTypefromEnquiry);
+                            model, ExtractionC_Height, PaintBoothTypefromEnquiry, waterWash);
                         backDrawingList.Add(smallPanelDrawingPath.drawing);
                         paintBooth.SavePanelDetails(model, "ECRear_Panels", 1, smallPanelDrawingPath.Weight);
 
@@ -1178,7 +1178,7 @@ namespace PaintBooth.Service
                         for (int j = 0; j < noOfPanelsForBackSide; j++)
                         {
                             PanelDrawResult frontPanelPath = paintBooth.BackPanelsAfterExtractionChamber(
-                                model, ExtractionC_Height, PaintBoothTypefromEnquiry);
+                                model, ExtractionC_Height, PaintBoothTypefromEnquiry, waterWash);
 
                             paintBooth.SavePanelDetails(model, "ECFront_Panels", 1, frontPanelPath.Weight);
 
@@ -1196,7 +1196,7 @@ namespace PaintBooth.Service
                             paintBooth.BackPanelLength = smallPanelWidthForBackSide;
 
                             PanelDrawResult frontSmallPath = paintBooth.BackPanelsAfterExtractionChamber(
-                                model, ExtractionC_Height, PaintBoothTypefromEnquiry);
+                                model, ExtractionC_Height, PaintBoothTypefromEnquiry, waterWash);
 
                             paintBooth.SavePanelDetails(model, "ECFront_Panels", 1, frontSmallPath.Weight);
 

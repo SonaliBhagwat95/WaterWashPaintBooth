@@ -1123,7 +1123,7 @@ namespace PaintBooth.Business
         //    };
         //}
 
-        public PanelDrawResult D3Panels(int i, PaintBoothModel model, double ExtractionChemberHeight)
+        public PanelDrawResult D3Panels(int i, PaintBoothModel model, double ExtractionChemberHeight,bool waterWash)
         {
             drawing = new();
             drawing.Units = linearUnitsType.Millimeters;
@@ -1149,26 +1149,105 @@ namespace PaintBooth.Business
             drawing.Entities.Add(brep, Color.Green);
             #endregion
 
-            #region Panel frame
-            LinearPath rail = new LinearPath(new Point3D[]
-            {
-        new Point3D(0,  PanelLength, 0),
-        new Point3D(0,  PanelLength, ExtractionChemberHeight),
-        new Point3D(D3, PanelLength, ExtractionChemberHeight),
-        new Point3D(D3, PanelLength, 0),
-        new Point3D(0,  PanelLength, 0)
-            });
-            devregion section = CreatePolygonForEC(i);
-            Solid frame = section.SweepAsSolid(rail, 0);
-            frame.Translate(0, PanelLength, ECSheetThickness);
-            GenerateHolesForEC(frame);
+            //    #region Panel frame
+            //    LinearPath rail = new LinearPath(new Point3D[]
+            //    {
+            //new Point3D(0,  PanelLength, 0),
+            //new Point3D(0,  PanelLength, ExtractionChemberHeight),
+            //new Point3D(D3, PanelLength, ExtractionChemberHeight),
+            //new Point3D(D3, PanelLength, 0),
+            //new Point3D(0,  PanelLength, 0)
+            //    });
+            //    devregion section = CreatePolygonForEC(i);
+            //    Solid frame = section.SweepAsSolid(rail, 0);
+            //    frame.Translate(0, PanelLength, ECSheetThickness);
+            //    GenerateHolesForEC(frame);
 
-            Material mat1 = new Material(ECMaterials);
-            frame.Regen(0.1);
-            double massofFrame = frame.GetMass(mat1, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity1);
-            double Frame_Weight = Math.Round(massofFrame, 3);
+            //    Material mat1 = new Material(ECMaterials);
+            //    frame.Regen(0.1);
+            //    double massofFrame = frame.GetMass(mat1, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity1);
+            //    double Frame_Weight = Math.Round(massofFrame, 3);
+            //    D3Panels_weight = Rectangle_Weight + Frame_Weight;
+            //    drawing.Entities.Add(frame, Color.Yellow);
+            //    #endregion
+            #region Panel frame
+            double Frame_Weight;
+            if (!waterWash)
+            {
+                // ---- dry booth: swept EC frame (unchanged) ----
+                LinearPath rail = new LinearPath(new Point3D[]
+                {
+              new Point3D(0,  PanelLength, 0),
+              new Point3D(0,  PanelLength, ExtractionChemberHeight),
+              new Point3D(D3, PanelLength, ExtractionChemberHeight),
+              new Point3D(D3, PanelLength, 0),
+              new Point3D(0,  PanelLength, 0)
+                });
+                devregion section = CreatePolygonForEC(i);
+                Solid frame = section.SweepAsSolid(rail, 0);
+                frame.Translate(0, PanelLength, ECSheetThickness);
+                GenerateHolesForEC(frame);
+
+                Material mat1 = new Material(ECMaterials);
+                frame.Regen(0.1);
+                double massofFrame = frame.GetMass(mat1, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity1);
+                Frame_Weight = Math.Round(massofFrame, 3);
+                drawing.Entities.Add(frame, Color.Yellow);
+            }
+            else
+            {
+                // ---- water wash: WC panel tray, 38 flanges toward chamber inside, 10x12 slots at 19 from face ----
+                double F = 38, T = ECSheetThickness, slotC = 19, sL = 12, sW = 10;
+                double H = ExtractionChemberHeight;
+                double dir = (i == 0) ? +1 : -1;                       // inside of chamber
+                double y0 = PanelLength;
+                Material matF = new Material(ECMaterials);
+                double fw = 0;
+
+                LinearPath Loop(params Point3D[] p) => new LinearPath(p.Append(p[0]).ToArray());
+
+                void Flange(LinearPath outer, IEnumerable<LinearPath> holes, Vector3D ext)
+                {
+                    var curves = new List<ICurve> { outer };
+                    curves.AddRange(holes);
+                    var b = new devregion(curves.ToArray()).ExtrudeAsBrep(ext);
+                    b.Regen(0.1);
+                    fw += b.GetMass(matF, linearUnitsType.Millimeters, massUnitsType.Kilograms, out _);
+                    drawing.Entities.Add(b, Color.Yellow);
+                }
+
+                // side flanges (x = 0 and x = D3): slots @200 starting 67 below top
+                var zs = new List<double>();
+                for (double z = H - 67; z >= 150; z -= 200) zs.Add(z);
+                foreach (double xf in new[] { 0.0, D3 - T })
+                {
+                    var holes = zs.Select(z => Loop(
+                        new Point3D(xf, y0 + dir * (slotC - sW / 2), z - sL / 2),
+                        new Point3D(xf, y0 + dir * (slotC + sW / 2), z - sL / 2),
+                        new Point3D(xf, y0 + dir * (slotC + sW / 2), z + sL / 2),
+                        new Point3D(xf, y0 + dir * (slotC - sW / 2), z + sL / 2)));
+                    Flange(Loop(new Point3D(xf, y0, 0), new Point3D(xf, y0 + dir * F, 0),
+                                new Point3D(xf, y0 + dir * F, H), new Point3D(xf, y0, H)),
+                           holes, new Vector3D(T, 0, 0));
+                }
+
+                // top / bottom flanges: slots @200 starting 80 from ends
+                var xs = new List<double>();
+                for (double xx = 80; xx <= D3 - 80 + 0.5; xx += 200) xs.Add(xx);
+                foreach (double zf in new[] { 0.0, H - T })
+                {
+                    var holes = xs.Select(xc => Loop(
+                        new Point3D(xc - sL / 2, y0 + dir * (slotC - sW / 2), zf),
+                        new Point3D(xc + sL / 2, y0 + dir * (slotC - sW / 2), zf),
+                        new Point3D(xc + sL / 2, y0 + dir * (slotC + sW / 2), zf),
+                        new Point3D(xc - sL / 2, y0 + dir * (slotC + sW / 2), zf)));
+                    Flange(Loop(new Point3D(0, y0, zf), new Point3D(D3, y0, zf),
+                                new Point3D(D3, y0 + dir * F, zf), new Point3D(0, y0 + dir * F, zf)),
+                           holes, new Vector3D(0, 0, T));
+                }
+                Frame_Weight = Math.Round(fw, 3);
+            }
             D3Panels_weight = Rectangle_Weight + Frame_Weight;
-            drawing.Entities.Add(frame, Color.Yellow);
             #endregion
 
             #region Service door variables (client: WC panel cutout, WC door frame 1215 005 05 105, door)
@@ -1185,6 +1264,8 @@ namespace PaintBooth.Business
             double dx0 = cx0 - 26.5, dz0 = cz0 - 30;                   // door centred on cutout
             double dx1 = dx0 + dW, dz1 = dz0 + dH;
             double yd0 = -frD, yd1 = -frD - dD;                        // door sits on frame, outward = -Y
+            double ox0 = (i == 1) ? D3 - cx1 : cx0;      // door opening on THIS panel (left panel is turned)
+            double ox1 = (i == 1) ? D3 - cx0 : cx1;
             #endregion
 
             #region Service door (RightSide / LeftSide / Both Side)
@@ -1195,13 +1276,20 @@ namespace PaintBooth.Business
             if (doorHere)
             {
                 // 1) cut the opening in THIS panel (PanelLength is already 0 or W)
+                //    var cutout1 = devregion.CreatePolygon(new Point3D[]
+                //    {
+                //new Point3D(cx0, PanelLength, cz0),
+                //new Point3D(cx0, PanelLength, cz1),
+                //new Point3D(cx1, PanelLength, cz1),
+                //new Point3D(cx1, PanelLength, cz0)
+                //    });
                 var cutout1 = devregion.CreatePolygon(new Point3D[]
-                {
-            new Point3D(cx0, PanelLength, cz0),
-            new Point3D(cx0, PanelLength, cz1),
-            new Point3D(cx1, PanelLength, cz1),
-            new Point3D(cx1, PanelLength, cz0)
-                });
+            {
+              new Point3D(ox0, PanelLength, cz0),
+              new Point3D(ox0, PanelLength, cz1),
+              new Point3D(ox1, PanelLength, cz1),
+              new Point3D(ox1, PanelLength, cz0)
+            });
                 brep.ExtrudeRemove(cutout1, ECSheetThickness);
 
                 // 2) everything added from here is a door part → turned later for the left panel
@@ -1263,7 +1351,47 @@ namespace PaintBooth.Business
                 }
             }
             #endregion
+            #region Punched angles (water wash) - 38x38x3, tack weld inside
+            if (waterWash)
+            {
+                double angA = 38, angT = 3;
+                double dirIn = (i == 0) ? +1 : -1;           // into the chamber, same side as flanges
+                double yF = PanelLength;                     // inside face of sheet
+                double ax0 = 5, ax1 = D3 - 5;                // 1150 on 1160 → 5 clear each end
+                var matA = new Material(ECMaterials);
 
+                void Angle(double xa, double xb, double zTop)
+                {
+                    if (xb - xa < 20) return;                // too short beside the door - skip
+                    var p = new[]
+                    {
+                  new Point3D(xa, yF,                    zTop - angA),   // leg on sheet (vertical)
+                  new Point3D(xa, yF + dirIn * angT,     zTop - angA),
+                  new Point3D(xa, yF + dirIn * angT,     zTop - angT),
+                  new Point3D(xa, yF + dirIn * angA,     zTop - angT),   // leg into chamber (top)
+                  new Point3D(xa, yF + dirIn * angA,     zTop),
+                  new Point3D(xa, yF,                    zTop),
+                  new Point3D(xa, yF,                    zTop - angA)
+              };
+                    var b = new devregion(new LinearPath(p)).ExtrudeAsBrep(new Vector3D(xb - xa, 0, 0));
+                    b.Regen(0.1);
+                    Frame_Weight += Math.Round(b.GetMass(matA, linearUnitsType.Millimeters, massUnitsType.Kilograms, out _), 3);
+                    drawing.Entities.Add(b, Color.SteelBlue);
+                }
+
+                foreach (double zTop in new[] { 190.0, 701, 906 })      // top edges from panel bottom   (CHECK)
+                {
+                    bool hitsDoor = doorHere && zTop > cz0 && zTop - angA < cz1;
+                    if (hitsDoor)
+                    {
+                        Angle(ax0, ox0, zTop);                         // left of door opening
+                        Angle(ox1, ax1, zTop);                         // right of door opening
+                    }
+                    else Angle(ax0, ax1, zTop);
+                }
+                D3Panels_weight = Rectangle_Weight + Frame_Weight;
+            }
+            #endregion
             #region WriteFile
             var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
             if (!Directory.Exists(path + "/PaintBooth drawing"))
@@ -2007,7 +2135,7 @@ namespace PaintBooth.Business
             return model.Lights;
         }
         #region 3D Back panels 
-        public PanelDrawResult BackPanelsAfterExtractionChamber(PaintBoothModel model, double EXtractionChemberHeight, string PaintBoothTypefromEnquiry)
+        public PanelDrawResult BackPanelsAfterExtractionChamber(PaintBoothModel model, double EXtractionChemberHeight, string PaintBoothTypefromEnquiry, bool waterWash)
         {
 
             model.D = model.D;
@@ -2022,6 +2150,79 @@ namespace PaintBooth.Business
                 x = model.D + D3 + D3;
             else
                 x = model.D + D3;
+
+            if (waterWash)
+            {
+                // ===== WC REAR PANELS (1215 005 05 101): 1160 trays along width, last = remainder =====
+                double H = EXtractionChemberHeight;               // 2134
+                double T = SheetThickness, F = 38, slotC = 19, sL = 12, sW = 10;
+                double stdW = 1160, total = BackPanelLength;
+                double dOut = +1;                                 // flanges outward (+X), clear of parts inside   (CHECK)
+                var matW = new Material(Materials);
+                double wTotal = 0;
+
+                // panel-local (u along Y, v up, d out of wall) → world
+                Point3D P(double y0, double u, double v, double d) => new Point3D(x + dOut * d, y0 + u, v);
+                LinearPath Loop(params Point3D[] p) => new LinearPath(p.Append(p[0]).ToArray());
+
+                void Add(Brep b, Color c)
+                {
+                    b.Regen(0.1);
+                    wTotal += b.GetMass(matW, linearUnitsType.Millimeters, massUnitsType.Kilograms, out _);
+                    drawing.Entities.Add(b, c);
+                }
+
+                void WCRearPanel(double y0, double w)
+                {
+                    // ---- face sheet with 6 x Ø10 holes (210 from sides; 643 / 1151 / 1348 from top) ----
+                    var curves = new List<ICurve> { Loop(P(y0, 0, 0, 0), P(y0, w, 0, 0), P(y0, w, H, 0), P(y0, 0, H, 0)) };
+                    foreach (double fromTop in new[] { 643.0, 643 + 508, 643 + 508 + 197 })
+                        foreach (double u in new[] { 210.0, w - 210 })
+                            if (u > 60 && u < w - 60)
+                                curves.Add(new Circle(new Plane(P(y0, u, H - fromTop, 0), Vector3D.AxisX), 5));
+                    Add(new devregion(curves.ToArray()).ExtrudeAsBrep(new Vector3D(dOut * T, 0, 0)), Color.Green);
+
+                    // ---- side flanges: slots 67 from top, @200 ----
+                    var vs = new List<double>();
+                    for (double v = H - 67; v >= 60; v -= 200) vs.Add(v);
+                    foreach (double uf in new[] { 0.0, w - T })
+                    {
+                        var c = new List<ICurve> { Loop(P(y0, uf, 0, 0), P(y0, uf, 0, F), P(y0, uf, H, F), P(y0, uf, H, 0)) };
+                        foreach (double v in vs)
+                            c.Add(Loop(P(y0, uf, v - sL / 2, slotC - sW / 2), P(y0, uf, v - sL / 2, slotC + sW / 2),
+                                       P(y0, uf, v + sL / 2, slotC + sW / 2), P(y0, uf, v + sL / 2, slotC - sW / 2)));
+                        Add(new devregion(c.ToArray()).ExtrudeAsBrep(new Vector3D(0, T, 0)), Color.Yellow);
+                    }
+
+                    // ---- top / bottom flanges: slots 80 from ends, @200 ----
+                    var us = new List<double>();
+                    for (double u = 80; u <= w - 80 + 0.5; u += 200) us.Add(u);
+                    foreach (double vf in new[] { 0.0, H - T })
+                    {
+                        var c = new List<ICurve> { Loop(P(y0, 0, vf, 0), P(y0, w, vf, 0), P(y0, w, vf, F), P(y0, 0, vf, F)) };
+                        foreach (double u in us)
+                            c.Add(Loop(P(y0, u - sL / 2, vf, slotC - sW / 2), P(y0, u + sL / 2, vf, slotC - sW / 2),
+                                       P(y0, u + sL / 2, vf, slotC + sW / 2), P(y0, u - sL / 2, vf, slotC + sW / 2)));
+                        Add(new devregion(c.ToArray()).ExtrudeAsBrep(new Vector3D(0, 0, T)), Color.Yellow);
+                    }
+                }
+
+                // ---- lay out along the width ----
+                for (double y = 0; y < total - 1; y += stdW)
+                    WCRearPanel(y, Math.Min(stdW, total - y));
+
+                BackPanel_Weight = Math.Round(wTotal, 3);
+
+                var pathW = _configuration["FolderPathConfig:DrawingPath"].ToString();
+                if (!Directory.Exists(pathW + "/PaintBooth drawing"))
+                    Directory.CreateDirectory(pathW + "/PaintBooth drawing");
+                string dwgW = $"{pathW}/PaintBooth drawing/WC RearPanels {DateTime.Now:hh - mm}.dwg";
+                new WriteAutodesk(new WriteAutodeskParams(drawing), dwgW).DoWork();
+
+                return new PanelDrawResult { drawing = drawing, Weight = BackPanel_Weight, lstpath = dwgW };
+            }
+
+
             var rectangle = devregion.CreatePolygon(new Point3D[]
                 {
                 new Point3D(x,0,0),
