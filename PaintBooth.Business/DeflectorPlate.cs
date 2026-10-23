@@ -4,10 +4,7 @@ using devDept.Eyeshot.Translators;
 using devDept.Geometry;
 using Microsoft.Extensions.Configuration;
 using PaintBooth.Models;
-using System;
-using System.Collections.Generic;
 using System.Drawing;
-using System.IO;
 using static PaintBooth.Business.SheetProfile;
 
 namespace PaintBooth.Business
@@ -79,7 +76,7 @@ namespace PaintBooth.Business
                 }
             }
             var flat = new devDept.Eyeshot.Entities.Region(flatCurves.ToArray());
-            design.Entities.Add(flat.ExtrudeAsBrep(new Vector3D(0, 0, -T)), Color.BurlyWood);
+            design.Entities.Add(flat.ExtrudeAsBrep(new Vector3D(0, 0, -T)), Color.Cyan);
 
             // ================= 3. VERTICAL LEG + U BEND =================
             // ---- U channel inputs ----
@@ -116,7 +113,7 @@ namespace PaintBooth.Business
                 new Point3D(xU0,           0, zU0)
             });
             var uRegion = new devDept.Eyeshot.Entities.Region(uPath);
-            design.Entities.Add(uRegion.ExtrudeAsBrep(new Vector3D(0, ULen, 0)), Color.BurlyWood);
+            design.Entities.Add(uRegion.ExtrudeAsBrep(new Vector3D(0, ULen, 0)), Color.Cyan);
             // ================= Export DWG =================
             var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
             if (!Directory.Exists(path + "/PaintBooth drawing"))

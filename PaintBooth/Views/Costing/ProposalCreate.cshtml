@@ -351,89 +351,89 @@
             </tfoot>
         </table>
     </div>
-        <!-- ── SCOPE OF SUPPLY ───────────────────────── -->
-        <div class="prop-section prop-no-break">
-            <table class="prop-table">
-                <thead>
-                    <tr>
-                        <th colspan="4" style="text-align:center; font-size:13px; font-weight:700; color:var(--text-primary); text-transform:none; letter-spacing:0;">
-                            SCOPE OF SUPPLY
-                        </th>
-                    </tr>
-                    <tr>
-                        <th style="width:60px; text-align:center;">Sr No.</th>
-                        <th>Description</th>
-                        <th style="width:60px; text-align:center;"></th>
-                        <th style="width:80px; text-align:center;">Qty</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>1</td>
-                        <td>@Model.ProposalDetails.SubTypeOfDraftType @Model.ProposalDetails.DraftType @Model.ProposalDetails.Category</td>
-                        <td style="text-align:center;"><input type="checkbox" checked /></td>
-                        <td>1 Set</td>
-                    </tr>
-                    <tr>
-                        <td>2</td>
-                        <td>Exhaust Ducting with Angle Supports</td>
-                        <td style="text-align:center;"><input type="checkbox" checked /></td>
-                        <td>1 Set</td>
-                    </tr>
-                    <tr>
-                        <td>3</td>
-                        <td>Electrical Control Panel and Cable Trays for Paint Booth</td>
-                        <td style="text-align:center;"><input type="checkbox" checked /></td>
-                        <td>1 Set</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        <!-- ── TECHNICAL SPECIFICATION ───────────────── -->
-        <div class="prop-section prop-break">
-            <table class="prop-table">
-                <thead>
-                    <tr>
-                        <th colspan="3" style="text-align:center; font-size:13px; font-weight:700; color:var(--text-primary); text-transform:none; letter-spacing:0;">
-                            TECHNICAL SPECIFICATION FOR PAINT BOOTH
-                        </th>
-                    </tr>
-                    <tr>
-                        <th style="width:60px; text-align:center;">Sr.No.</th>
-                        <th style="width:35%;">Description</th>
-                        <th>Specification</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td style="text-align:center;">@(++sr)</td>
-                        <td>Type</td>
+    <!-- ── SCOPE OF SUPPLY ───────────────────────── -->
+    <div class="prop-section prop-no-break">
+        <table class="prop-table">
+            <thead>
+                <tr>
+                    <th colspan="4" style="text-align:center; font-size:13px; font-weight:700; color:var(--text-primary); text-transform:none; letter-spacing:0;">
+                        SCOPE OF SUPPLY
+                    </th>
+                </tr>
+                <tr>
+                    <th style="width:60px; text-align:center;">Sr No.</th>
+                    <th>Description</th>
+                    <th style="width:60px; text-align:center;"></th>
+                    <th style="width:80px; text-align:center;">Qty</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
                     <td>@Model.ProposalDetails.SubTypeOfDraftType @Model.ProposalDetails.DraftType @Model.ProposalDetails.Category</td>
-                    </tr>
-                    <tr>
-                        <td style="text-align:center;">@(++sr)</td>
-                        <td>Overall Size of Booth in mm</td>
-                        <td>As per Shown in Layout</td>
-                    </tr>
-                    <tr>
-                        <td style="text-align:center;">@(++sr)</td>
-                        <td>Working Size of Booth in mm</td>
-                        <td>
-                            @Model.ProposalDetails.W mm (W) x
-                            @Model.ProposalDetails.D mm (D) x
-                            @Model.ProposalDetails.H mm (H)
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="text-align:center;">@(++sr)</td>
-                        <td>Exhaust Chamber Size in mm</td>
-                        <td>
-                            @Model.MaterialList?.W mm (W) x
-                            @Model.MaterialList?.D3 mm (D) x
-                            @Model.ProposalDetails.ExtractionChamberHeight mm (H)
-                        </td>
-                    </tr>
-                    @if (!isFrontOpen)
+                    <td style="text-align:center;"><input type="checkbox" checked /></td>
+                    <td>1 Set</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Exhaust Ducting with Angle Supports</td>
+                    <td style="text-align:center;"><input type="checkbox" checked /></td>
+                    <td>1 Set</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>Electrical Control Panel and Cable Trays for Paint Booth</td>
+                    <td style="text-align:center;"><input type="checkbox" checked /></td>
+                    <td>1 Set</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <!-- ── TECHNICAL SPECIFICATION ───────────────── -->
+    <div class="prop-section prop-break">
+        <table class="prop-table">
+            <thead>
+                <tr>
+                    <th colspan="3" style="text-align:center; font-size:13px; font-weight:700; color:var(--text-primary); text-transform:none; letter-spacing:0;">
+                        TECHNICAL SPECIFICATION FOR PAINT BOOTH
+                    </th>
+                </tr>
+                <tr>
+                    <th style="width:60px; text-align:center;">Sr.No.</th>
+                    <th style="width:35%;">Description</th>
+                    <th>Specification</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="text-align:center;">@(++sr)</td>
+                    <td>Type</td>
+                    <td>@Model.ProposalDetails.SubTypeOfDraftType @Model.ProposalDetails.DraftType @Model.ProposalDetails.Category</td>
+                </tr>
+                <tr>
+                    <td style="text-align:center;">@(++sr)</td>
+                    <td>Overall Size of Booth in mm</td>
+                    <td>As per Shown in Layout</td>
+                </tr>
+                <tr>
+                    <td style="text-align:center;">@(++sr)</td>
+                    <td>Working Size of Booth in mm</td>
+                    <td>
+                        @Model.ProposalDetails.W mm (W) x
+                        @Model.ProposalDetails.D mm (D) x
+                        @Model.ProposalDetails.H mm (H)
+                    </td>
+                </tr>
+                <tr>
+                    <td style="text-align:center;">@(++sr)</td>
+                    <td>Exhaust Chamber Size in mm</td>
+                    <td>
+                        @Model.MaterialList?.W mm (W) x
+                        @Model.MaterialList?.D3 mm (D) x
+                        @Model.ProposalDetails.ExtractionChamberHeight mm (H)
+                    </td>
+                </tr>
+                @if (!isFrontOpen)
                     {
                         <tr>
                             <td style="text-align:center;">@(++sr)</td>
@@ -598,10 +598,16 @@
                     {
                         <tr>
                             <td style="text-align:center;">@(++sr)</td>
-                            <td>Suction Filters</td>
-                            <img src="~/img/MettleBaffle.png" alt="Primary Metallic Filter"
-                                 style="max-width:220px; height:auto; margin-top:8px;" />
-                            <td>Suction filter will be provided 20-25 micron</td>
+                            <td>
+                                Suction Filters
+                               
+                            </td>
+                            <td>
+                                Suction filter will be provided 20-25 micron
+                                <br />
+                                <img src="~/img/MettleBaffle.png" alt="Suction Filter"
+                                     style="max-width:220px; height:auto; margin-top:8px;" />
+                                </td>
                         </tr>
                     }
                     <tr>
@@ -669,7 +675,7 @@
                             <label><input type="radio" name="scaffolding" value="Not Provided" checked />Not Provided</label>
                         </td>
                     </tr>
-                  
+
 
                 </tbody>
                 <tfoot>
@@ -731,7 +737,7 @@
                         @* <td>Wall Mounted/ Floor Mounted</td> *@
                         <td>
                             <div class="prop-radio-group">
-                                
+
                                 <label><input type="radio" name="TypeOfControlPanel" value="Wall Mounted" />Wall Mounted</label>
                                 <label><input type="radio" name="TypeOfControlPanel" value="Floor Mounted" checked />Floor Mounted</label>
                             </div>
@@ -1372,7 +1378,7 @@
             </p>
         </div>
 
-       
+
         <!-- ── TERMS & CONDITIONS ─────────────────────── -->
         <div class="prop-section prop-tc">
             <table class="prop-table">
@@ -1481,7 +1487,7 @@
                     Form GST REG-25
                 </div>
                 <div style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin: 16px 0 24px 0;
-                                    text-decoration: underline;">
+                                        text-decoration: underline;">
                     Certificate of Provisional Registration
                 </div>
 
@@ -1560,7 +1566,7 @@
                 </table>
                 @* Footer note *@
                 <div style="margin-top: 20px; font-size: 12px; text-align: left; width: 100%; color: var(--text-muted);
-                                    border-top: 1px solid var(--border); padding-top: 12px;">
+                                        border-top: 1px solid var(--border); padding-top: 12px;">
                     This is a Certificate of Provisional Registration issued under the provisions of the Act.
                 </div>
             </div>
@@ -1595,61 +1601,61 @@
 
             @if (hasData)
             {
-                    <text>
-                    initPDF('@Model.ProposalDetails.SalesNO', '@(Model.PriceBIDDetails?.RevisionNo ?? 0)', '@DateTime.Now.ToString("dd/MM/yyyy")');
-                    initWord({
-                        salesNo        : '@Model.ProposalDetails.SalesNO',
-                        companyName    : '@Model.ProposalDetails.CompanyName',
-                        contactPerson  : '@Model.ProposalDetails.ContactPerson',
-                        date           : '@DateTime.Now.ToString("dd/MM/yyyy")',
-                        // Basis of Design
-                        length         : '@Model.ProposalDetails.Length',
-                        widthSize      : '@Model.ProposalDetails.WidthSize',
-                        heightSize     : '@Model.ProposalDetails.HeightSize',
-                        production     : '@Model.ProposalDetails.ProductionRequirement',
-                        compWeight     : '@Model.ProposalDetails.ComponantWeight',
-                        shifts         : '@Model.ProposalDetails.NumberofShifts',
-                        effectiveHrs   : '@Model.ProposalDetails.EffectiveWorking',
-                        workingDays    : '@Model.ProposalDetails.Workingdays',
-                        paintType      : '@Model.ProposalDetails.TypeOfPaintName',
-                        viscosity      : '@Model.ProposalDetails.Viscosity',
-                        dft            : '@Model.ProposalDetails.DFT',
-                        noOfColors     : '@Model.ProposalDetails.NoOfColors',
-                        specificHeat   : '@Model.ProposalDetails.SpecificHeat',
-                        compHandling   : '@Model.ProposalDetails.ComponantHandlingName',
-                        cycleTime      : '@Model.ProposalDetails.CycleTime',
-                        loadUnload     : '@Model.ProposalDetails.LoadingUnloading',
-                        // Technical spec
-                        boothType      : '@(Model.ProposalDetails.Category == "1" ? "Dry back paint booth" : "Water wash paint booth")',
-                        boothW         : '@Model.MaterialList?.W',
-                        boothD         : '@Model.MaterialList?.D',
-                        boothH         : '@Model.MaterialList?.H',
-                        boothD3        : '@Model.MaterialList?.D3',
-                        ecHeight       : '@Model.ProposalDetails.ExtractionChamberHeight',
-                        pbMaterial     : '@Model.MaterialList?.PaintBoothMaterial',
-                        ecMaterial     : '@Model.MaterialList?.ECMaterials',
-                        exhaustCap     : '@Model.MaterialList?.EXhaustCapacity',
-                        motorCap       : '@Model.MaterialList?.MotorCapacity',
-                        blowerMounting : '@Model.BlowerDetails.MountingTypes',
-                        luxLevel       : '@Model.MaterialList?.LuxLevel',
-                        lumens         : '@Model.MaterialList?.Lumens',
-                        lightQty       : '@Model.MaterialList?.TubelightQuantity',
-                        // Payment terms
-                        advance        : '@FormatPct(Model.PaymentTerms?.AdvancedPercentage)',
-                        dap            : '@FormatPct(Model.PaymentTerms?.DAPPercentage)',
-                        supplyBefore   : '@FormatPct(Model.PaymentTerms?.SUPPLYBEFOREDISPATCHPercentage)',
-                        supplyAfter    : '@FormatPct(Model.PaymentTerms?.SUPPLYAFTERDISPATCHPercentage)',
-                        installation   : '@FormatPct(Model.PaymentTerms?.INSTALLATIONPercentage)',
-                        commissioning  : '@FormatPct(Model.PaymentTerms?.COMMISSIONINGPercentage)',
-                        delivery       : '@Model.PaymentTerms?.DeliverySupplyperiod',
-                        erection       : '@Model.PaymentTerms?.EAndCPeriod',
-                        // Price
-                        poValue        : '@Model.PriceBIDDetails?.POVALUE',
-                        encCost        : '@Model.PriceBIDDetails?.EAndCCost',
-                        pandFCost      : '@Model.PriceBIDDetails?.PandFCost',
-                        insurance      : '@Model.PriceBIDDetails?.Insurance'
-                    });
-                    </text>
+                        <text>
+                        initPDF('@Model.ProposalDetails.SalesNO', '@(Model.PriceBIDDetails?.RevisionNo ?? 0)', '@DateTime.Now.ToString("dd/MM/yyyy")');
+                        initWord({
+                            salesNo        : '@Model.ProposalDetails.SalesNO',
+                            companyName    : '@Model.ProposalDetails.CompanyName',
+                            contactPerson  : '@Model.ProposalDetails.ContactPerson',
+                            date           : '@DateTime.Now.ToString("dd/MM/yyyy")',
+                            // Basis of Design
+                            length         : '@Model.ProposalDetails.Length',
+                            widthSize      : '@Model.ProposalDetails.WidthSize',
+                            heightSize     : '@Model.ProposalDetails.HeightSize',
+                            production     : '@Model.ProposalDetails.ProductionRequirement',
+                            compWeight     : '@Model.ProposalDetails.ComponantWeight',
+                            shifts         : '@Model.ProposalDetails.NumberofShifts',
+                            effectiveHrs   : '@Model.ProposalDetails.EffectiveWorking',
+                            workingDays    : '@Model.ProposalDetails.Workingdays',
+                            paintType      : '@Model.ProposalDetails.TypeOfPaintName',
+                            viscosity      : '@Model.ProposalDetails.Viscosity',
+                            dft            : '@Model.ProposalDetails.DFT',
+                            noOfColors     : '@Model.ProposalDetails.NoOfColors',
+                            specificHeat   : '@Model.ProposalDetails.SpecificHeat',
+                            compHandling   : '@Model.ProposalDetails.ComponantHandlingName',
+                            cycleTime      : '@Model.ProposalDetails.CycleTime',
+                            loadUnload     : '@Model.ProposalDetails.LoadingUnloading',
+                            // Technical spec
+                            boothType      : '@(Model.ProposalDetails.Category == "1" ? "Dry back paint booth" : "Water wash paint booth")',
+                            boothW         : '@Model.MaterialList?.W',
+                            boothD         : '@Model.MaterialList?.D',
+                            boothH         : '@Model.MaterialList?.H',
+                            boothD3        : '@Model.MaterialList?.D3',
+                            ecHeight       : '@Model.ProposalDetails.ExtractionChamberHeight',
+                            pbMaterial     : '@Model.MaterialList?.PaintBoothMaterial',
+                            ecMaterial     : '@Model.MaterialList?.ECMaterials',
+                            exhaustCap     : '@Model.MaterialList?.EXhaustCapacity',
+                            motorCap       : '@Model.MaterialList?.MotorCapacity',
+                            blowerMounting : '@Model.BlowerDetails.MountingTypes',
+                            luxLevel       : '@Model.MaterialList?.LuxLevel',
+                            lumens         : '@Model.MaterialList?.Lumens',
+                            lightQty       : '@Model.MaterialList?.TubelightQuantity',
+                            // Payment terms
+                            advance        : '@FormatPct(Model.PaymentTerms?.AdvancedPercentage)',
+                            dap            : '@FormatPct(Model.PaymentTerms?.DAPPercentage)',
+                            supplyBefore   : '@FormatPct(Model.PaymentTerms?.SUPPLYBEFOREDISPATCHPercentage)',
+                            supplyAfter    : '@FormatPct(Model.PaymentTerms?.SUPPLYAFTERDISPATCHPercentage)',
+                            installation   : '@FormatPct(Model.PaymentTerms?.INSTALLATIONPercentage)',
+                            commissioning  : '@FormatPct(Model.PaymentTerms?.COMMISSIONINGPercentage)',
+                            delivery       : '@Model.PaymentTerms?.DeliverySupplyperiod',
+                            erection       : '@Model.PaymentTerms?.EAndCPeriod',
+                            // Price
+                            poValue        : '@Model.PriceBIDDetails?.POVALUE',
+                            encCost        : '@Model.PriceBIDDetails?.EAndCCost',
+                            pandFCost      : '@Model.PriceBIDDetails?.PandFCost',
+                            insurance      : '@Model.PriceBIDDetails?.Insurance'
+                        });
+                        </text>
             }
         });
     </script>

@@ -16,15 +16,21 @@ namespace PaintBooth.Business
         {
             _configuration = configuration;
         }
-
-        public DesignDocument DrawBasePlate1(PaintBoothModel model)
+        public const double CutY = 127;
+        public const double CutX = 137;
+        public const double HoleD = 8;
+        public const double HoleDY1 = CutY / 2 + 16;   // 79.5
+        public const double Cut1Y = 834.5;           // (CHECK which end)
+        public const double Cut2Y = Cut1Y + CutY + 675;
+        // after
+        public DesignDocument DrawBasePlate1(PaintBoothModel model, string name, double length)
         {
             DesignDocument design = new DesignDocument();
             design.Units = linearUnitsType.Millimeters;
 
             // ---- Inputs (mm) ----
             //double Depth = (double)model.W; // extrusion along Y - change if base plate depth differs
-            double Depth = 2318;
+            double Depth = length;
             double ApexX = 682;   // left end -> bend (horizontal)
             double ApexHeight = 211;   // lip bottom -> bend
             double Lip = 30;    // left turned-down lip
@@ -35,6 +41,10 @@ namespace PaintBooth.Business
             double HoleDia = 8;
             double Hole1Dist = 127;   // along web from left end
             double HolePitch = 460;
+
+
+
+
 
             // ---- Directions in XZ ----
             double a1 = Math.Atan2(ApexHeight - Lip, ApexX);                     // left slope (~14.86°)
@@ -82,9 +92,29 @@ namespace PaintBooth.Business
 
             devDept.Eyeshot.Entities.Region profile = new devDept.Eyeshot.Entities.Region(p, hole1, hole2);
             Brep brepBasePlate = profile.ExtrudeAsBrep(new Vector3D(0, Depth, 0));
-            //brepBasePlate.Translate((model.D), 0, 0);
-            design.Entities.Add(brepBasePlate, Color.Gold);
+            //design.Entities.Add(brepBasePlate, Color.YellowGreen);
+            
 
+            double ZLo = -10, ZH = ApexHeight + FH + 30;   // tools run through full height
+            double HoleD = 8;                   // (CHECK hole size)
+            double HoleX1 = 32;                  // holes above/below cutout
+            double HoleX2 = CutX + 16;           // holes beside cutout (153)
+            double HoleDY1 = CutY / 2 + 16;       // 79.5 -> 159 apart
+            double HoleDY2 = 76 / 2.0;            // 38   -> 76 apart
+
+            Brep result = brepBasePlate;
+            foreach (double yc in CutoutCentres(Depth))
+            {
+                double cy = yc - CutY / 2;   // cutout start
+
+                result = Cut(result, ZBox(-1, cy, CutX + 1, CutY, ZLo, ZH));
+                result = Cut(result, ZHole(HoleX1, yc - HoleDY1, HoleD / 2, ZLo, ZH));
+                result = Cut(result, ZHole(HoleX1, yc + HoleDY1, HoleD / 2, ZLo, ZH));
+                result = Cut(result, ZHole(HoleX2, yc - HoleDY2, HoleD / 2, ZLo, ZH));
+                result = Cut(result, ZHole(HoleX2, yc + HoleDY2, HoleD / 2, ZLo, ZH));
+            }
+
+            design.Entities.Add(result, Color.YellowGreen);
             // ---- Export DWG ----
             var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
 
@@ -99,6 +129,45 @@ namespace PaintBooth.Business
 
             return design;
         }
+
+        private static Brep ZBox(double x, double y, double w, double d, double z0, double h)
+        {
+            var path = new LinearPath(new Point3D[]
+            {
+        new Point3D(x,     y,     z0),
+        new Point3D(x + w, y,     z0),
+        new Point3D(x + w, y + d, z0),
+        new Point3D(x,     y + d, z0),
+        new Point3D(x,     y,     z0)
+            });
+            return new devDept.Eyeshot.Entities.Region(path).ExtrudeAsBrep(new Vector3D(0, 0, h));
+        }
+
+        private static Brep ZHole(double x, double y, double r, double z0, double h)
+        {
+            var circle = new Circle(Plane.XY, new Point3D(x, y, z0), r);
+            return new devDept.Eyeshot.Entities.Region(circle).ExtrudeAsBrep(new Vector3D(0, 0, h));
+        }
+
+        private static Brep Cut(Brep target, Brep tool)
+        {
+            Brep[] diff = Brep.Difference(target, tool);
+            return (diff != null && diff.Length > 0) ? diff[0] : target;
+        }
+        // Cutout centres (local Y) that fit in a plate of this length.
+        public static List<double> CutoutCentres(double length)
+        {
+            var list = new List<double>();
+            foreach (double cy in new[] { Cut1Y, Cut2Y })
+            {
+                double yc = cy + CutY / 2;
+                if (yc + HoleDY1 + HoleD / 2 <= length) list.Add(yc);
+            }
+            return list;
+        }
+
+
+
     }
 }
 

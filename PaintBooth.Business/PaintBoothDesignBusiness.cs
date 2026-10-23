@@ -146,7 +146,7 @@ namespace PaintBooth.Business
             brep.Regen(0.1);
             double massofRectangle = brep.GetMass(mat, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity);
             double Rectangle_Weight = Math.Round(massofRectangle, 3);
-            drawing.Entities.Add(brep, Color.Green);
+            drawing.Entities.Add(brep, Color.LightGray);
 
             LinearPath rail = new LinearPath(new Point3D[]
             {
@@ -167,7 +167,7 @@ namespace PaintBooth.Business
             frame.Regen(0.1);
             double massofFrame = frame.GetMass(mat1, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity1);
             double Frame_Weight = Math.Round(massofFrame, 3);
-            drawing.Entities.Add(frame, Color.Yellow);
+            drawing.Entities.Add(frame, Color.DarkGray);
 
             var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
 
@@ -225,7 +225,7 @@ namespace PaintBooth.Business
             brep.Regen(0.1);
             double massofRectangle = brep.GetMass(mat, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity);
             double Rectangle_Weight = Math.Round(massofRectangle, 3);
-            drawing.Entities.Add(brep, Color.Green);
+            drawing.Entities.Add(brep, Color.LightGray);
 
             LinearPath rail = new LinearPath(new Point3D[]
             {
@@ -248,7 +248,7 @@ namespace PaintBooth.Business
             double massofFrame = frame.GetMass(mat1, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity1);
             double Frame_Weight = Math.Round(massofFrame, 3);
 
-            drawing.Entities.Add(frame, Color.Yellow);
+            drawing.Entities.Add(frame, Color.DarkGray);
 
             
 
@@ -356,7 +356,7 @@ namespace PaintBooth.Business
                     }
                 }
             }
-            drawing.Entities.Add(frame, Color.Yellow);
+            drawing.Entities.Add(frame, Color.DarkGray);
             #region Write files
             var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
 
@@ -410,7 +410,7 @@ namespace PaintBooth.Business
             brep.Regen(0.1);
             double massofRectangle = brep.GetMass(mat, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity);
             double Rectangle_Weight = Math.Round(massofRectangle, 3);
-            drawing.Entities.Add(brep, Color.Green);
+            drawing.Entities.Add(brep, Color.LightGray);
 
             LinearPath rail = new LinearPath(new Point3D[]
             {
@@ -433,7 +433,7 @@ namespace PaintBooth.Business
             frame.Regen(0.1);
             double massofFrame = frame.GetMass(mat1, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity1);
             double Frame_Weight = Math.Round(massofFrame, 3);
-            drawing.Entities.Add(frame, Color.Yellow);
+            drawing.Entities.Add(frame, Color.DarkGray);
 
             #region Write file 
             var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
@@ -490,7 +490,7 @@ namespace PaintBooth.Business
             brep.Regen(0.1);
             double massofRectangle = brep.GetMass(mat, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity);
             double Rectangle_Weight = Math.Round(massofRectangle, 3);
-            drawing.Entities.Add(brep, Color.Green);
+            drawing.Entities.Add(brep, Color.LightGray);
             LinearPath rail = new LinearPath(new Point3D[]
             {
                 new Point3D(0,  0,          0),
@@ -526,7 +526,7 @@ namespace PaintBooth.Business
 
             double massofFrame = frame.GetMass(mat1, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity1);
             double Frame_Weight = Math.Round(massofFrame, 3);
-            drawing.Entities.Add(frame, Color.Yellow);
+            drawing.Entities.Add(frame, Color.DarkGray);
 
             #region Write file 
             var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
@@ -574,7 +574,7 @@ namespace PaintBooth.Business
         //    brep.Regen(0.1);
         //    double massofRectangle = brep.GetMass(mat, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity);
         //    double Rectangle_Weight = Math.Round(massofRectangle, 3);
-        //    drawing.Entities.Add(brep, Color.Green);
+        //    drawing.Entities.Add(brep, Color.LightGray);
 
         //    LinearPath rail = new LinearPath(new Point3D[]
         //    {
@@ -598,7 +598,7 @@ namespace PaintBooth.Business
         //    double massofFrame = frame.GetMass(mat1, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity1);
         //    double Frame_Weight = Math.Round(massofFrame, 3);
         //    D3Panels_weight = Rectangle_Weight + Frame_Weight;
-        //    drawing.Entities.Add(frame, Color.Yellow);
+        //    drawing.Entities.Add(frame, Color.DarkGray);
 
         //    //Added serviceDoor code here 
         //    double doorWidth = model.DoorWidth; // Width of the service door
@@ -911,7 +911,7 @@ namespace PaintBooth.Business
         //    brep.Regen(0.1);
         //    double massofRectangle = brep.GetMass(mat, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity);
         //    double Rectangle_Weight = Math.Round(massofRectangle, 3);
-        //    drawing.Entities.Add(brep, Color.Green);
+        //    drawing.Entities.Add(brep, Color.LightGray);
         //    #endregion
 
         //    #region Panel frame
@@ -933,7 +933,7 @@ namespace PaintBooth.Business
         //    double massofFrame = frame.GetMass(mat1, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity1);
         //    double Frame_Weight = Math.Round(massofFrame, 3);
         //    D3Panels_weight = Rectangle_Weight + Frame_Weight;
-        //    drawing.Entities.Add(frame, Color.Yellow);
+        //    drawing.Entities.Add(frame, Color.DarkGray);
         //    #endregion
 
         //    #region Service door variables
@@ -1146,7 +1146,7 @@ namespace PaintBooth.Business
             brep.Regen(0.1);
             double massofRectangle = brep.GetMass(mat, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity);
             double Rectangle_Weight = Math.Round(massofRectangle, 3);
-            drawing.Entities.Add(brep, Color.Green);
+            drawing.Entities.Add(brep, Color.LightGray);
             #endregion
 
             //    #region Panel frame
@@ -1168,7 +1168,7 @@ namespace PaintBooth.Business
             //    double massofFrame = frame.GetMass(mat1, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity1);
             //    double Frame_Weight = Math.Round(massofFrame, 3);
             //    D3Panels_weight = Rectangle_Weight + Frame_Weight;
-            //    drawing.Entities.Add(frame, Color.Yellow);
+            //    drawing.Entities.Add(frame, Color.DarkGray);
             //    #endregion
             #region Panel frame
             double Frame_Weight;
@@ -1192,7 +1192,7 @@ namespace PaintBooth.Business
                 frame.Regen(0.1);
                 double massofFrame = frame.GetMass(mat1, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity1);
                 Frame_Weight = Math.Round(massofFrame, 3);
-                drawing.Entities.Add(frame, Color.Yellow);
+                drawing.Entities.Add(frame, Color.DarkGray);
             }
             else
             {
@@ -1213,7 +1213,7 @@ namespace PaintBooth.Business
                     var b = new devregion(curves.ToArray()).ExtrudeAsBrep(ext);
                     b.Regen(0.1);
                     fw += b.GetMass(matF, linearUnitsType.Millimeters, massUnitsType.Kilograms, out _);
-                    drawing.Entities.Add(b, Color.Yellow);
+                    drawing.Entities.Add(b, Color.DarkGray);
                 }
 
                 // side flanges (x = 0 and x = D3): slots @200 starting 67 below top
@@ -1376,7 +1376,7 @@ namespace PaintBooth.Business
                     var b = new devregion(new LinearPath(p)).ExtrudeAsBrep(new Vector3D(xb - xa, 0, 0));
                     b.Regen(0.1);
                     Frame_Weight += Math.Round(b.GetMass(matA, linearUnitsType.Millimeters, massUnitsType.Kilograms, out _), 3);
-                    drawing.Entities.Add(b, Color.SteelBlue);
+                    drawing.Entities.Add(b, Color.White);
                 }
 
                 foreach (double zTop in new[] { 190.0, 701, 906 })      // top edges from panel bottom   (CHECK)
@@ -1430,7 +1430,7 @@ namespace PaintBooth.Business
             brep.Regen(0.1);
             double massofRectangle = brep.GetMass(mat, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity);
             double Rectangle_Weight = Math.Round(massofRectangle, 3);
-            drawing.Entities.Add(brep, Color.Green);
+            drawing.Entities.Add(brep, Color.LightGray);
 
             LinearPath rail = new LinearPath(new Point3D[]
             {
@@ -1454,7 +1454,7 @@ namespace PaintBooth.Business
             double massofFrame = frame.GetMass(mat1, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity1);
             double Frame_Weight = Math.Round(massofFrame, 3);
             D3Panels_weight = Rectangle_Weight + Frame_Weight;
-            drawing.Entities.Add(frame, Color.Yellow);
+            drawing.Entities.Add(frame, Color.DarkGray);
             //if (i == 0)
             //{
             //    SavePanelDetails(model, "D3Panels Right side", i, D3Panels_weight);
@@ -2180,7 +2180,7 @@ namespace PaintBooth.Business
                         foreach (double u in new[] { 210.0, w - 210 })
                             if (u > 60 && u < w - 60)
                                 curves.Add(new Circle(new Plane(P(y0, u, H - fromTop, 0), Vector3D.AxisX), 5));
-                    Add(new devregion(curves.ToArray()).ExtrudeAsBrep(new Vector3D(dOut * T, 0, 0)), Color.Green);
+                    Add(new devregion(curves.ToArray()).ExtrudeAsBrep(new Vector3D(dOut * T, 0, 0)), Color.LightGray);
 
                     // ---- side flanges: slots 67 from top, @200 ----
                     var vs = new List<double>();
@@ -2191,7 +2191,7 @@ namespace PaintBooth.Business
                         foreach (double v in vs)
                             c.Add(Loop(P(y0, uf, v - sL / 2, slotC - sW / 2), P(y0, uf, v - sL / 2, slotC + sW / 2),
                                        P(y0, uf, v + sL / 2, slotC + sW / 2), P(y0, uf, v + sL / 2, slotC - sW / 2)));
-                        Add(new devregion(c.ToArray()).ExtrudeAsBrep(new Vector3D(0, T, 0)), Color.Yellow);
+                        Add(new devregion(c.ToArray()).ExtrudeAsBrep(new Vector3D(0, T, 0)), Color.DarkGray);
                     }
 
                     // ---- top / bottom flanges: slots 80 from ends, @200 ----
@@ -2203,7 +2203,7 @@ namespace PaintBooth.Business
                         foreach (double u in us)
                             c.Add(Loop(P(y0, u - sL / 2, vf, slotC - sW / 2), P(y0, u + sL / 2, vf, slotC - sW / 2),
                                        P(y0, u + sL / 2, vf, slotC + sW / 2), P(y0, u - sL / 2, vf, slotC + sW / 2)));
-                        Add(new devregion(c.ToArray()).ExtrudeAsBrep(new Vector3D(0, 0, T)), Color.Yellow);
+                        Add(new devregion(c.ToArray()).ExtrudeAsBrep(new Vector3D(0, 0, T)), Color.DarkGray);
                     }
                 }
 
@@ -2230,7 +2230,7 @@ namespace PaintBooth.Business
                 new Point3D(x,BackPanelLength,EXtractionChemberHeight),//Changed PanelHeight to EXtractionChemberHeight 
                 new Point3D(x,0,EXtractionChemberHeight)
                 });
-            drawing.Entities.Add(rectangle, Color.Green);
+            drawing.Entities.Add(rectangle, Color.LightGray);
             Brep brep = rectangle.ExtrudeAsBrep(SheetThickness);
             //calculate Weight of panels 
             Material mat = Material.StructuralSteel;
@@ -2277,7 +2277,7 @@ namespace PaintBooth.Business
             double massofFrame = frame.GetMass(mat1, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity1);
             double Frame_Weight = Math.Round(massofFrame, 3);
             BackPanel_Weight = Rectangle_Weight + Frame_Weight;
-            drawing.Entities.Add(frame, Color.Yellow);
+            drawing.Entities.Add(frame, Color.DarkGray);
             #region WriteFile
             var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
 
@@ -2319,7 +2319,7 @@ namespace PaintBooth.Business
                 new Point3D(x,BackPanelLength,z),
                 new Point3D(x,0,z)
             });
-            drawing.Entities.Add(rectangle, Color.Green);
+            drawing.Entities.Add(rectangle, Color.LightGray);
 
             Brep brep = rectangle.ExtrudeAsBrep(SheetThickness);
             //calculate Weight of panels 
@@ -2366,7 +2366,7 @@ namespace PaintBooth.Business
             double massofFrame = frame.GetMass(mat1, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity1);
             double Frame_Weight = Math.Round(massofFrame, 3);
             BackPanel_Weight = Rectangle_Weight + Frame_Weight;
-            drawing.Entities.Add(frame, Color.Yellow);
+            drawing.Entities.Add(frame, Color.DarkGray);
 
 
             #region WriteFile
@@ -2505,7 +2505,7 @@ namespace PaintBooth.Business
                 new Point3D(0,FrontPanelLength,FrontPanelHeight),
                 new Point3D(0,0,FrontPanelHeight)
             });
-            drawing.Entities.Add(rectangle, Color.Green);
+            drawing.Entities.Add(rectangle, Color.LightGray);
             Brep brep = rectangle.ExtrudeAsBrep(SheetThickness);
             //calculate Weight of panels 
             Material mat = Material.StructuralSteel;
@@ -2541,7 +2541,7 @@ namespace PaintBooth.Business
             double massofFrame = frame.GetMass(mat1, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity1);
             double Frame_Weight = Math.Round(massofFrame, 3);
             //BackPanel_Weight = Rectangle_Weight + Frame_Weight;
-            drawing.Entities.Add(frame, Color.Yellow);
+            drawing.Entities.Add(frame, Color.DarkGray);
 
 
             #region WriteFile
@@ -2614,7 +2614,7 @@ namespace PaintBooth.Business
             double massofFrame = frame.GetMass(mat1, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity1);
             double Frame_Weight = Math.Round(massofFrame, 3);
             BackPanel_Weight = Rectangle_Weight + Frame_Weight;
-            drawing.Entities.Add(frame, Color.Yellow);
+            drawing.Entities.Add(frame, Color.DarkGray);
             #region WriteFile
             var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
 
@@ -2668,7 +2668,7 @@ namespace PaintBooth.Business
                 new Point3D(0,PanelWidthForFrontDoors,PanelHeightForFrontDoors),
                 new Point3D(0,0,PanelHeightForFrontDoors)
             });
-            drawing.Entities.Add(rectangle, Color.Green);
+            drawing.Entities.Add(rectangle, Color.LightGray);
             Brep brep = rectangle.ExtrudeAsBrep(SheetThickness);
             //calculate Weight of panels 
             Material mat = Material.StructuralSteel;
@@ -2704,7 +2704,7 @@ namespace PaintBooth.Business
             double massofFrame = frame.GetMass(mat1, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double convertedDensity1);
             double Frame_Weight = Math.Round(massofFrame, 3);
             // BackPanel_Weight = Rectangle_Weight + Frame_Weight;
-            drawing.Entities.Add(frame, Color.Yellow);
+            drawing.Entities.Add(frame, Color.DarkGray);
             #region WriteFile
             var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
 
@@ -2876,7 +2876,7 @@ namespace PaintBooth.Business
             TopStructureFrame_Weight = Frame_Weight;
             //SavePanelDetails(model, "TopStructureFrame", k, TopStructureFrame_Weight);
 
-            drawing.Entities.Add(frame, Color.Yellow);
+            drawing.Entities.Add(frame, Color.DarkGray);
             model.CChannelHeight = SettingH;
             var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
             if (!Directory.Exists(path + "/PaintBooth drawing"))
@@ -3023,7 +3023,7 @@ namespace PaintBooth.Business
             SavePanelDetails(model, "BaseStructureFrame", k, BaseFrame_Weight);
 
             GenerateHoles(frame);
-            drawing.Entities.Add(frame, Color.Yellow);
+            drawing.Entities.Add(frame, Color.DarkGray);
             #region WriteFile
             var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
 
@@ -4438,9 +4438,9 @@ namespace PaintBooth.Business
 
             // Add the Bottom Plate with holes to the drawing
 
-            drawing.Entities.Add(leftHoleBrep, Color.Green);
-            drawing.Entities.Add(rightHoleBrep, Color.Green);
-            drawing.Entities.Add(bottomPlateBrep, Color.Green);
+            drawing.Entities.Add(leftHoleBrep, Color.LightGray);
+            drawing.Entities.Add(rightHoleBrep, Color.LightGray);
+            drawing.Entities.Add(bottomPlateBrep, Color.LightGray);
 
             LinearPath bottomPlateClone = (LinearPath)bottomPlate.Clone();
             // Adjust the Y translation for the cloned Bottom Plate
@@ -4468,10 +4468,10 @@ namespace PaintBooth.Business
             }
             totalWeightOfbaffle = totalWeight;
 
-            drawing.Entities.Add(leftHoleClone, Color.Green);
-            drawing.Entities.Add(rightHoleClone, Color.Green);
+            drawing.Entities.Add(leftHoleClone, Color.LightGray);
+            drawing.Entities.Add(rightHoleClone, Color.LightGray);
 
-            drawing.Entities.Add(bottomPlateBrep2, Color.Green);
+            drawing.Entities.Add(bottomPlateBrep2, Color.LightGray);
 
 
 
@@ -4736,7 +4736,7 @@ namespace PaintBooth.Business
 
                 new Text(titleBoxX+(130+20+12.5)*scaleFator,innerY0+((20+7*2+(7/2))*scaleFator),0,checkedBy,(2*scaleFator),Text.alignmentType.MiddleCenter),
                   new Text(titleBoxX+(130+20+12.5)*scaleFator,innerY0+((20+7*3+(7/2))*scaleFator),0,drawnBy,(2*scaleFator),Text.alignmentType.MiddleCenter),
-            }, Color.Green);
+            }, Color.LightGray);
 
             #region BOM         
             //var BOMBox = devregion.CreatePolygon(Plane.XY, new Point2D[]
@@ -6968,7 +6968,7 @@ namespace PaintBooth.Business
             devregion regionduct = devregion.Difference(regionduct1, regionduct2)[0];
             Brep ductbrep = regionduct.ExtrudeAsBrep(300);
             ductbrep.Translate(stepPositionX + 300, stepPositionY - 365, stepPositionZ + 400);
-            //drawing.Entities.Add(ductbrep, Color.Green);
+            //drawing.Entities.Add(ductbrep, Color.LightGray);
 
             Material matduct = Material.StructuralSteel;
             matduct = new Material(Materials);
@@ -7074,7 +7074,7 @@ namespace PaintBooth.Business
             Brep brep = tubelightCut1.ExtrudeAsBrep(SheetThickness);
 
             brep.ExtrudeRemove(tubelightCut, 300);
-            drawing.Entities.Add(brep, Color.Green);
+            drawing.Entities.Add(brep, Color.LightGray);
             //calculate Weight of panels 
             Material mat = Material.StructuralSteel;
             mat = new Material(Materials);
@@ -8005,7 +8005,7 @@ namespace PaintBooth.Business
             drawing = new();
             drawing.Units = linearUnitsType.Millimeters;
             drawing.Layers.Add(new Layer("CivilTank", Color.WhiteSmoke));
-            drawing.Layers.Add(new Layer("ZigZag", Color.GreenYellow));
+            drawing.Layers.Add(new Layer("ZigZag", Color.DarkGray));
             drawing.Layers.Add(new Layer("Rectangle", Color.White));
             drawing.Layers.Add(new Layer("SmallRectangle", Color.YellowGreen));
             #endregion

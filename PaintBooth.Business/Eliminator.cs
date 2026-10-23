@@ -80,17 +80,17 @@ namespace PaintBooth.Business
             AddExtrude(design, legOut, W - AngSide - AngT, AngT);
             AddExtrude(design, legFlat, W - AngSide - AngLeg, AngLeg - AngT);
 
-            // ================= Export DWG =================
-            var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
+            //// ================= Export DWG =================
+            //var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
 
-            if (!Directory.Exists(path + "/PaintBooth drawing"))
-                Directory.CreateDirectory(path + "/PaintBooth drawing");
+            //if (!Directory.Exists(path + "/PaintBooth drawing"))
+            //    Directory.CreateDirectory(path + "/PaintBooth drawing");
 
-            string dwgFilePath = $"{path}/PaintBooth drawing/{name} {DateTime.Now:hh - mm}.dwg";
+            //string dwgFilePath = $"{path}/PaintBooth drawing/{name} {DateTime.Now:hh - mm}.dwg";
 
-            WriteAutodeskParams auto = new WriteAutodeskParams(design);
-            WriteAutodesk dwgg1 = new WriteAutodesk(auto, dwgFilePath);
-            dwgg1.DoWork();
+            //WriteAutodeskParams auto = new WriteAutodeskParams(design);
+            //WriteAutodesk dwgg1 = new WriteAutodesk(auto, dwgFilePath);
+            //dwgg1.DoWork();
 
             return design;
         }
@@ -102,7 +102,7 @@ namespace PaintBooth.Business
         {
             Brep b = r.ExtrudeAsBrep(new Vector3D(0, len, 0));
             b.Translate(0, y0, 0);
-            design.Entities.Add(b, Color.BurlyWood);
+            design.Entities.Add(b, Color.LightPink);
         }
     }
 }

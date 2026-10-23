@@ -22,15 +22,17 @@ namespace PaintBooth.Models
             var s = new ExhaustDuctingSummary();
             if (rows == null) return s;
 
-            bool horizontal = false;
+            bool horizontal = false;      // fallback for old rows with no orientation saved
             decimal totalLenMm = 0;
 
             foreach (var r in rows.OrderBy(x => x.DuctId))
             {
+                var dir = (r.BendDirection ?? "").Trim().ToLower();
+
                 if (string.Equals(r.BendType, "Bend", StringComparison.OrdinalIgnoreCase))
                 {
                     s.TotalBendCount++;
-                    switch ((r.BendDirection ?? "").Trim().ToLower())
+                    switch (dir)
                     {
                         case "left":
                         case "right": horizontal = true; break;
@@ -41,7 +43,14 @@ namespace PaintBooth.Models
                 else
                 {
                     s.TotalDuctCount++;
-                    if (horizontal) s.HorizontalDuctCount++; else s.VerticalDuctCount++;
+
+                    // Duct rows store Vertical / Horizontal in BendDirection
+                    bool isHorizontal = dir == "horizontal" ? true
+                                      : dir == "vertical" ? false
+                                      : horizontal;          // old records → infer from previous bend
+                    horizontal = isHorizontal;               // keep the run direction in sync
+
+                    if (isHorizontal) s.HorizontalDuctCount++; else s.VerticalDuctCount++;
                     if (s.Thickness == 0) s.Thickness = r.DuctThickness;
                     totalLenMm += r.DuctLength ?? 0;
                 }

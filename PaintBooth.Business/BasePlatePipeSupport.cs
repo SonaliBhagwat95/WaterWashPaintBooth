@@ -186,12 +186,12 @@ namespace PaintBooth.Business
     };
             AddExtrude(design, new devDept.Eyeshot.Entities.Region(tab.ToArray()), new Vector3D(T, 0, 0));
 
-            // ================= Export DWG =================
-            var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
-            if (!Directory.Exists(path + "/PaintBooth drawing"))
-                Directory.CreateDirectory(path + "/PaintBooth drawing");
-            string dwgFilePath = $"{path}/PaintBooth drawing/BasePlatePipeSupport {DateTime.Now:hh - mm}.dwg";
-            new WriteAutodesk(new WriteAutodeskParams(design), dwgFilePath).DoWork();
+            //// ================= Export DWG =================
+            //var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
+            //if (!Directory.Exists(path + "/PaintBooth drawing"))
+            //    Directory.CreateDirectory(path + "/PaintBooth drawing");
+            //string dwgFilePath = $"{path}/PaintBooth drawing/BasePlatePipeSupport {DateTime.Now:hh - mm}.dwg";
+            //new WriteAutodesk(new WriteAutodeskParams(design), dwgFilePath).DoWork();
 
             return design;
         }
@@ -235,7 +235,7 @@ namespace PaintBooth.Business
         private static void AddExtrude(DesignDocument design, devDept.Eyeshot.Entities.Region r,
                                        Vector3D dir, Color? color = null)
         {
-            design.Entities.Add(r.ExtrudeAsBrep(dir), color ?? Color.BurlyWood);
+            design.Entities.Add(r.ExtrudeAsBrep(dir), color ?? Color.DarkGray);
         }
     }
 }

@@ -115,22 +115,41 @@ namespace PaintBooth.Business
             h.Add(H3);
             HookTopX = H1.X;          // hook top corner (centreline), local coords
             HookTopZ = H1.Z;
+            //Thicken(h, T / 2.0, out var hL, out var hR);
+
+            //int hEnd = h.Count - 1;
+            //AddPiece(design, hL, hR, 0, hEnd, EndCut, SlotStart);
+            //AddPiece(design, hL, hR, 0, hEnd, SlotStart + SlotW, Length - EndCut);
+            HookTopX = H1.X;          // hook top corner (centreline), local coords
+            HookTopZ = H1.Z;
             Thicken(h, T / 2.0, out var hL, out var hR);
+
             int hEnd = h.Count - 1;
-            AddPiece(design, hL, hR, 0, hEnd, EndCut, SlotStart);
-            AddPiece(design, hL, hR, 0, hEnd, SlotStart + SlotW, Length - EndCut);
+            double slotEnd = SlotStart + SlotW;
 
-            // ================= Export DWG =================
-            var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
+            if (SlotStart > EndCut && slotEnd < Length - EndCut)
+            {
+                // slot fits inside this plate -> two strip pieces
+                AddPiece(design, hL, hR, 0, hEnd, EndCut, SlotStart);
+                AddPiece(design, hL, hR, 0, hEnd, slotEnd, Length - EndCut);
+            }
+            else
+            {
+                // plate too short for the slot -> one continuous strip
+                AddPiece(design, hL, hR, 0, hEnd, EndCut, Length - EndCut);
+            }
 
-            if (!Directory.Exists(path + "/PaintBooth drawing"))
-                Directory.CreateDirectory(path + "/PaintBooth drawing");
+            //// ================= Export DWG =================
+            //var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
 
-            string dwgFilePath = $"{path}/PaintBooth drawing/{name} {DateTime.Now:hh - mm}.dwg";
+            //if (!Directory.Exists(path + "/PaintBooth drawing"))
+            //    Directory.CreateDirectory(path + "/PaintBooth drawing");
 
-            WriteAutodeskParams auto = new WriteAutodeskParams(design);
-            WriteAutodesk dwgg1 = new WriteAutodesk(auto, dwgFilePath);
-            dwgg1.DoWork();
+            //string dwgFilePath = $"{path}/PaintBooth drawing/{name} {DateTime.Now:hh - mm}.dwg";
+
+            //WriteAutodeskParams auto = new WriteAutodeskParams(design);
+            //WriteAutodesk dwgg1 = new WriteAutodesk(auto, dwgFilePath);
+            //dwgg1.DoWork();
 
             return design;
         }
@@ -195,7 +214,7 @@ namespace PaintBooth.Business
             devDept.Eyeshot.Entities.Region profile = new devDept.Eyeshot.Entities.Region(new LinearPath(pts.ToArray()));
             Brep brep = profile.ExtrudeAsBrep(new Vector3D(0, y1 - y0, 0));
             brep.Translate(0, y0, 0);
-            design.Entities.Add(brep, Color.BurlyWood);
+            design.Entities.Add(brep, Color.DarkGray);
         }
     }
 }

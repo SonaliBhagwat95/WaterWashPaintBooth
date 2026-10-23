@@ -41,19 +41,19 @@ namespace PaintBooth.Business
             Brep brepPesection = profile.ExtrudeAsBrep(new Vector3D(0, (double)model.W, 0));
             // top of P-section (Z = H) sits on the underside of the base frame
             brepPesection.Translate(W, 0, zBottom - H);
-            design.Entities.Add(brepPesection, Color.BurlyWood);
-            var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
+            design.Entities.Add(brepPesection, Color.DarkGray);
+            //var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
 
-            if (!Directory.Exists(path + "/PaintBooth drawing"))
-                Directory.CreateDirectory(path + "/PaintBooth drawing");
-            string dwgFilePath = "";
+            //if (!Directory.Exists(path + "/PaintBooth drawing"))
+            //    Directory.CreateDirectory(path + "/PaintBooth drawing");
+            //string dwgFilePath = "";
 
            
-            dwgFilePath = $"{path}/PaintBooth drawing/PSection  {DateTime.Now:hh - mm}.dwg";
+            //dwgFilePath = $"{path}/PaintBooth drawing/PSection  {DateTime.Now:hh - mm}.dwg";
            
-            WriteAutodeskParams auto = new WriteAutodeskParams(design);
-            WriteAutodesk dwgg1 = new WriteAutodesk(auto, dwgFilePath);
-            dwgg1.DoWork();
+            //WriteAutodeskParams auto = new WriteAutodeskParams(design);
+            //WriteAutodesk dwgg1 = new WriteAutodesk(auto, dwgFilePath);
+            //dwgg1.DoWork();
           
             return design;
         }
@@ -108,21 +108,21 @@ namespace PaintBooth.Business
                     b.Translate(start, (double)model.W, zBottom - H);
                 }
 
-                design.Entities.Add(b, Color.BurlyWood);
+                design.Entities.Add(b, Color.DarkGray);
                 start += len;
             }
 
-            // ── Write file ──────────────────────────────────────────────
-            string basePath = _configuration["FolderPathConfig:DrawingPath"];
-            string folder = Path.Combine(basePath, "PaintBooth drawing");
-            Directory.CreateDirectory(folder);
+            //// ── Write file ──────────────────────────────────────────────
+            //string basePath = _configuration["FolderPathConfig:DrawingPath"];
+            //string folder = Path.Combine(basePath, "PaintBooth drawing");
+            //Directory.CreateDirectory(folder);
 
-            string side = farSide ? "Right" : "Left";
-            string dwgFilePath = Path.Combine(folder, $"QSection_{side}_{DateTime.Now:yyyyMMdd_HHmmss}.dwg");
+            //string side = farSide ? "Right" : "Left";
+            //string dwgFilePath = Path.Combine(folder, $"QSection_{side}_{DateTime.Now:yyyyMMdd_HHmmss}.dwg");
 
-            WriteAutodeskParams auto = new WriteAutodeskParams(design);
-            WriteAutodesk dwg = new WriteAutodesk(auto, dwgFilePath);
-            dwg.DoWork();
+            //WriteAutodeskParams auto = new WriteAutodeskParams(design);
+            //WriteAutodesk dwg = new WriteAutodesk(auto, dwgFilePath);
+            //dwg.DoWork();
 
             return design;
         }
@@ -158,19 +158,19 @@ namespace PaintBooth.Business
             Brep brepPesection = channel.ExtrudeAsBrep(new Vector3D(0, (double)model.W, 0));
             // top of P-section (Z = H) sits on the underside of the base frame
             brepPesection.Translate(totalLength, 0, zBottom - H);
-            design.Entities.Add(brepPesection, Color.BurlyWood);
-            var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
+            design.Entities.Add(brepPesection, Color.DarkGray);
+            //var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
 
-            if (!Directory.Exists(path + "/PaintBooth drawing"))
-                Directory.CreateDirectory(path + "/PaintBooth drawing");
-            string dwgFilePath = "";
+            //if (!Directory.Exists(path + "/PaintBooth drawing"))
+            //    Directory.CreateDirectory(path + "/PaintBooth drawing");
+            //string dwgFilePath = "";
 
 
-            dwgFilePath = $"{path}/PaintBooth drawing/BackQSection  {DateTime.Now:hh - mm}.dwg";
+            //dwgFilePath = $"{path}/PaintBooth drawing/BackQSection  {DateTime.Now:hh - mm}.dwg";
 
-            WriteAutodeskParams auto = new WriteAutodeskParams(design);
-            WriteAutodesk dwgg1 = new WriteAutodesk(auto, dwgFilePath);
-            dwgg1.DoWork();
+            //WriteAutodeskParams auto = new WriteAutodeskParams(design);
+            //WriteAutodesk dwgg1 = new WriteAutodesk(auto, dwgFilePath);
+            //dwgg1.DoWork();
 
             return design;
         }

@@ -90,11 +90,11 @@ namespace PaintBooth.Business
             devDept.Eyeshot.Entities.Region flange = new devDept.Eyeshot.Entities.Region(flangePath);
 
             Brep flangeL = flange.ExtrudeAsBrep(new Vector3D(0, T, 0));
-            design.Entities.Add(flangeL, Color.BurlyWood);
+            design.Entities.Add(flangeL, Color.Brown);
 
             Brep flangeR = flange.ExtrudeAsBrep(new Vector3D(0, T, 0));
             flangeR.Translate(0, W - T, 0);
-            design.Entities.Add(flangeR, Color.BurlyWood);
+            design.Entities.Add(flangeR, Color.Brown);
 
             // ================= 4. HANGER STRIPS + spacers + nuts =================
             double xStrip0 = T + StripGap;           // strip back face
@@ -130,17 +130,17 @@ namespace PaintBooth.Business
                 }
             }
 
-            // ================= Export DWG =================
-            var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
+            //// ================= Export DWG =================
+            //var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
 
-            if (!Directory.Exists(path + "/PaintBooth drawing"))
-                Directory.CreateDirectory(path + "/PaintBooth drawing");
+            //if (!Directory.Exists(path + "/PaintBooth drawing"))
+            //    Directory.CreateDirectory(path + "/PaintBooth drawing");
 
-            string dwgFilePath = $"{path}/PaintBooth drawing/{name} {DateTime.Now:hh - mm}.dwg";
+            //string dwgFilePath = $"{path}/PaintBooth drawing/{name} {DateTime.Now:hh - mm}.dwg";
 
-            WriteAutodeskParams auto = new WriteAutodeskParams(design);
-            WriteAutodesk dwgg1 = new WriteAutodesk(auto, dwgFilePath);
-            dwgg1.DoWork();
+            //WriteAutodeskParams auto = new WriteAutodeskParams(design);
+            //WriteAutodesk dwgg1 = new WriteAutodesk(auto, dwgFilePath);
+            //dwgg1.DoWork();
 
             return design;
         }
@@ -161,7 +161,7 @@ namespace PaintBooth.Business
                                        double x0, double len, Color? color = null)
         {
             Brep b = r.ExtrudeAsBrep(new Vector3D(len, 0, 0));
-            design.Entities.Add(b, color ?? Color.BurlyWood);
+            design.Entities.Add(b, color ?? Color.DarkGray);
         }
     }
 }
