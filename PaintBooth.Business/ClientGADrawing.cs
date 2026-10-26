@@ -44,6 +44,18 @@ namespace PaintBooth.Business
         public string CompanyLine1 { get; set; } = "Bullows Paint";
         public string CompanyLine2 { get; set; } = "Eqpt. Pvt. Ltd.";
         public string CompanyLine3 { get; set; } = "(THANE-400604)";
+        public double WallDistance { get; set; }
+        public double WallThickness { get; set; } = 250;      // client sheet shows 250 brick wall
+        public double DuctHeightFromFFL { get; set; }
+        public double DuctTopZ { get; set; }
+        public double DuctCutZ { get; set; }
+        public double DuctCutSize { get; set; }
+        public double BoothDepth { get; set; }
+        public double ECDepth { get; set; }
+        public double DuctMaxX { get; set; }      // furthest X of the duct run (original model coords)
+        public double BoothWidth { get; set; }      // model.W
+        public int DuctRuns { get; set; } = 1;      // one run per transition piece
+        public double WallMargin { get; set; } = 500;   // how far the wall extends past the booth sides
     }
 
     public class GAScopeItem
@@ -103,7 +115,6 @@ namespace PaintBooth.Business
             ext["ELEV"] = (lx, lz);
             ext["SIDE"] = (ly, lz);
             #endregion
-
             #region 2. Scale + layout (plan above elevation, side view right of elevation)
             const double DIMROOM = 38;     // room for 2 dimension tiers + text on ONE side of a view
             const double TITLEROOM = 45;   // bottom dimensions + view title under a view
@@ -190,7 +201,11 @@ namespace PaintBooth.Business
             if (views.ContainsKey("ELEV")) FloorLine("ELEV", markerLeft: true);
             if (views.ContainsKey("SIDE")) FloorLine("SIDE", markerLeft: false);
             DrawElevationDecor(doc, m, info);
-            NamePlate(doc, m, info);          // ← here
+            if (views.ContainsKey("ELEV")) AddWallAndFflDims(sheet.Entities, info, ElevToSheet);
+            if (views.ContainsKey("ELEV")) AddEcHeightDim(sheet.Entities, info, ElevToSheet);
+            if (views.ContainsKey("PLAN")) AddWallPlan(sheet.Entities, info, PlanToSheet);
+            if (views.ContainsKey("SIDE")) AddWallSide(sheet.Entities, info, SideToSheet);
+            NamePlate(doc, m, info);
             DrawBalloons(info);
 
             ViewTitle("PLAN", "PLAN");
@@ -215,6 +230,15 @@ namespace PaintBooth.Business
             //   If your edition needs a different call, only this line changes.
             var v = new VectorView(at.X, at.Y, vt, scale, name);
             sheet.Entities.Add(v);
+        }
+        /// ORIGINAL model point → sheet point on the ELEVATION view.
+        /// The model was turned 180° about Z around c, so X is mirrored; Z is unchanged.
+        private Point2D ElevToSheet(Point3D p)
+        {
+            var v = views["ELEV"];
+            double sc = v.Scale;
+            return new Point2D(v.X + (c.X - p.X) * sc,
+                               v.Y + (p.Z - c.Z) * sc);
         }
 
         /// <summary>ORIGINAL model point (before the 180° turn) → sheet point in a given view.</summary>
@@ -245,6 +269,257 @@ namespace PaintBooth.Business
         }
         #endregion
 
+        /// ORIGINAL model point → sheet point on the PLAN view.
+        /// Model was turned 180° about Z around c → both X and Y are mirrored.
+        private Point2D PlanToSheet(Point3D p)
+        {
+            var v = views["PLAN"];
+            double sc = v.Scale;
+            return new Point2D(v.X + (c.X - p.X) * sc,
+                               v.Y + (c.Y - p.Y) * sc);
+        }
+
+  
+        /// <summary>
+        /// Plan view: brick wall strip at (EC rear + WallDistance) with a gap per duct run,
+        /// "xxx Sq. C/S" label beside each cut-out and the "1000" From-wall dimension.
+        /// toSheet = ORIGINAL model point → sheet point on the PLAN view (handles the 180° turn).
+        /// </summary>
+        private void AddWallPlan(IList<Entity> ents, ClientGAInfo info,
+                                 Func<Point3D, Point2D> toSheet, string layer = null)
+        {
+            if (info.WallDistance <= 0) return;
+            layer ??= LDim;
+
+            double txt = 2.5, off = 8, arr = 1.5;
+            double ecRear = info.BoothDepth + info.ECDepth;
+            double wx0 = ecRear + info.WallDistance;          // inner face
+            double wx1 = wx0 + info.WallThickness;            // outer face
+            double W = info.BoothWidth;
+            double y0 = -info.WallMargin, y1 = W + info.WallMargin;
+            double cut = info.DuctCutSize;
+            int runs = Math.Max(1, info.DuctRuns);
+
+            #region helpers
+            Point2D P(double x, double y) => toSheet(new Point3D(x, y, 0));
+
+            void L(Point2D a, Point2D b, Color? col = null)
+            {
+                var ln = new Line(a.X, a.Y, b.X, b.Y) { LayerName = layer };
+                if (col.HasValue) { ln.Color = col.Value; ln.ColorMethod = colorMethodType.byEntity; }
+                ents.Add(ln);
+            }
+
+            void Arrow(Point2D tip, double dx, double dy)               // (dx,dy) = pointing direction
+            {
+                double bx = tip.X - dx * arr, by = tip.Y - dy * arr;
+                L(tip, new Point2D(bx - dy * arr * 0.35, by + dx * arr * 0.35));
+                L(tip, new Point2D(bx + dy * arr * 0.35, by - dx * arr * 0.35));
+            }
+
+            void T(Point2D at, string s, Text.alignmentType al) =>
+                ents.Add(new Text(at.X, at.Y, 0, s, txt, al) { LayerName = layer });
+
+            // vertical text (reads bottom → top); bodyLeft = text body extends to the LEFT of 'at'
+            void TV(Point2D at, string s, bool bodyLeft)
+            {
+                var al = bodyLeft ? Text.alignmentType.BottomCenter : Text.alignmentType.TopCenter;
+                var pl = new Plane(new Point3D(at.X, at.Y, 0), Vector3D.AxisY, new Vector3D(-1, 0, 0));
+                ents.Add(new Text(pl, new Point3D(at.X, at.Y, 0), s, txt) { LayerName = layer, Alignment = al });
+            }
+            #endregion
+
+            #region wall strip with gaps at the duct runs
+            var red = Color.SaddleBrown;
+
+            // gaps along Y (one per run), sorted
+            var gaps = new List<(double a, double b)>();
+            if (info.DuctCutZ > 0 && cut > 0)
+            {
+                double pieceW = W / runs;
+                for (int s = 0; s < runs; s++)
+                {
+                    double yc = s * pieceW + pieceW / 2;
+                    gaps.Add((yc - cut / 2, yc + cut / 2));
+                }
+            }
+
+            void WallBand(double ya, double yb)
+            {
+                if (yb - ya < 1) return;
+                var a = P(wx0, ya); var b = P(wx1, ya); var c2 = P(wx1, yb); var d = P(wx0, yb);
+                L(a, b, red); L(b, c2, red); L(c2, d, red); L(d, a, red);
+
+                int course = 0;
+                for (double y = ya + 150; y < yb; y += 150, course++)   // brick joints along the wall
+                {
+                    L(P(wx0, y), P(wx1, y), red);
+                    double jx = wx0 + info.WallThickness * (course % 2 == 0 ? 0.5 : 0.25);
+                    L(P(jx, y), P(jx, Math.Min(y + 150, yb)), red);
+                }
+            }
+
+            double cur = y0;
+            foreach (var g in gaps.OrderBy(g => g.a))
+            {
+                WallBand(cur, g.a);
+                cur = g.b;
+            }
+            WallBand(cur, y1);
+            #endregion
+
+            // sheet direction inner → outer face (handles the mirror)
+            double sgnX = Math.Sign(P(wx1, 0).X - P(wx0, 0).X);
+            if (sgnX == 0) sgnX = 1;
+
+            #region "xxx Sq. C/S" beside each cut-out (outer side, text body away from the wall)
+            foreach (var g in gaps)
+            {
+                double ym = (g.a + g.b) / 2;
+                TV(new Point2D(P(wx1, ym).X + sgnX * 2, P(wx1, ym).Y), $"{cut:0} Sq. C/S", bodyLeft: sgnX < 0);
+            }
+            #endregion
+
+            #region "1000" From-wall dimension under the booth edge
+            // put it on the sheet-bottom side of the booth
+            double yEdge = P(ecRear, 0).Y < P(ecRear, W).Y ? 0 : W;
+            var e0 = P(ecRear, yEdge); var e1 = P(wx0, yEdge);
+            double yd = Math.Min(e0.Y, e1.Y) - off * 2;
+
+            L(e0, new Point2D(e0.X, yd - 2)); L(e1, new Point2D(e1.X, yd - 2));
+            L(new Point2D(e0.X, yd), new Point2D(e1.X, yd));
+            Arrow(new Point2D(e0.X, yd), e0.X < e1.X ? -1 : 1, 0);
+            Arrow(new Point2D(e1.X, yd), e0.X < e1.X ? 1 : -1, 0);
+            T(new Point2D((e0.X + e1.X) / 2, yd + 1), $"{info.WallDistance:0}", Text.alignmentType.BottomCenter);
+            #endregion
+        }
+
+        /// <summary>
+        /// Elevation: "xxxx / E/C height" vertical dimension just outside the EC rear face.
+        /// Value on the EC side of the line, label on the wall side — never on top of the line.
+        /// </summary>
+        private void AddEcHeightDim(IList<Entity> ents, ClientGAInfo info,
+                                    Func<Point3D, Point2D> toSheet, string layer = null)
+        {
+            if (info.ExtractionHeight <= 0) return;
+            layer ??= LDim;
+
+            double txt = 2.5, arr = 1.5, off = 8;
+            double ecRear = info.BoothDepth + info.ECDepth;
+
+            Point2D P(double x, double z) => toSheet(new Point3D(x, 0, z));
+            void L(Point2D a, Point2D b) => ents.Add(new Line(a.X, a.Y, b.X, b.Y) { LayerName = layer });
+            void Arrow(Point2D tip, double dx, double dy)
+            {
+                double bx = tip.X - dx * arr, by = tip.Y - dy * arr;
+                L(tip, new Point2D(bx - dy * arr * 0.35, by + dx * arr * 0.35));
+                L(tip, new Point2D(bx + dy * arr * 0.35, by - dx * arr * 0.35));
+            }
+            void TV(Point2D at, string s, bool bodyLeft)
+            {
+                var al = bodyLeft ? Text.alignmentType.BottomCenter : Text.alignmentType.TopCenter;
+                var pl = new Plane(new Point3D(at.X, at.Y, 0), Vector3D.AxisY, new Vector3D(-1, 0, 0));
+                ents.Add(new Text(pl, new Point3D(at.X, at.Y, 0), s, txt) { LayerName = layer, Alignment = al });
+            }
+
+            double sgn = Math.Sign(P(ecRear + 100, 0).X - P(ecRear, 0).X);   // EC → wall direction on sheet
+            if (sgn == 0) sgn = 1;
+
+            var b0 = P(ecRear, 0);
+            var b1 = P(ecRear, info.ExtractionHeight);
+            double xd = b0.X + sgn * off;
+
+            L(b1, new Point2D(xd + sgn * 2, b1.Y));
+            L(new Point2D(xd, b0.Y), new Point2D(xd, b1.Y));
+            Arrow(new Point2D(xd, b0.Y), 0, -1);
+            Arrow(new Point2D(xd, b1.Y), 0, 1);
+
+            double midY = (b0.Y + b1.Y) / 2;
+            TV(new Point2D(xd - sgn * 1, midY), $"{info.ExtractionHeight:0}", bodyLeft: sgn > 0);   // EC side
+            TV(new Point2D(xd + sgn * 1, midY), "E/C height", bodyLeft: sgn < 0);                  // wall side
+        }
+        /// ORIGINAL model point → sheet point on the SIDE (R.H.) view.
+        /// Horizontal on the sheet = model Y, vertical = Z. The wall/duct layout is symmetric about
+        /// the booth centre in Y, so the Y direction sign does not change the result.
+        private Point2D SideToSheet(Point3D p)
+        {
+            var v = views["SIDE"];
+            double sc = v.Scale;
+            return new Point2D(v.X + (p.Y - c.Y) * sc,
+                               v.Y + (p.Z - c.Z) * sc);
+        }
+        /// <summary>
+        /// Side view: red brick courses on the parts of the site wall visible behind the booth —
+        /// the strips beyond each booth side and the band above the booth roof (skipping duct cut-outs).
+        /// The wall outline itself comes from the 3D SiteWall projection.
+        /// </summary>
+        private void AddWallSide(IList<Entity> ents, ClientGAInfo info,
+                                 Func<Point3D, Point2D> toSheet, string layer = null)
+        {
+            if (info.WallDistance <= 0) return;
+            layer ??= LDim;
+
+            double W = info.BoothWidth;
+            double bend = Math.Max(0, (info.OverallWidth - W) / 2);
+            double yB0 = -bend, yB1 = W + bend;                       // booth silhouette in Y
+            double boothTop = info.OverallHeight;                      // booth silhouette top
+            double y0 = -info.WallMargin, y1 = W + info.WallMargin;    // wall extent
+            double topH = info.DuctHeightFromFFL > 0 ? info.DuctHeightFromFFL : info.DuctTopZ;
+            double wallTop = Math.Max(topH, info.DuctTopZ) + 300;      // same as 3D wall
+
+            // duct cut-outs (Y range + Z range) — no bricks inside them
+            var cuts = new List<(double ya, double yb, double za, double zb)>();
+            if (info.DuctCutZ > 0 && info.DuctCutSize > 0)
+            {
+                int runs = Math.Max(1, info.DuctRuns);
+                double pieceW = W / runs, h = info.DuctCutSize / 2;
+                for (int s = 0; s < runs; s++)
+                {
+                    double yc = s * pieceW + pieceW / 2;
+                    cuts.Add((yc - h, yc + h, info.DuctCutZ - h, info.DuctCutZ + h));
+                }
+            }
+
+            Point2D P(double y, double z) => toSheet(new Point3D(0, y, z));
+            void L(double ya, double za, double yb, double zb)
+            {
+                var a = P(ya, za); var b = P(yb, zb);
+                ents.Add(new Line(a.X, a.Y, b.X, b.Y)
+                { LayerName = layer, Color = Color.SaddleBrown, ColorMethod = colorMethodType.byEntity });
+            }
+
+            // horizontal course line from ya→yb at height z, broken around any cut-out at that height
+            void Course(double ya, double yb, double z)
+            {
+                double cur = ya;
+                foreach (var c2 in cuts.Where(k => z > k.za && z < k.zb && k.yb > ya && k.ya < yb).OrderBy(k => k.ya))
+                {
+                    if (c2.ya > cur) L(cur, z, c2.ya, z);
+                    cur = Math.Max(cur, c2.yb);
+                }
+                if (yb > cur) L(cur, z, yb, z);
+            }
+
+            bool InCut(double y, double z) => cuts.Any(k => y > k.ya && y < k.yb && z > k.za && z < k.zb);
+
+            // brick courses (75 high) with staggered vertical joints (230 long) inside a rectangle
+            void Bricks(double ya, double yb, double za, double zb)
+            {
+                if (yb - ya < 1 || zb - za < 1) return;
+                int course = 0;
+                for (double z = za + 75; z < zb; z += 75, course++)
+                {
+                    Course(ya, yb, z);
+                    double start = ya + (course % 2 == 0 ? 0 : 115);
+                    for (double y = start + 230; y < yb; y += 230)
+                        if (!InCut(y, z + 37)) L(y, z, y, Math.Min(z + 75, zb));
+                }
+            }
+
+            Bricks(y0, yB0, 0, wallTop);              // strip beyond one booth side
+            Bricks(yB1, y1, 0, wallTop);              // strip beyond the other side
+            Bricks(yB0, yB1, boothTop, wallTop);      // band above the booth roof
+        }
         #region Dimensions (client style)
         private void DrawDimensions(PaintBoothModel m, ClientGAInfo info, double topOfBlowerZ)
         {
@@ -290,11 +565,11 @@ namespace PaintBooth.Business
                 DimV("ELEV", new Point3D(0, 0, 0), new Point3D(0, 0, H), b.R + 10, "Working height");
                 DimV("ELEV", new Point3D(0, 0, 0), new Point3D(0, 0, Hov), b.R + 20, "");
 
-                // left = E/C side
-                double xl = xs[^1];
-                if (hasEC && ECh > 0)
-                    DimV("ELEV", new Point3D(xl, 0, 0), new Point3D(xl, 0, ECh), b.L - 10, "E/C height");
-                DimV("ELEV", new Point3D(xl, 0, 0), new Point3D(xl, 0, topOfBlowerZ), b.L - 20, "Approx. from FFL");
+                // left = E/C side → now drawn next to the EC / wall by AddEcHeightDim + AddWallAndFflDims
+                //double xl = xs[^1];
+                //if (hasEC && ECh > 0)
+                //    DimV("ELEV", new Point3D(xl, 0, 0), new Point3D(xl, 0, ECh), b.L - 10, "E/C height");
+                //DimV("ELEV", new Point3D(xl, 0, 0), new Point3D(xl, 0, topOfBlowerZ), b.L - 20, "Approx. from FFL");
             }
             #endregion
 
@@ -463,8 +738,8 @@ namespace PaintBooth.Business
                 // red leader + red target dot (drawn first, balloon sits on top)
                 double dx = t.X - cc.X, dy = t.Y - cc.Y, len = Math.Sqrt(dx * dx + dy * dy);
                 if (len > r)
-                    AddC(new Line(cc.X + dx / len * r, cc.Y + dy / len * r, t.X, t.Y), LBal, Color.Red);
-                FillDisc(t.X, t.Y, 1.0, Color.Red, Color.Red, 0);
+                    AddC(new Line(cc.X + dx / len * r, cc.Y + dy / len * r, t.X, t.Y), LBal, Color.SaddleBrown);
+                FillDisc(t.X, t.Y, 1.0, Color.SaddleBrown, Color.Red, 0);
 
                 // shaded ball
                 FillDisc(cc.X, cc.Y, r, dark, light, 0.35);
@@ -772,7 +1047,138 @@ namespace PaintBooth.Business
             Label(view, new Point3D(D - 30, 0, 150), new Point3D(D - 450, 0, 300), "Primary (Metal Baffle)");
             Label(view, new Point3D((fx0 + fx1) / 2, 0, 80), new Point3D(D - 450, 0, 120), "Secondary (P.A. filter)");
         }
+        /// <summary>
+        /// Client-style elevation extras: brick wall with duct cut-out, "Wall C/O" label,
+        /// "xxxx Approx. from FFL" at the cut-out and at the top of the duct,
+        /// and bottom dims: 250 | 1000 From wall | overall APPROX.
+        /// toSheet = the SAME model→sheet mapping the ELEV balloons use.
+        /// </summary>
+        /// <summary>
+        /// Client-style elevation extras: brick wall with duct cut-out, "Wall C/O" label,
+        /// "xxxx Approx. from FFL" at the cut-out and at the top of the duct,
+        /// and bottom dims: 250 | 1000 From wall | overall APPROX.
+        /// toSheet = ORIGINAL model point → sheet point on the ELEV view (handles the 180° turn).
+        /// </summary>
+        /// <summary>
+        /// Client-style elevation extras: brick wall with duct cut-out, "Wall C/O" label,
+        /// "xxxx Approx. from FFL" at the cut-out and at the top of the duct,
+        /// and bottom dims: 250 | 1000 From wall | overall APPROX.
+        /// toSheet = ORIGINAL model point → sheet point on the ELEV view (handles the 180° turn).
+        /// </summary>
+        private void AddWallAndFflDims(IList<Entity> ents, ClientGAInfo info,
+                                       Func<Point3D, Point2D> toSheet, string layer = null)
+        {
+            if (info.WallDistance <= 0) return;
+            layer ??= LDim;
 
+            double txt = 2.5, off = 8, arr = 1.5;                       // paper mm
+            double ecRear = info.BoothDepth + info.ECDepth;
+            double wx0 = ecRear + info.WallDistance;                    // inner face (booth side)
+            double wx1 = wx0 + info.WallThickness;                      // outer face (duct side)
+            double topH = info.DuctHeightFromFFL > 0 ? info.DuctHeightFromFFL : info.DuctTopZ;
+            double wallTop = Math.Max(topH, info.DuctTopZ) + 300;
+
+            double cut = info.DuctCutSize, cz0 = 0, cz1 = 0;
+            bool hasCut = info.DuctCutZ > 0 && cut > 0;
+            if (hasCut) { cz0 = info.DuctCutZ - cut / 2; cz1 = info.DuctCutZ + cut / 2; }
+
+            #region helpers
+            Point2D P(double x, double z) => toSheet(new Point3D(x, 0, z));
+
+            void L(Point2D a, Point2D b, Color? col = null)
+            {
+                var ln = new Line(a.X, a.Y, b.X, b.Y) { LayerName = layer };
+                if (col.HasValue) { ln.Color = col.Value; ln.ColorMethod = colorMethodType.byEntity; }
+                ents.Add(ln);
+            }
+            void Arrow(Point2D tip, double dx, double dy)
+            {
+                double bx = tip.X - dx * arr, by = tip.Y - dy * arr;
+                L(tip, new Point2D(bx - dy * arr * 0.35, by + dx * arr * 0.35));
+                L(tip, new Point2D(bx + dy * arr * 0.35, by - dx * arr * 0.35));
+            }
+            void T(Point2D at, string s, Text.alignmentType al) =>
+                ents.Add(new Text(at.X, at.Y, 0, s, txt, al) { LayerName = layer });
+
+            // vertical text (reads bottom → top). bodyLeft = text body extends to the LEFT of 'at';
+            // centred = centred on 'at' vertically, otherwise starts at 'at' and runs upward.
+            void TV(Point2D at, string s, bool bodyLeft, bool centred = true)
+            {
+                var al = bodyLeft
+                    ? (centred ? Text.alignmentType.BottomCenter : Text.alignmentType.BottomLeft)
+                    : (centred ? Text.alignmentType.TopCenter : Text.alignmentType.TopLeft);
+                var pl = new Plane(new Point3D(at.X, at.Y, 0), Vector3D.AxisY, new Vector3D(-1, 0, 0));
+                ents.Add(new Text(pl, new Point3D(at.X, at.Y, 0), s, txt) { LayerName = layer, Alignment = al });
+            }
+            #endregion
+
+            #region brick wall (red), split around the cut-out
+            var red = Color.SaddleBrown;
+            void WallBand(double z0, double z1)
+            {
+                if (z1 - z0 < 1) return;
+                var a = P(wx0, z0); var b = P(wx1, z1);
+                L(a, new Point2D(b.X, a.Y), red); L(new Point2D(b.X, a.Y), b, red);
+                L(b, new Point2D(a.X, b.Y), red); L(new Point2D(a.X, b.Y), a, red);
+
+                int course = 0;
+                for (double z = z0 + 75; z < z1; z += 75, course++)
+                {
+                    L(P(wx0, z), P(wx1, z), red);
+                    double jx = wx0 + info.WallThickness * (course % 2 == 0 ? 0.33 : 0.66);
+                    L(P(jx, z), P(jx, Math.Min(z + 75, z1)), red);
+                }
+            }
+            if (hasCut) { WallBand(0, cz0); WallBand(cz1, wallTop); }
+            else WallBand(0, wallTop);
+            #endregion
+
+            // sheet direction inner → outer face (handles the 180° mirror); outward text goes to this side
+            double sgn = Math.Sign(P(wx1, 0).X - P(wx0, 0).X);
+            if (sgn == 0) sgn = 1;
+            bool outLeft = sgn < 0;
+
+            #region "xxx SQ. Wall C/O" — along the wall's outer face, ABOVE the cut-out (clear of the duct)
+            if (hasCut)
+                TV(new Point2D(P(wx1, 0).X + sgn * 1, P(0, cz1 + 60).Y), $"{cut:0} SQ. Wall C/O",
+                   bodyLeft: outLeft, centred: false);
+            #endregion
+
+            #region vertical "Approx. from FFL" dims on the outer side (text on the far side of the line)
+            void VDim(double h, double baseX, double offPaper)
+            {
+                if (h <= 0) return;
+                var b0 = P(baseX, 0); var b1 = P(baseX, h);
+                double xd = b0.X + sgn * offPaper;
+                L(b0, new Point2D(xd + sgn * 2, b0.Y));
+                L(b1, new Point2D(xd + sgn * 2, b1.Y));
+                L(new Point2D(xd, b0.Y), new Point2D(xd, b1.Y));
+                Arrow(new Point2D(xd, b0.Y), 0, -1);
+                Arrow(new Point2D(xd, b1.Y), 0, 1);
+                TV(new Point2D(xd + sgn * 1, (b0.Y + b1.Y) / 2), $"{h:0} Approx. from FFL", bodyLeft: outLeft);
+            }
+            if (hasCut) VDim(info.DuctCutZ, wx1, off * 2);                              // e.g. 2795
+            VDim(topH, Math.Max(info.DuctMaxX, wx1), off * 2);                          // e.g. 15000
+            #endregion
+
+            #region horizontal dims below floor
+            double y1 = P(0, 0).Y - off * 2;            // row 1: 250 | 1000 From wall   (same row as E/C | booth)
+            double y2 = y1 - off * 3.2;                 // row 3: overall — below your existing overall row
+            void HDim(double x0, double x1, double y, string top, string bottom)
+            {
+                var p0 = P(x0, 0); var p1 = P(x1, 0);
+                L(p0, new Point2D(p0.X, y - 2)); L(p1, new Point2D(p1.X, y - 2));
+                L(new Point2D(p0.X, y), new Point2D(p1.X, y));
+                Arrow(new Point2D(p0.X, y), p0.X < p1.X ? -1 : 1, 0);
+                Arrow(new Point2D(p1.X, y), p0.X < p1.X ? 1 : -1, 0);
+                T(new Point2D((p0.X + p1.X) / 2, y + 1), top, Text.alignmentType.BottomCenter);
+                if (bottom != null) T(new Point2D((p0.X + p1.X) / 2, y - 1.5), bottom, Text.alignmentType.TopCenter);
+            }
+            HDim(wx0, wx1, y1, $"{info.WallThickness:0}", null);
+            HDim(ecRear, wx0, y1, $"{info.WallDistance:0}", "From wall");
+            HDim(0, wx0, y2, $"{wx0:0} APPROX.", null);
+            #endregion
+        }
         private void RectM(string view, double x0, double z0, double x1, double z1, string layer)
         {
             LineM(view, x0, z0, x1, z0, layer);
@@ -791,7 +1197,7 @@ namespace PaintBooth.Business
         private void Label(string view, Point3D target, Point3D textAt, string text)
         {
             Point2D t = P(view, target), a = P(view, textAt);
-            AddC(new Line(a.X - 1, a.Y, t.X, t.Y), LBal, Color.Red);
+            AddC(new Line(a.X - 1, a.Y, t.X, t.Y), LBal, Color.SaddleBrown  );
             Txt(a.X, a.Y, text, 2.2, Text.alignmentType.MiddleLeft, LText);
         }
         #endregion

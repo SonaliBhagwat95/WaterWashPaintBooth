@@ -35,6 +35,7 @@ namespace PaintBooth.Models
         public decimal NegotiationCost { get; set; }
         //Payment terms
         public decimal AdvancedPercentage { get; set; }
+        public decimal ProformaPercentage { get; set; }
         public decimal DAPPercentage { get; set; }
         public decimal SUPPLYBEFOREDISPATCHPercentage { get; set; }
         public decimal SUPPLYAFTERDISPATCHPercentage { get; set; }

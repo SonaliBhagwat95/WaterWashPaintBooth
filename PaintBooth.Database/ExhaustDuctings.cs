@@ -15,6 +15,9 @@ namespace PaintBooth.Database
         public int? DuctLength { get; set; }
         public decimal? DuctNetWeight { get; set; }
         public decimal? DuctGrossWeight { get; set; }
+        public double WallDistance { get; set; }
+        //public double WallThickness { get; set; } = 250;      // client sheet shows 250 brick wall
+        public double DuctHeightFromFFL { get; set; }
         [ForeignKey("EnquiryID")]
         public int EnquiryID { get; set; }
         public int? CreatedBy { get; set; }

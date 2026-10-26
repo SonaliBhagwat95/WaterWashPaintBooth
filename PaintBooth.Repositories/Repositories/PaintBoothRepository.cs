@@ -554,7 +554,7 @@ namespace PaintBooth.Repositories
 
         public void SaveExhaustDucting(int enquiryId, string salesNo, PaintBoothModel model, int userId)
         {
-            // deserialize the JSON the form posted
+            // ── deserialize the JSON the form posted ──
             List<ExhaustDuctingModel> list = new();
             if (!string.IsNullOrWhiteSpace(model.ExhaustDuctingListJson))
             {
@@ -564,32 +564,64 @@ namespace PaintBooth.Repositories
                        ?? new List<ExhaustDuctingModel>();
             }
 
-            // soft-delete prior rows for this enquiry (avoid accumulation on re-save)
-            var old = _db.ExhaustDuctings
-                         .Where(x => x.EnquiryID == enquiryId && x.IsActive == true)
-                         .ToList();
-            old.ForEach(x => { x.IsActive = false; x.ModifiedBy = userId; x.ModifiedDate = DateTime.Now; });
+            // ── existing rows for this enquiry, in order ──
+            var existing = _db.ExhaustDuctings
+                              .Where(x => x.EnquiryID == enquiryId && x.IsActive)
+                              .OrderBy(x => x.DuctId)
+                              .ToList();
 
-            // build the new batch — shared dimensions come from the header fields
-            var rows = list.Select(x => new ExhaustDuctings
+            var now = DateTime.Now;
+
+            // shared values come from the header fields (same for every row)
+            decimal ductW = (decimal)model.ExhaustWidth;
+            decimal ductH = (decimal)model.ExhaustDuctHeight;
+            decimal ductThk = (decimal)model.ExhaustThickness;
+            decimal wallDist = (decimal)model.WallDistance;
+            decimal fflH = (decimal)model.DuctHeightFromFFL;
+
+            void Fill(ExhaustDuctings r, ExhaustDuctingModel x)
             {
-                BendType = x.BendType,
-                BendDirection = x.BendDirection,
-                DuctLength = x.DuctLength,
-                DuctWidth = (decimal)model.ExhaustWidth,
-                DuctHeight = (decimal)model.ExhaustDuctHeight,
-                DuctThickness = (decimal)model.ExhaustThickness,
-                DuctNetWeight = x.DuctNetWeight,
-                DuctGrossWeight = x.DuctGrossWeight,
-                SalesNo = salesNo,
-                EnquiryID = enquiryId,
-                CreatedBy = userId,
-                CreatedDate = DateTime.Now,
-                IsActive = true
-            }).ToList();
+                r.BendType = x.BendType;
+                r.BendDirection = x.BendDirection;
+                r.DuctLength = x.DuctLength;
+                r.DuctWidth = ductW;
+                r.DuctHeight = ductH;
+                r.DuctThickness = ductThk;
+                r.DuctNetWeight = x.DuctNetWeight;
+                r.DuctGrossWeight = x.DuctGrossWeight;
+                r.WallDistance = (double)wallDist;
+                r.DuctHeightFromFFL = (double)fflH;
+                r.SalesNo = salesNo;
+            }
 
-            if (rows.Any())
-                _db.ExhaustDuctings.AddRange(rows);   // batch insert, not per-row
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (i < existing.Count)
+                {
+                    // ── update the row already in this position ──
+                    var r = existing[i];
+                    Fill(r, list[i]);
+                    r.ModifiedBy = userId;
+                    r.ModifiedDate = now;
+                }
+                else
+                {
+                    // ── user added more rows than before → insert ──
+                    var r = new ExhaustDuctings
+                    {
+                        EnquiryID = enquiryId,
+                        CreatedBy = userId,
+                        CreatedDate = now,
+                        IsActive = true
+                    };
+                    Fill(r, list[i]);
+                    _db.ExhaustDuctings.Add(r);
+                }
+            }
+
+            // ── user removed rows → delete the leftovers (hard delete) ──
+            if (existing.Count > list.Count)
+                _db.ExhaustDuctings.RemoveRange(existing.Skip(list.Count));
 
             _db.SaveChanges();
         }

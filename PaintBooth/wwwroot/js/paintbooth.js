@@ -627,7 +627,8 @@ $(function () {
     $('#dicductlength').hide();
     $('#dicductorient').hide();
     $('#dicbenddir').show();
-
+    // Saved ducting rows from the server — read once, before any recalculation rewrites the hidden field
+    var savedDuctJson = $('#hiddenDuctingList').val() || '[]';
     renderDuctThreeD();
     setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 100);
 
@@ -637,9 +638,12 @@ $(function () {
     // Only fill a field if it has no value
     function setDefault(selector, value) {
         var $el = $(selector);
-        var cur = $.trim($el.val() || '');
-        if (!cur || cur === '0') $el.val(value);
+        var raw = $.trim($el.val() || '');
+        var num = parseFloat(raw);
+        if (raw === '' || (!isNaN(num) && num === 0)) $el.val(value);
     }
+
+    setDefault('#txtExhaustThickness', '2');   // ← both create and edit mode
 
     if (!isEditMode) {
         setDefault('#txtD1', '1200');
@@ -649,13 +653,13 @@ $(function () {
         setDefault('#txtw2', '500');
         setDefault('#txtH1', '700');
         setDefault('#txtH2', '1000');
-        setDefault('#txtExhaustThickness', '2');
         setDefault('#BetweenCenterDistance', '2000');
         setDefault('#txtVelocityofBlower', '0.5');
         setDefault('#txtVelocityofFilterFrame', '0.5');
         setDefault('#txtDoorHeight', '1180');
         setDefault('#txtDoorWidth', '580');
         setDefault('#drpServiceDoorLocation', 'RightSide');
+        setDefault('#txtWallDistance', '1000');
     }
 
     // Shared: show/hide sections based on sub type
@@ -1117,7 +1121,15 @@ $(function () {
             $('#txtExhaustThickness').addClass('pb-input-error').focus();
             return false;
         }
-
+        var ffl = parseFloat($('#txtDuctHeightFFL').val()) || 0;
+        var boothH = parseFloat($('#txtH').val()) || 0;
+        if (ffl > 0 && ffl <= boothH) {
+            $('#ductFFLError').show();
+            PB.toast('Duct height from FFL must be greater than booth height H.', 'danger');
+            $('#txtDuctHeightFFL').focus();
+            return false;
+        }
+        $('#ductFFLError').hide();
         recalcAllDuctWeights();             // make sure saved JSON matches the current dimensions
         $('#pbLoader').show();
         $('#submitbtn').addClass('loading').prop('disabled', true);
@@ -1166,10 +1178,12 @@ $(function () {
                 PB.toast('Design loaded for editing — ' + prefilledCode, 'info');
 
                 // ── Restore saved ducting rows ──
+                //var savedDucts = [];
+                //try { savedDucts = JSON.parse($('#hiddenDuctingList').val() || '[]'); }
+                //catch (e) { savedDucts = []; }
                 var savedDucts = [];
-                try { savedDucts = JSON.parse($('#hiddenDuctingList').val() || '[]'); }
+                try { savedDucts = JSON.parse(savedDuctJson); }
                 catch (e) { savedDucts = []; }
-
                 if (savedDucts.length) {
                     $('#emptyDuctRow').remove();
                     savedDucts.forEach(function (d) {

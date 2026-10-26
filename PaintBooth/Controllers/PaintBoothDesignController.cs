@@ -136,6 +136,8 @@ namespace PaintBooth.Controllers
                     ExhaustWidth = ductRows.Any() ? (double)ductRows.First().DuctWidth : 0,
                     ExhaustDuctHeight = ductRows.Any() ? (double)ductRows.First().DuctHeight : 0,
                     ExhaustThickness = ductRows.Any() ? (double)ductRows.First().DuctThickness : 0,
+                    WallDistance = ductRows.Any() ? (double)ductRows.First().WallDistance : 0,
+                    DuctHeightFromFFL = ductRows.Any() ? (double)ductRows.First().DuctHeightFromFFL : 0,
                     Mountingtype = blowerDetails.MountingTypes,
                     Drivetype = blowerDetails.DriveTypes,
                     WaterColumn = (double?)blowerDetails?.WaterColumn ?? 0,
@@ -489,8 +491,48 @@ namespace PaintBooth.Controllers
                     service.FASPanelsRightAndLeft(model, panel, PlenumHeight, FASDoor);
                     service.FASPanelsForTop(model, panel, PlenumHeight);
                 }
+                // ── Exhaust ducting (blower space left empty) ──────────────────────
+                List<ExhaustDuctings> ductRows = new();
+                Point3D ductMid = null;
+                double ductTopZ = 0, ductCutZ = 0, ductCutSize = 0, ductMaxX=0;
 
+                if (PaintBoothTypefromEnquiry != "4" && PaintBoothTypefromEnquiry != "5" &&
+                    PaintBoothTypefromEnquiry != "6" && PaintBoothTypefromEnquiry != "7")
+                {
+                    ductRows = _repo.GetExhaustDuctingByEnquiry(enquiryId);
+                    int pieces = model.NoOfBlowers <= 2 ? Math.Max(1, model.NoOfBlowers) : model.NoOfBlowers / 2;
 
+                    double wallInnerX = model.WallDistance > 0 ? model.D + model.D3 + model.WallDistance : 0;
+
+                    var duct = panel.ExhaustDuctingDrawing(model, ductRows, ExtractionC_Height, pieces,
+                                                           blowerGap: 900, offsetX: 600,
+                                                           wallInnerX: wallInnerX, wallThk: 250);
+                    if (duct.drawing.Entities.Count > 0)
+                    {
+                        service.designdictionary["ExhaustDucting"] = new List<DesignDocument> { duct.drawing };
+
+                        duct.drawing.Entities.Regen();
+                        duct.drawing.Entities.UpdateBoundingBox();
+                        var mn = duct.drawing.Entities.BoxMin;
+                        var mx = duct.drawing.Entities.BoxMax;
+                        ductMid = new Point3D((mn.X + mx.X) / 2, (mn.Y + mx.Y) / 2, (mn.Z + mx.Z) / 2);
+                        ductTopZ = mx.Z;
+                        ductMaxX = mx.X;                                              // ← add
+                        ductCutZ = duct.DuctCutZ;
+                        ductCutSize = duct.DuctCutSize;// ← add (top of the duct run)
+                    }
+                }
+                // ── Site wall (3D) — only when a wall distance is given ──
+                if (model.WallDistance > 0)
+                {
+                    double wallInnerX = model.D + model.D3 + model.WallDistance;
+                    double wallTop = Math.Max(model.DuctHeightFromFFL, ductTopZ) + 300;
+                    int pieces = model.NoOfBlowers <= 2 ? Math.Max(1, model.NoOfBlowers) : model.NoOfBlowers / 2;
+
+                    var wall = panel.SiteWallDrawing(model, wallInnerX, 250, wallTop, ductCutZ, ductCutSize, pieces, margin: 500);
+                    if (wall.drawing.Entities.Count > 0)
+                        service.designdictionary["SiteWall"] = new List<DesignDocument> { wall.drawing };
+                }
                 #region WriteFile
                 //string BaseFilePath = "C:/Bullows/Paintbooth_Drawing";
                 string BaseFilePath = _configuration["FolderPathConfig:DrawingPath"].ToString();
@@ -546,21 +588,20 @@ namespace PaintBooth.Controllers
                 };
                 //AllFilesPath.Add(paintBoothClass.lstpath);
 
-                #region Client style GA (without ducting)
-                // 1) Check the Output window once for the real key names, then fill gaSkip
-                foreach (var k in service.designdictionary.Keys) System.Diagnostics.Debug.WriteLine("GA key: " + k);
-                var gaSkip = new HashSet<string> { "ExhaustDucting" };   // ← put your duct/bend keys here
 
+                #region Client style GA
+                //var gaSkip = new HashSet<string> { "SiteWall" };   // ← replace the old: new HashSet<string>();
+                var gaSkip = new HashSet<string>();      // SiteWall now included → correct hidden lines in all views
                 var gaDict = service.designdictionary
                     .Where(kv => !gaSkip.Contains(kv.Key))
                     .ToDictionary(kv => kv.Key, kv => kv.Value.Select(CloneDoc).ToList());
+
 
                 DesignDocument gaModel = CombineAssemblies2(gaDict, (double)paintBoothSetting.PanelHeight,
                     (double)paintBoothSetting.PanelWidth, PaintBoothTypefromEnquiry, ExtractionC_Height,
                     SameSpaceBetweenDoors, doorModel);
 
                 double D = model.D, D3 = model.D3, W = model.W, H = model.H;
-                // same rule as TubeLights(): fixtures shown along the depth
                 int lightsAlong = Math.Max(1, Math.Min(model.Lights, (int)Math.Round(D / 1000.0)));
                 double firstLightX = ClientGADrawing.LightCentres(D, (double)paintBoothSetting.PanelWidth, model.Lights)
                                      .Select(c => c.x).DefaultIfEmpty(D / 2).First();
@@ -573,6 +614,17 @@ namespace PaintBooth.Controllers
                     OverallHeight = H + (double)paintBoothSetting.StandardBend2,       // client: 2379 → 2416 (CHECK)
                     Lights = model.Lights,   // or model.Lights if that's filled
                     PanelWidth = (double)paintBoothSetting.PanelWidth,
+                    WallDistance = model.WallDistance,
+                    DuctHeightFromFFL = model.DuctHeightFromFFL,
+                    BoothWidth = model.W,
+                    DuctRuns = model.NoOfBlowers <= 2 ? Math.Max(1, model.NoOfBlowers) : model.NoOfBlowers / 2,
+                    WallMargin = 500,
+                    DuctTopZ = ductTopZ,
+                    DuctMaxX = ductMaxX,          // ← add
+                    DuctCutZ = ductCutZ,
+                    DuctCutSize = ductCutSize,
+                    BoothDepth = model.D,
+                    ECDepth = model.D3,
                     DrawnBy = " ",
                     CheckedBy = " ",
                     ApprovedBy = " ",   // from user/login if you have it
@@ -583,8 +635,8 @@ namespace PaintBooth.Controllers
                     Material = "G.I.",
                     DrawingNo = EnquiryNo,
                     HasBaffles = CatagoryType != "Water wash paint booth" &&
-             PaintBoothTypefromEnquiry != "4" && PaintBoothTypefromEnquiry != "5" &&
-             PaintBoothTypefromEnquiry != "6" && PaintBoothTypefromEnquiry != "7",
+                     PaintBoothTypefromEnquiry != "4" && PaintBoothTypefromEnquiry != "5" &&
+                     PaintBoothTypefromEnquiry != "6" && PaintBoothTypefromEnquiry != "7",
                     Scope =
                     {
                         new GAScopeItem { Title = "EXHAUST BLOWER", Lines = {
@@ -616,13 +668,30 @@ namespace PaintBooth.Controllers
                     }
                 };
 
+                // ── Scope item 5: Exhaust duct set up (starter moves to 6) ──
+                if (ductMid != null)
+                {
+                    var ds = ExhaustDuctingSummary.Build(ductRows);
+
+                    var ductItem = new GAScopeItem { Title = "EXHAUST DUCT SET UP" };
+                    if (ds.TotalDuctCount > 0) ductItem.Lines.Add($"ST. DUCT : {ds.TotalDuctCount} NOS.");
+                    if (ds.TotalBendCount > 0) ductItem.Lines.Add($"BEND 90° : {ds.TotalBendCount} NOS.");
+                    ductItem.Lines.Add("EXIT BEND WITH BIRD GRID : 1 NO.");
+                    ductItem.Lines.Add($"G.I. {ds.Thickness:0.0} MM THK");
+                    ductItem.Lines.Add($"QTY : {Math.Max(1, model.NoOfBlowers)} SET.");
+
+                    gaInfo.Scope.Insert(4, ductItem);                 // after manometer, before starter
+
+                    var starter = gaInfo.Balloons.FirstOrDefault(b => b.No == 5);
+                    if (starter != null) starter.No = 6;
+
+                    gaInfo.Balloons.Add(new GABalloon { No = 5, View = "ELEV", Target = ductMid, Dx = -30, Dy = 20 });
+                }
+
                 string clientGaPath = new ClientGADrawing(_configuration).Build(gaModel, model, gaInfo);
-
                 AllFilesPath.Add(clientGaPath);
+
                 #endregion
-
-
-
 
                 // Store the values needed for FilterFrameCalculations in session
                 HttpContext.Session.SetString("FilterArea", model.FilterArea.ToString());
@@ -1716,6 +1785,7 @@ namespace PaintBooth.Controllers
             }
             return dst;
         }
+    
     }
     public class AssemblyValueModel
     {

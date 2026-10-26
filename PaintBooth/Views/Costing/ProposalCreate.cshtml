@@ -169,7 +169,8 @@
             </div>
 
             <div class="prop-ref-line" style="display: flex; justify-content: space-between;">
-                <span>BP/AVG/@Model.ProposalDetails.SalesNO/R@(Model.PriceBIDDetails?.RevisionNo ?? 0)</span>
+                @* <span>BP/AVG/@Model.ProposalDetails.SalesNO/R@(Model.PriceBIDDetails?.RevisionNo ?? 0)</span> *@
+                <span>BP/AVG/@Model.ProposalDetails.SalesNO/R0</span>
                 <span>@DateTime.Now.ToString("dd/MM/yyyy")</span>
             </div>
         </div>
@@ -495,6 +496,7 @@
                                     Unpainted GI Exhaust ducting provided.<br />
                                     <strong>Note: Additional Ducting required as per site condition needs to be ordered separately with Additional Charges.</strong>
                                 </text>
+
                             }
                         </td>
                     </tr>
@@ -1403,7 +1405,7 @@
                         <td>2</td>
                         <td>Any statutory operation variations in the above taxes/levies at the time of supply, to be borne by Buyer.</td>
                     </tr>
-                    <tr>
+                    @* <tr>
                         <td>Payment Terms</td>
                         <td>
                             @if (Model.PaymentTerms != null)
@@ -1416,6 +1418,34 @@
                                     <tr><td>Installation</td><td>:</td><td>@FormatPct(Model.PaymentTerms.INSTALLATIONPercentage) %</td></tr>
                                     <tr><td>Commissioning</td><td>:</td><td>@FormatPct(Model.PaymentTerms.COMMISSIONINGPercentage) %</td></tr>
                                 </table>
+                            }
+                        </td>
+                    </tr> *@
+                    <tr>
+                        <td>Payment Terms</td>
+                        <td>
+                            @if (Model.PaymentTerms != null)
+                            {
+                                var pt = Model.PaymentTerms;
+
+                                if (pt.ProformaPercentage > 0)
+                                {
+                                    <text>
+                                        @FormatPct(pt.AdvancedPercentage)% advance along with techno-commercially clear order.<br />
+                                        @FormatPct(pt.ProformaPercentage)% with 100% taxes and duties against Proforma Invoice on Pro rata basis.
+                                    </text>
+                                }
+                                else
+                                {
+                                    <table class="prop-payment-table">
+                                        <tr><td>Advance</td><td>:</td><td>@FormatPct(pt.AdvancedPercentage) % advance along with techno-commercially clear order.</td></tr>
+                                        <tr><td>DAP</td><td>:</td><td>@FormatPct(pt.DAPPercentage) %</td></tr>
+                                        <tr><td>Supply Before Dispatch</td><td>:</td><td>@FormatPct(pt.SUPPLYBEFOREDISPATCHPercentage) %</td></tr>
+                                        <tr><td>Supply After Dispatch</td><td>:</td><td>@FormatPct(pt.SUPPLYAFTERDISPATCHPercentage) %</td></tr>
+                                        <tr><td>Installation</td><td>:</td><td>@FormatPct(pt.INSTALLATIONPercentage) %</td></tr>
+                                        <tr><td>Commissioning</td><td>:</td><td>@FormatPct(pt.COMMISSIONINGPercentage) %</td></tr>
+                                    </table>
+                                }
                             }
                         </td>
                     </tr>

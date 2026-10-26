@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace PaintBooth.Database
 {
@@ -13,6 +8,7 @@ namespace PaintBooth.Database
         public int PaymentTermsId { get; set; }
         public int EnquiryId { get; set; }
         public decimal AdvancedPercentage { get; set; }
+        public decimal ProformaPercentage { get; set; }
         public decimal DAPPercentage { get; set; }
         public decimal SUPPLYBEFOREDISPATCHPercentage { get; set; }
         public decimal SUPPLYAFTERDISPATCHPercentage { get; set; }

@@ -384,17 +384,18 @@ namespace PaintBooth.Repositories.Repositories
             if (existing != null)
             {
                 // Only start a new revision if the previous one was finalised
-                if (existing.ConfirmPriceBID == true)
-                {
-                    existing.RevisionNo = existing.RevisionNo + 1;   // use (existing.RevisionNo ?? 0) + 1 if nullable
-                    existing.ConfirmPriceBID = false;                // new revision is a draft again
-                }
+                //if (existing.ConfirmPriceBID == true)
+                //{
+                //    existing.RevisionNo = existing.RevisionNo + 1;   // use (existing.RevisionNo ?? 0) + 1 if nullable
+                //    existing.ConfirmPriceBID = false;                // new revision is a draft again
+                //}
 
                 existing.TotalPriceOfRawMaterials = RMModel.TotalCostOfRM;
                 existing.TotalPriceOfBoughtOut = model.BoughtOut;
                 existing.IsBOApproved = model.IsBOApproved;
                 existing.ModifiedBy = UserId;
                 existing.ModifiedDate = DateTime.Now;
+                existing.RevisionNo = 0;
             }
             else
             {
@@ -556,6 +557,7 @@ namespace PaintBooth.Repositories.Repositories
                 .Select(item => new PriceBIDModel
                 {
                     AdvancedPercentage                = item.AdvancedPercentage,
+                    ProformaPercentage                = item.ProformaPercentage,
                     DAPPercentage                     = item.DAPPercentage,
                     SUPPLYBEFOREDISPATCHPercentage    = item.SUPPLYBEFOREDISPATCHPercentage,
                     SUPPLYAFTERDISPATCHPercentage     = item.SUPPLYAFTERDISPATCHPercentage,
@@ -576,6 +578,7 @@ namespace PaintBooth.Repositories.Repositories
             {
                 // UPDATE
                 existingRecord.AdvancedPercentage             = model.AdvancedPercentage;
+                existingRecord.ProformaPercentage             = model.ProformaPercentage;
                 existingRecord.DAPPercentage                  = model.DAPPercentage;
                 existingRecord.SUPPLYBEFOREDISPATCHPercentage = model.SUPPLYBEFOREDISPATCHPercentage;
                 existingRecord.SUPPLYAFTERDISPATCHPercentage  = model.SUPPLYAFTERDISPATCHPercentage;
@@ -595,6 +598,7 @@ namespace PaintBooth.Repositories.Repositories
                     IsActive                         = 1,
                     EnquiryId                         = enquiryId,
                     AdvancedPercentage                = model.AdvancedPercentage,
+                    ProformaPercentage                = model.ProformaPercentage,
                     DAPPercentage                     = model.DAPPercentage,
                     SUPPLYBEFOREDISPATCHPercentage    = model.SUPPLYBEFOREDISPATCHPercentage,
                     SUPPLYAFTERDISPATCHPercentage     = model.SUPPLYAFTERDISPATCHPercentage,
@@ -672,45 +676,6 @@ namespace PaintBooth.Repositories.Repositories
                     }).FirstOrDefault();
         }
 
-        //public ProposalModel GetMaterialsValue(string enquiryCode)
-        //{
-        //    int enquiryID = _db.EnquiryMasters
-        //                              .Where(e => e.SalesNO == enquiryCode)
-        //                              .Select(e => e.EnquiryID)
-        //                              .FirstOrDefault();
-
-        //    string paintboothMaterial = _db.PanelSettings
-        //        .Where(s => s.SalesNo == enquiryCode && s.SettingType == "Paintbooth")
-        //        .Select(s => s.Materials)
-        //        .FirstOrDefault();
-
-        //    string extractionMaterial = _db.PanelSettings
-        //        .Where(s => s.SalesNo == enquiryCode && s.SettingType == "Extraction")
-        //        .Select(s => s.Materials)
-        //        .FirstOrDefault();
-
-        //    return (from e  in _db.EnquiryMasters
-        //            join pb in _db.PaintBoothDetails on e.EnquiryID  equals pb.EnquiryId
-        //            join t  in _db.TubeLightDetails  on e.EnquiryID  equals t.EnquiryID
-        //            join m  in _db.MotorDetails       on e.EnquiryID  equals m.EnquiryID
-        //            join mf in _db.MotorFlange     on m.MotorCatalogID equals mf.MotorCatalogID
-        //            where e.SalesNO == enquiryCode && e.IsActive==true
-        //            select new ProposalModel
-        //            {
-        //                EXhaustCapacity   = pb.CapacityofBlowerinHr,
-        //                Lumens            = (decimal)t.Lumens,
-        //                LuxLevel          = (decimal)t.LuxLevel,
-        //                TubelightQuantity = t.Quantity,
-        //                MotorCapacity     = mf != null && mf.RatedOutputHP.HasValue
-        //                                    ? (decimal)mf.RatedOutputHP.Value : 0,
-        //                PaintBoothMaterial = paintboothMaterial ?? "N/A",
-        //                ECMaterials        = extractionMaterial  ?? "N/A",
-        //                D                  = (float)pb.D,
-        //                W                  = (float)pb.W,
-        //                H                  = (float)pb.H,
-        //                D3                 = (float)pb.D3
-        //            }).FirstOrDefault();
-        //}
         public ProposalModel GetMaterialsValue(string enquiryCode)
         {
             int enquiryID = _db.EnquiryMasters
@@ -718,10 +683,6 @@ namespace PaintBooth.Repositories.Repositories
                                .Select(e => e.EnquiryID)
                                .FirstOrDefault();
 
-            //string paintboothMaterial = _db.PanelSettings
-            //    .Where(s => s.SalesNo == enquiryCode && s.SettingType == "Paintbooth")
-            //    .Select(s => s.Materials)
-            //    .FirstOrDefault();
                     var paintboothSetting = _db.PanelSettings
             .Where(s => s.SalesNo == enquiryCode && s.SettingType == "Paintbooth")
             .Select(s => new { s.Materials, s.SheetThickness })
@@ -730,10 +691,6 @@ namespace PaintBooth.Repositories.Repositories
             string paintboothMaterial = paintboothSetting?.Materials;
             var sheetThickness = paintboothSetting?.SheetThickness;
 
-            //string extractionMaterial = _db.PanelSettings
-            //    .Where(s => s.SalesNo == enquiryCode && s.SettingType == "Extraction")
-            //    .Select(s => s.Materials)
-            //    .FirstOrDefault();
             var extractionSetting = _db.PanelSettings
     .Where(s => s.SalesNo == enquiryCode && s.SettingType == "Extraction")
     .Select(s => new { s.Materials, s.SheetThickness })
@@ -745,7 +702,6 @@ namespace PaintBooth.Repositories.Repositories
 
             return (from e in _db.EnquiryMasters
                     join pb in _db.PaintBoothDetails on e.EnquiryID equals pb.EnquiryId
-                    // ── LEFT JOIN TubeLightDetails ────────────────────
                     // ── LEFT JOIN TubeLightDetails — active record only ───────────
                     join t in _db.TubeLightDetails.Where(x => x.IsActive == true)
                         on e.EnquiryID equals t.EnquiryID

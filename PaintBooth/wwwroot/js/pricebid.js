@@ -57,26 +57,11 @@ function initSearch(fetchUrl) {
                 $('#txtPriceOfRM').val(Math.round(item.priceOfRM));
                 $('#txtPriceOfBO').val(Math.round(item.priceOfBO));
 
-                /* Run all calculations in order */
+                /* Run the full calculation chain */
                 calcLabour();
-                calcTotalForDerivedFields();
-               /* calcEnC();*/
-                calcPnF();
-                calcFreight();
-                calcDesignCharges();
-                calcTotalBasicCost();
-                calcInsurance();
-                calcCommercialFactor();
-                calcIncentiveFactor();
-                calcTPC();
-                calcContingency();
-                calcTVC();
-                calcPOValue();
-                calcNegotiation();
-                calcBestPrice();
-                updatePaymentRemaining();
+                recalcFromBase();
 
-                /* ── Sync hidden SalesNO field so form POST has it ── */
+                /* Sync hidden SalesNO field so form POST has it */
                 $('#hiddenSalesNO').val(code);
 
                 /* Show form + approve section */
@@ -88,44 +73,41 @@ function initSearch(fetchUrl) {
                 PB.toast(res.message || 'No data found.', 'warning');
             }
         })
-        .fail(function () { PB.toast('Error fetching data. Try again.', 'error'); })
-        .always(function () {
-            $btn.prop('disabled', false)
-                .html('<i class="bi bi-search"></i> Search');
-        });
+            .fail(function () { PB.toast('Error fetching data. Try again.', 'error'); })
+            .always(function () {
+                $btn.prop('disabled', false)
+                    .html('<i class="bi bi-search"></i> Search');
+            });
     });
 }
 
 
 /* ════════════════════════════════════════════════════════
-   3. ALL CALCULATION FUNCTIONS
-   (exact port of old JS — same logic, cleaner structure)
+   3. HELPERS
 ════════════════════════════════════════════════════════ */
-
 function v(id) { return parseFloat($('#' + id).val()) || 0; }
 function s(id, val) { $('#' + id).val(Math.round(val)); }
 function sf(id, val, dp) { $('#' + id).val(val.toFixed(dp !== undefined ? dp : 2)); }
+
+
+/* ════════════════════════════════════════════════════════
+   4. CALCULATION FUNCTIONS
+════════════════════════════════════════════════════════ */
 
 /* Labour = RM × 35 / 80 */
 function calcLabour() {
     s('labourCost', (v('txtPriceOfRM') * 35) / 80);
 }
 
-/* Set derived Weight fields = RM + BO + Labour */
+/* Derived weight fields = RM + BO + Labour */
 function calcTotalForDerivedFields() {
-    var total = v('txtPriceOfRM') + v('txtPriceOfBO') + v('labourCost');
-    var rounded = Math.round(total);
+    var rounded = Math.round(v('txtPriceOfRM') + v('txtPriceOfBO') + v('labourCost'));
     $('#txtEnC').val(rounded);
     $('#txtPnF').val(rounded);
     $('#txtDesignCharges').val(rounded);
     $('#txtFraightValue').val(rounded);
     $('#txtContingency').val(rounded);
 }
-
-/* E&C = weight × rate% */
-//function calcEnC() {
-//    s('txtEnCCost', v('txtEnC') * (v('txtEnCRate') / 100));
-//}
 
 /* P&F */
 function calcPnF() {
@@ -142,18 +124,19 @@ function calcDesignCharges() {
     s('txtDesignChargesCost', v('txtDesignCharges') * (v('txtDesignChargesRate') / 100));
 }
 
-/* Basic Cost = RM + BO + Labour + E&C + P&F + Freight + DesignCharges */
+/* Basic Cost = RM + BO + Labour + E&C + P&F + Freight + Design Charges */
 function calcTotalBasicCost() {
     var total = v('txtPriceOfRM') + v('txtPriceOfBO') + v('labourCost')
-              + v('txtEnCCost')  + v('txtPnFCost')   + v('txtFreight')
-              + v('txtDesignChargesCost');
+        + v('txtEnCCost') + v('txtPnFCost') + v('txtFreight')
+        + v('txtDesignChargesCost');
     $('#txtBasicCost').val(total);
-    /* Feed BasicCost into factor weight fields */
+
+    /* Basic Cost feeds the factor weight fields
+       (Contingency weight stays RM + BO + Labour) */
     $('#txtTPC').val(total);
     $('#txtInsurance').val(total);
     $('#txtCommercialFactor').val(total);
     $('#txtIncentiveFactor').val(total);
-    /* Contingency weight is RM+BO+Labour — keep it separate */
 }
 
 /* Insurance */
@@ -179,17 +162,16 @@ function calcTPC() {
 /* Contingency */
 function calcContingency() {
     s('txtContingencyCost', v('txtContingency') * (v('txtContingencyRate') / 100));
-    calcTVC();
 }
 
-/* TVC = BasicCost + Insurance + CommercialFactor + IncentiveFactor + TPC + Contingency */
+/* TVC = Basic Cost + Insurance + Commercial + Incentive + TPC + Contingency */
 function calcTVC() {
     var tvc = Math.round(
-        v('txtBasicCost')           +
-        v('txtInsuranceCost')       +
-        v('txtCommercialFactorCost')+
+        v('txtBasicCost') +
+        v('txtInsuranceCost') +
+        v('txtCommercialFactorCost') +
         v('txtIncentiveFactorCost') +
-        v('txtTPCCost')             +
+        v('txtTPCCost') +
         v('txtContingencyCost')
     );
     $('#txtTVCCost').val(tvc);
@@ -197,7 +179,7 @@ function calcTVC() {
     calcThroughput();
 }
 
-/* PO VALUE = POValue × PORate% (min rate 100%) */
+/* PO VALUE = TVC × PO Rate% (min rate 100%) */
 function calcPOValue() {
     var rate = v('txtPORate');
     if (rate < 100) {
@@ -210,20 +192,21 @@ function calcPOValue() {
     $('#txtPOValueCost').val(cost);
     $('#NegotiationValue').val(cost);
     calcThroughput();
-    calcNegotiation();
-    calcBestPrice();
+    calcNegotiation();          // also calls calcBestPrice
     calcPaymentCosts();
 }
 
-/* Throughput Value = POValueCost - TVCCost */
+/* Throughput Value = PO Value Cost − TVC */
 function calcThroughput() {
     var poCost = v('txtPOValueCost');
-    if (poCost === 0) { $('#txtThroughputValue').val(''); return; }
+    if (poCost === 0) {
+        $('#txtThroughputValue').val('');
+        $('#txtThroughputValueRate').val('');
+        return;
+    }
     var tp = Math.round(poCost - v('txtTVCCost'));
     $('#txtThroughputValue').val(tp);
-    /* Throughput rate % */
-    if (poCost > 0)
-        sf('txtThroughputValueRate', (tp / poCost) * 100);
+    sf('txtThroughputValueRate', (tp / poCost) * 100);
 }
 
 /* Negotiation Margin */
@@ -232,136 +215,148 @@ function calcNegotiation() {
     calcBestPrice();
 }
 
-/* Offer Price (Best Price) = POValueCost - NegotiationCost */
+/* Offer Price = PO Value Cost − Negotiation */
 function calcBestPrice() {
-    var best = v('txtPOValueCost') - v('txtNegotiationCost');
-    $('#txtBestPrice').val(Math.round(best));
+    $('#txtBestPrice').val(Math.round(v('txtPOValueCost') - v('txtNegotiationCost')));
 }
 
-/* Payment term costs (all based on POValueCost) */
-//function calcPaymentCosts() {
-//    var po = v('txtPOValueCost');
-//    sf('txtAdvanceValueCost',          po * (v('txtAdvance')                / 100));
-//    sf('txtDAPCost',                   po * (v('txtDAP')                    / 100));
-//    sf('txtSUPPLYBEFOREDISPATCHCost',  po * (v('txtSUPPLYBEFOREDISPATCH') / 100));
-//    sf('txtSUPPLYAFTERDISPATCHCost',   po * (v('txtSUPPLYAFTERDISPATCH')  / 100));
-//    sf('txtInstalationCost',            po * (v('txtInstalation')           / 100));
-//    sf('txtCOMMISSIONINGCost',          po * (v('txtCOMMISSIONING')        / 100));
-//}
+
+/* ════════════════════════════════════════════════════════
+   5. PAYMENT TERMS (all based on PO Value Cost)
+════════════════════════════════════════════════════════ */
+
+/* Sum of all payment-term percentages */
+function getPaymentTotal() {
+    return v('txtAdvance') + v('txtProforma') + v('txtDAP')
+        + v('txtSUPPLYBEFOREDISPATCH') + v('txtSUPPLYAFTERDISPATCH')
+        + v('txtInstalation') + v('txtCOMMISSIONING');
+}
+
 function calcPaymentCosts() {
     var po = v('txtPOValueCost');
     s('txtAdvanceValueCost', po * (v('txtAdvance') / 100));
+    s('txtProformaCost', po * (v('txtProforma') / 100));
     s('txtDAPCost', po * (v('txtDAP') / 100));
     s('txtSUPPLYBEFOREDISPATCHCost', po * (v('txtSUPPLYBEFOREDISPATCH') / 100));
     s('txtSUPPLYAFTERDISPATCHCost', po * (v('txtSUPPLYAFTERDISPATCH') / 100));
     s('txtInstalationCost', po * (v('txtInstalation') / 100));
     s('txtCOMMISSIONINGCost', po * (v('txtCOMMISSIONING') / 100));
 }
+
 /* Payment Remaining badge */
 function updatePaymentRemaining() {
-    var total = v('txtAdvance') + v('txtDAP') + v('txtSUPPLYBEFOREDISPATCH')
-              + v('txtSUPPLYAFTERDISPATCH') + v('txtInstalation') + v('txtCOMMISSIONING');
-    var remaining = 100 - total;
+    var total = getPaymentTotal();
+    var remaining = Math.round((100 - total) * 10) / 10;
     var $badge = $('#paymentBadge');
 
     $badge.text(remaining.toFixed(1) + '% remaining');
     $badge.removeClass('ok warning over');
 
-    if (total === 100)       $badge.addClass('ok');
-    else if (total < 100)    $badge.addClass('warning');
-    else                     $badge.addClass('over');
+    if (remaining === 0) $badge.addClass('ok');
+    else if (remaining > 0) $badge.addClass('warning');
+    else $badge.addClass('over');
 }
 
 
 /* ════════════════════════════════════════════════════════
-   4. EVENT BINDINGS
+   6. RECALC CHAINS — each step runs everything after it
+════════════════════════════════════════════════════════ */
+
+/* From TVC onward: TVC → PO Value → Throughput → Negotiation → Offer Price → Payments */
+function recalcFromTVC() {
+    calcTVC();
+    calcPOValue();
+    updatePaymentRemaining();
+}
+
+/* From Basic Cost onward: Basic → factors → Contingency → TVC … */
+function recalcFromBasic() {
+    calcTotalBasicCost();
+    calcInsurance();
+    calcCommercialFactor();
+    calcIncentiveFactor();
+    calcTPC();
+    calcContingency();
+    recalcFromTVC();
+}
+
+/* From RM / BO / Labour onward: derived weights → P&F, Freight, Design → Basic … */
+function recalcFromBase() {
+    calcTotalForDerivedFields();
+    calcPnF();
+    calcFreight();
+    calcDesignCharges();
+    recalcFromBasic();
+}
+
+
+/* ════════════════════════════════════════════════════════
+   7. EVENT BINDINGS
 ════════════════════════════════════════════════════════ */
 function initCalculations() {
 
-    /* RM / BO change → recalc chain */
-    $(document).on('input', '#txtPriceOfRM', function () {
-        calcLabour(); calcTotalForDerivedFields();
-        /*calcEnC();*/ calcPnF(); calcFreight(); calcDesignCharges();
-        calcTotalBasicCost(); calcTVC();
-    });
-    $(document).on('input', '#txtPriceOfBO, #labourCost', function () {
-        calcTotalForDerivedFields();
-        calcEnC(); calcPnF(); calcFreight(); calcDesignCharges();
-        calcTotalBasicCost(); calcTVC();
-    });
+    /* RM → recalculates Labour too */
+    $(document).on('input', '#txtPriceOfRM', function () { calcLabour(); recalcFromBase(); });
 
-    /* E&C */
-    /*$(document).on('input', '#txtEnCRate', function () { calcEnC(); calcTotalBasicCost(); calcTVC(); });*/
+    /* BO / Labour (manual) */
+    $(document).on('input', '#txtPriceOfBO, #labourCost', recalcFromBase);
 
-    /* E&C Cost direct change (from calculator modal) ← ADD HERE */
-    $(document).on('input', '#txtEnCCost', function () {
-        calcTotalBasicCost();
-        calcInsurance();
-        calcCommercialFactor();
-        calcIncentiveFactor();
-        calcTPC();
-        calcContingency();
-        calcTVC();
+    /* E&C cost (typed, or applied from the calculator modal) */
+    $(document).on('input', '#txtEnCCost', recalcFromBasic);
+
+    /* P&F / Freight / Design Charges */
+    $(document).on('input', '#txtPnFRate', function () { calcPnF(); recalcFromBasic(); });
+    $(document).on('input', '#txtFraightRate', function () { calcFreight(); recalcFromBasic(); });
+    $(document).on('input', '#txtDesignChargesRate', function () { calcDesignCharges(); recalcFromBasic(); });
+
+    /* Factor costs */
+    $(document).on('input', '#txtInsuranceRate', function () { calcInsurance(); recalcFromTVC(); });
+    $(document).on('input', '#txtCommercialFactorRate', function () { calcCommercialFactor(); recalcFromTVC(); });
+    $(document).on('input', '#txtIncentiveFactorRate', function () { calcIncentiveFactor(); recalcFromTVC(); });
+    $(document).on('input', '#txtTPCRate', function () { calcTPC(); recalcFromTVC(); });
+    $(document).on('input', '#txtContingencyRate', function () { calcContingency(); recalcFromTVC(); });
+
+    /* PO Rate (validate min 100%) */
+    $(document).on('input blur', '#txtPORate', function () {
         calcPOValue();
+        updatePaymentRemaining();
+    });
+
+    /* PO Value cost typed directly */
+    $(document).on('input', '#txtPOValueCost', function () {
+        $('#NegotiationValue').val(v('txtPOValueCost'));
+        calcThroughput();
         calcNegotiation();
-        calcBestPrice();
         calcPaymentCosts();
     });
 
-    /* P&F */
-    $(document).on('input', '#txtPnFRate', function () { calcPnF(); calcTotalBasicCost(); calcTVC(); });
-
-    /* Freight */
-    $(document).on('input', '#txtFraightRate', function () { calcFreight(); calcTotalBasicCost(); calcTVC(); });
-
-    /* Design Charges */
-    $(document).on('input', '#txtDesignChargesRate', function () {
-        calcDesignCharges(); calcTotalBasicCost(); calcTVC();
-    });
-
-    /* Insurance */
-    $(document).on('input', '#txtInsuranceRate', function () { calcInsurance(); calcTVC(); });
-
-    /* Commercial Factor */
-    $(document).on('input', '#txtCommercialFactorRate', function () { calcCommercialFactor(); calcTVC(); });
-
-    /* Incentive Factor */
-    $(document).on('input', '#txtIncentiveFactorRate', function () { calcIncentiveFactor(); calcTVC(); });
-
-    /* TPC */
-    $(document).on('input', '#txtTPCRate', function () { calcTPC(); calcTVC(); });
-
-    /* Contingency */
-    $(document).on('input', '#txtContingencyRate', function () { calcContingency(); });
-
-    /* PO Rate (validate min 100%) */
-    $(document).on('input blur', '#txtPORate', function () { calcPOValue(); });
-
     /* Negotiation */
-    $(document).on('input', '#txtNegotiationRate', function () { calcNegotiation(); });
+    $(document).on('input', '#txtNegotiationRate', calcNegotiation);
 
     /* Payment terms */
     $(document).on('input',
-        '#txtAdvance, #txtDAP, #txtSUPPLYBEFOREDISPATCH, ' +
+        '#txtAdvance, #txtProforma, #txtDAP, #txtSUPPLYBEFOREDISPATCH, ' +
         '#txtSUPPLYAFTERDISPATCH, #txtInstalation, #txtCOMMISSIONING',
         function () {
             calcPaymentCosts();
             updatePaymentRemaining();
         }
     );
-
-    /* PO Value changes → recalc throughput + payment */
-    $(document).on('input', '#txtPOValueCost', function () {
-        calcThroughput(); calcNegotiation(); calcBestPrice(); calcPaymentCosts();
-    });
+    function toggleStageRows() {
+        var useProforma = v('txtProforma') > 0;
+        $('#txtDAP, #txtSUPPLYBEFOREDISPATCH, #txtSUPPLYAFTERDISPATCH, #txtInstalation, #txtCOMMISSIONING')
+            .closest('tr').toggle(!useProforma);
+    }
+    $(document).on('input', '#txtProforma', toggleStageRows);
+    toggleStageRows();
 }
 
 
 /* ════════════════════════════════════════════════════════
-   5. APPROVE CHECKBOX
+   8. APPROVE CHECKBOX
 ════════════════════════════════════════════════════════ */
 function initApprove() {
-    var $chk  = $('#approvePriceBid');
+    var $chk = $('#approvePriceBid');
     var $save = $('#btnSave');
     $save.prop('disabled', true);
 
@@ -381,31 +376,24 @@ function initApprove() {
 
 
 /* ════════════════════════════════════════════════════════
-   6. FORM SUBMIT — sync SalesNO + validate payment terms
+   9. FORM SUBMIT — sync SalesNO + validate payment terms
 ════════════════════════════════════════════════════════ */
 function initSave() {
     $('#bidForm').on('submit', function (e) {
 
-        // ── Always sync SalesNO from the visible search input ──
-        // This is the safety net — even if JS search didn't fire,
-        // the value the user typed is sent with the form.
+        // Always sync SalesNO from the visible search input
         var code = $.trim($('#txtEnquiryCode').val());
         $('#hiddenSalesNO').val(code);
         $('#hiddenSalesNOBackup').val(code);
 
-        // ── Validate SalesNO is present ───────────────────────
         if (!code) {
             e.preventDefault();
             PB.toast('Please search an enquiry code first.', 'warning');
             return;
         }
 
-        // ── Validate payment terms total = 100% ──────────────
-        var total = v('txtAdvance') + v('txtDAP')
-                  + v('txtSUPPLYBEFOREDISPATCH') + v('txtSUPPLYAFTERDISPATCH')
-                  + v('txtInstalation') + v('txtCOMMISSIONING');
-
-        if (total !== 100) {
+        // Payment terms must total exactly 100%
+        if (Math.abs(getPaymentTotal() - 100) > 0.001) {
             e.preventDefault();
             PB.toast('Payment Terms must total exactly 100% before saving.', 'warning');
             return;
@@ -417,7 +405,7 @@ function initSave() {
 
 
 /* ════════════════════════════════════════════════════════
-   7. AUTO-DISMISS ALERTS
+   10. AUTO-DISMISS ALERTS
 ════════════════════════════════════════════════════════ */
 function initAlerts() {
     $('[data-auto-dismiss]').each(function () {
@@ -425,46 +413,31 @@ function initAlerts() {
         setTimeout(function () { $el.fadeOut(400, function () { $el.remove(); }); }, 4000);
     });
 }
+
+
 /* ════════════════════════════════════════════════════════
-   8. EDIT MODE — recalculate all fields from saved values
+   11. EDIT MODE — recalculate all fields from saved values
 ════════════════════════════════════════════════════════ */
 function initEditMode() {
-    // Lock enquiry field
     $('#txtEnquiryCode').prop('readonly', true);
     $('#btnSearch').prop('disabled', true);
 
-    // Run full calculation chain using saved rate values
-    // already bound from model via asp-for / @Html.TextBoxFor
+    // Rates are already bound from the model — run the full chain
     calcLabour();
-    calcTotalForDerivedFields();
-    
-    calcPnF();
-    calcFreight();
-    calcDesignCharges();
-    calcTotalBasicCost();
-    calcInsurance();
-    calcCommercialFactor();
-    calcIncentiveFactor();
-    calcTPC();
-    calcContingency();
-    calcTVC();
-    calcPOValue();
-    calcNegotiation();
-    calcBestPrice();
-    calcPaymentCosts();
-    updatePaymentRemaining();
+    recalcFromBase();
 
-    // Enable save if already approved
     if ($('#approvePriceBid').prop('checked')) {
         $('#btnSave').prop('disabled', false);
     }
 }
+
+
 /* ════════════════════════════════════════════════════════
-   E&C CALCULATOR MODAL
+   12. E&C CALCULATOR MODAL
 ════════════════════════════════════════════════════════ */
 function initEncCalculator(saveUrl, loadUrl) {
 
-    /* ── Open modal — load saved data if exists ── */
+    /* Open modal — load saved data if exists */
     $('#btnCalcEnC').on('click', function () {
         var salesNO = $.trim($('#hiddenSalesNO').val() || $('#txtEnquiryCode').val());
 
@@ -497,22 +470,16 @@ function initEncCalculator(saveUrl, loadUrl) {
 
     $('#encMarginAmt').on('input', recalcEncTotals);
 
-    /* ── Apply + Save ── */
+    /* Apply + Save */
     $('#btnApplyEnC').on('click', function () {
-        var finalVal = parseFloat(
-            ($('#encFinalValue').val() || '0').replace(/,/g, '')
-        ) || 0;
+        var finalVal = parseFloat(($('#encFinalValue').val() || '0').replace(/,/g, '')) || 0;
 
-        $('#txtEnCCost').val(Math.round(finalVal));
-        $('#txtEnCCost').trigger('input');
+        $('#txtEnCCost').val(Math.round(finalVal)).trigger('input');
 
-        // save to DB
         var salesNO = $.trim($('#hiddenSalesNO').val() || $('#txtEnquiryCode').val());
         var rowsJson = collectEncRows();
         var margin = parseFloat($('#encMarginAmt').val()) || 0;
-        var subTotal = parseFloat(
-            ($('#encSubTotal').text() || '0').replace(/,/g, '')
-        ) || 0;
+        var subTotal = parseFloat(($('#encSubTotal').text() || '0').replace(/,/g, '')) || 0;
 
         if (salesNO && saveUrl) {
             $.post(saveUrl, {
@@ -522,35 +489,29 @@ function initEncCalculator(saveUrl, loadUrl) {
                 subTotal: subTotal,
                 finalValue: finalVal
             }, function (res) {
-                if (res.success)
-                    PB.toast('E&C calculation saved.', 'success');
+                if (res.success) PB.toast('E&C calculation saved.', 'success');
             });
         }
 
         $('#encModal').removeClass('open');
     });
 
-    /* ── Helpers ── */
+    /* Helpers */
     function recalcEncRow($tr) {
         var persons = parseFloat($tr.find('.enc-persons').val()) || 0;
         var rate = parseFloat($tr.find('.enc-rate').val()) || 0;
         var days = parseFloat($tr.find('.enc-days').val()) || 0;
         var cost = persons * rate * days;
-        $tr.find('.enc-cost').text(
-            cost > 0 ? Math.round(cost).toLocaleString('en-IN') : '0'
-        );
+        $tr.find('.enc-cost').text(cost > 0 ? Math.round(cost).toLocaleString('en-IN') : '0');
     }
 
     function recalcEncTotals() {
         var subTotal = 0;
         $('#encTableBody tr').each(function () {
-            subTotal += parseFloat(
-                $(this).find('.enc-cost').text().replace(/,/g, '')
-            ) || 0;
+            subTotal += parseFloat($(this).find('.enc-cost').text().replace(/,/g, '')) || 0;
         });
 
-        var marginAmt = parseFloat($('#encMarginAmt').val()) || 0;
-        var finalVal = subTotal + marginAmt;
+        var finalVal = subTotal + (parseFloat($('#encMarginAmt').val()) || 0);
 
         $('#encSubTotal').text(Math.round(subTotal).toLocaleString('en-IN'));
         $('#encSubTotalDisplay').val(Math.round(subTotal).toLocaleString('en-IN'));
@@ -566,9 +527,7 @@ function initEncCalculator(saveUrl, loadUrl) {
                 persons: parseFloat($(this).find('.enc-persons').val()) || 0,
                 perDayRate: parseFloat($(this).find('.enc-rate').val()) || 0,
                 totalDays: parseFloat($(this).find('.enc-days').val()) || 0,
-                totalCost: parseFloat(
-                    $(this).find('.enc-cost').text().replace(/,/g, '')
-                ) || 0
+                totalCost: parseFloat($(this).find('.enc-cost').text().replace(/,/g, '')) || 0
             });
         });
         return JSON.stringify(rows);

@@ -469,6 +469,20 @@
                             <td><input type="text" id="txtAdvanceValueCost" class="bid-input" readonly /></td>
                         </tr>
                         <tr>
+                            <td>
+                                Against Proforma Invoice
+                                <div style="font-size:11px;color:var(--text-muted);">with 100% taxes and duties, on pro rata basis</div>
+                            </td>
+                            <td>
+                                <div class="bid-pct-wrap">
+                                    @Html.TextBoxFor(m => m.ProformaPercentage, "{0:0}", new { @id = "txtProforma", @class = "bid-input" })
+                                    <span class="bid-pct-suffix">%</span>
+                                </div>
+                            </td>
+                            <td>—</td>
+                            <td><input type="text" id="txtProformaCost" class="bid-input" readonly /></td>
+                        </tr>
+                        <tr>
                             <td>DAP</td>
                             <td>
                                 <div class="bid-pct-wrap">

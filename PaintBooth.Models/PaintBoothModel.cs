@@ -121,7 +121,7 @@ namespace PaintBooth.Models
         public List<ExhaustDuctingModel> ExhaustDuctingList { get; set; }
 
         public string ExhaustDuctingListJson { get; set; } // Serialized JSON list
-
+       
         public double CChannelHeight { get; set; }
         public string MotorTypes { get; set; }
         public string MotorItemCode { get; set; }
@@ -138,6 +138,10 @@ namespace PaintBooth.Models
         public string ItemCodeForStructuralM { get; set; }   // e.g. "512030056"
         public decimal RateForStructuralM { get; set; }      // will be auto-filled
 
+        public double WallDistance { get; set; }
+        public double WallThickness { get; set; } = 250;      // client sheet shows 250 brick wall
+        public double DuctHeightFromFFL { get; set; }
+
     }
 
     public class PressureDrop
@@ -149,15 +153,6 @@ namespace PaintBooth.Models
 
     public class ExhaustDuctingModel
     {
-        //public string BendType { get; set; }
-        //public int? DuctLength { get; set; } // Nullable because not all bend types need a length
-        //public decimal DuctWidth { get; set; }
-        //public decimal DuctHeight { get; set; }
-        //public decimal DuctThickness { get; set; }
-        //public decimal DuctWeight { get; set; }
-        //// NEW — needed for item rate auto-fetch Code added by Ajay
-        //public string ItemCode { get; set; }
-        //public decimal Rate { get; set; }
         public string? BendType { get; set; }
         public string? BendDirection { get; set; }   // NEW — Up/Down/Left/Right for bends
         public int? DuctLength { get; set; }          // nullable — only ducts have a length
@@ -166,7 +161,9 @@ namespace PaintBooth.Models
         public decimal DuctThickness { get; set; }
         public decimal DuctNetWeight { get; set; }    // NEW — replaces DuctWeight
         public decimal DuctGrossWeight { get; set; }  // NEW — net + wastage
-
+        public double WallDistance { get; set; }        // mm — EC rear face to wall (client: 1000 "From wall")
+        public double DuctHeightFromFFL { get; set; }   // mm — top of exhaust duct from finished floor level (client: 13500)
+        public double WallThickness { get; set; } = 250;      // client sheet shows 250 brick wall
         // item rate auto-fetch — added by Ajay
         public string ItemCode { get; set; }
         public decimal Rate { get; set; }

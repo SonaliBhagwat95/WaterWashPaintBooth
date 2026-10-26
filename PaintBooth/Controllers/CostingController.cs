@@ -496,6 +496,7 @@ namespace PaintBooth.Controllers
             if (payTerms != null)
             {
                 model.AdvancedPercentage = payTerms.AdvancedPercentage;
+                model.ProformaPercentage = payTerms.ProformaPercentage;
                 model.DAPPercentage = payTerms.DAPPercentage;
                 model.SUPPLYBEFOREDISPATCHPercentage = payTerms.SUPPLYBEFOREDISPATCHPercentage;
                 model.SUPPLYAFTERDISPATCHPercentage = payTerms.SUPPLYAFTERDISPATCHPercentage;
@@ -755,7 +756,7 @@ namespace PaintBooth.Controllers
 
                         viewModel.PriceBIDDetails =
                             _repo.FetchPriceBidRecoreds(SalesNO);
-
+                        viewModel.PriceBIDDetails.RevisionNo = 0;
 
                         viewModel.MaterialList =
                             _repo.GetMaterialsValue(SalesNO);

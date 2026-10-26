@@ -637,15 +637,7 @@
                                id="txtExhaustWidth" />
                     </div>
                 </div>
-                @* <div class="col-md-2">
-                    <div class="pb-form-group">
-                        <label class="pb-label pb-label-accent">
-                            Duct Thickness (mm)
-                        </label>
-                        <input asp-for="ExhaustThickness" class="pb-input"
-                               id="txtExhaustThickness" />
-                    </div>
-                </div> *@
+                
                 <div class="col-md-2">
                     <div class="pb-form-group">
                         <label class="pb-label pb-label-accent">
@@ -671,7 +663,31 @@
                     </div>
                 </div>
             </div>
-
+            <!-- Site details for ducting -->
+            <div class="row g-3 mb-3">
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label pb-label-accent">
+                            Distance from Wall (mm)
+                        </label>
+                        <input asp-for="WallDistance" class="pb-input"
+                               id="txtWallDistance" type="number" min="0" step="1" placeholder="1000" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="pb-form-group">
+                        <label class="pb-label pb-label-accent">
+                            Duct Height from FFL (mm)
+                        </label>
+                        <input asp-for="DuctHeightFromFFL" class="pb-input"
+                               id="txtDuctHeightFFL" type="number" min="0" step="1" placeholder="13500" />
+                        <span id="ductFFLError" class="form-field-error" style="display:none;">
+                            <i class="bi bi-exclamation-circle"></i>
+                            Must be greater than booth height H.
+                        </span>
+                    </div>
+                </div>
+            </div>
             <!-- Ducting component add row -->
             @* <div class="row g-3 align-items-end mb-3">
                 <div class="col-md-3">

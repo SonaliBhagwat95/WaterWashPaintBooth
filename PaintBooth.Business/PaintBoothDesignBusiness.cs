@@ -8226,6 +8226,327 @@ namespace PaintBooth.Business
         }
 
 
+
+        #region Exhaust ducting (from saved ExhaustDuctings rows)
+        /// <summary>
+        /// Builds the exhaust duct run(s) from the saved Bend/Duct rows.
+        /// Starts above each transition piece, leaving an empty gap for the blower.
+        /// Duct rows carry Vertical/Horizontal in BendDirection; Bend rows carry Up/Down/Left/Right.
+        /// </summary>
+        //public PanelDrawResult ExhaustDuctingDrawing(PaintBoothModel model, List<ExhaustDuctings> rows,
+        //                                      double ecHeight, int transitionCount,
+        //                                      double blowerGap = 900, double offsetX = 500)
+        //{
+        //    drawing = new();
+        //    drawing.Units = linearUnitsType.Millimeters;
+        //    if (rows == null || rows.Count == 0)
+        //        return new PanelDrawResult { drawing = drawing, Weight = 0, lstpath = "" };
+
+        //    // ── duct section from the saved rows (fallback to the model) ──
+        //    var first = rows.First();
+        //    double dW = Convert.ToDouble(first.DuctWidth);      // across the booth (Y)
+        //    double dH = Convert.ToDouble(first.DuctHeight);
+        //    double t = Convert.ToDouble(first.DuctThickness);
+        //    if (dW <= 0) dW = model.ExhaustWidth;
+        //    if (dH <= 0) dH = model.ExhaustDuctHeight;
+        //    if (t <= 0) t = 2;
+        //    double R = Math.Max(dW, dH) * 1.1;                  // same bend radius as the page preview
+
+        //    var mat = new Material(Materials);
+        //    double totalKg = 0;
+
+        //    Vector3D Neg(Vector3D a) => new Vector3D(-a.X, -a.Y, -a.Z);
+
+        //    // hollow rectangle centred on p: dH along u, dW along v
+        //    devregion Section(Point3D p, Vector3D u, Vector3D v)
+        //    {
+        //        Point3D C(double s, double r) => p + u * s + v * r;
+        //        LinearPath Rect(double a, double b) => new LinearPath(new[]
+        //            { C(-a / 2, -b / 2), C(a / 2, -b / 2), C(a / 2, b / 2), C(-a / 2, b / 2), C(-a / 2, -b / 2) });
+        //        return new devregion(Rect(dH, dW), Rect(dH - 2 * t, dW - 2 * t));
+        //    }
+
+        //    void Add(Brep b, Color c)
+        //    {
+        //        b.Regen(0.1);
+        //        totalKg += b.GetMass(mat, linearUnitsType.Millimeters, massUnitsType.Kilograms, out _);
+        //        drawing.Entities.Add(b, c);
+        //    }
+
+        //    double pieceW = model.W / Math.Max(1, transitionCount);
+
+        //    for (int s = 0; s < Math.Max(1, transitionCount); s++)
+        //    {
+        //        // top of transition piece = ecHeight + 300 → blower gap (empty) → ducting starts
+        //        var pos = new Point3D(model.D + model.D3 / 2 + offsetX,      // ← shifted away from the transition piece
+        //              s * pieceW + pieceW / 2,
+        //              ecHeight + 300 + blowerGap);
+        //        var dir = Vector3D.AxisZ;      // leaving the blower upward
+        //        var side = Vector3D.AxisY;      // duct width across the booth
+
+        //        foreach (var r in rows.OrderBy(x => x.DuctId))
+        //        {
+        //            string type = (r.BendType ?? "").Trim();
+        //            string d = (r.BendDirection ?? "").Trim().ToLower();
+
+        //            if (type.Equals("Duct", StringComparison.OrdinalIgnoreCase))
+        //            {
+        //                if (d == "vertical" && Math.Abs(dir.Z) < 0.5) dir = Vector3D.AxisZ;
+        //                if (d == "horizontal" && Math.Abs(dir.Z) > 0.5) dir = Vector3D.AxisX;
+
+        //                double len = Convert.ToDouble(r.DuctLength ?? 0);
+        //                if (len <= 0) continue;
+
+        //                var u = Vector3D.Cross(side, dir);
+        //                Add(Section(pos, u, side).ExtrudeAsBrep(dir * len), Color.LightSteelBlue);
+        //                pos = pos + dir * len;
+        //            }
+        //            else // Bend
+        //            {
+        //                Vector3D dirOut = d switch
+        //                {
+        //                    "up" => Vector3D.AxisZ,
+        //                    "down" => Neg(Vector3D.AxisZ),
+        //                    "right" => Vector3D.AxisX,
+        //                    "left" => Neg(Vector3D.AxisX),
+        //                    _ => Vector3D.AxisZ
+        //                };
+        //                if (Math.Abs(Vector3D.Dot(dir, dirOut)) > 0.99) continue;   // no turn → skip (same as preview)
+
+        //                var k = Vector3D.Cross(dir, dirOut); k.Normalize();         // turn axis
+        //                var center = pos + dirOut * R;
+        //                var u = Vector3D.Cross(side, dir);
+
+        //                Add(Section(pos, u, side).RevolveAsBrep(Math.PI / 2, k, center), Color.OrangeRed);
+
+        //                pos = center + dir * R;                                     // end of elbow
+        //                side = Vector3D.Cross(k, side) + k * Vector3D.Dot(k, side); // rotate side 90° about k
+        //                side.Normalize();
+        //                dir = dirOut;
+        //            }
+        //        }
+        //    }
+
+        //    #region Write file
+        //    var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
+        //    if (!Directory.Exists(path + "/PaintBooth drawing"))
+        //        Directory.CreateDirectory(path + "/PaintBooth drawing");
+        //    string dwgFilePath = $"{path}/PaintBooth drawing/ExhaustDucting {DateTime.Now:hh - mm}.dwg";
+        //    new WriteAutodesk(new WriteAutodeskParams(drawing), dwgFilePath).DoWork();
+        //    #endregion
+
+        //    return new PanelDrawResult { drawing = drawing, Weight = Math.Round(totalKg, 3), lstpath = dwgFilePath };
+        //}
+
+        #region Exhaust ducting (from saved ExhaustDuctings rows)
+        public PanelDrawResult ExhaustDuctingDrawing(PaintBoothModel model, List<ExhaustDuctings> rows,
+                                             double ecHeight, int transitionCount,
+                                             double blowerGap = 900, double offsetX = 600,
+                                             double wallInnerX = 0, double wallThk = 250, double wallClear = 300)
+        {
+            drawing = new();
+            drawing.Units = linearUnitsType.Millimeters;
+            if (rows == null || rows.Count == 0)
+                return new PanelDrawResult { drawing = drawing, Weight = 0, lstpath = "" };
+
+            // ── duct section ──
+            var first = rows.First();
+            double dW = Convert.ToDouble(first.DuctWidth);
+            double dH = Convert.ToDouble(first.DuctHeight);
+            double t = Convert.ToDouble(first.DuctThickness);
+            if (dW <= 0) dW = model.ExhaustWidth;
+            if (dH <= 0) dH = model.ExhaustDuctHeight;
+            if (t <= 0) t = 2;
+            double R = Math.Max(dW, dH) * 1.1;
+
+            var mat = new Material(Materials);
+            double totalKg = 0;
+            double cutZ = 0;                                   // duct centre height at the wall
+            double wallOuterX = wallInnerX > 0 ? wallInnerX + wallThk : 0;
+            // run state (reset per transition piece)
+            Point3D pos = Point3D.Origin;
+            Vector3D dir = Vector3D.AxisZ, side = Vector3D.AxisY, lastH = Vector3D.AxisX;
+
+            Vector3D Neg(Vector3D a) => new Vector3D(-a.X, -a.Y, -a.Z);
+
+            // Rodrigues rotation of v about unit axis k by angle a
+            Vector3D Rot(Vector3D v, Vector3D k, double a)
+            {
+                double c = Math.Cos(a), s = Math.Sin(a);
+                var r = v * c + Vector3D.Cross(k, v) * s + k * (Vector3D.Dot(k, v) * (1 - c));
+                r.Normalize();
+                return r;
+            }
+
+            devregion Section(Point3D p, Vector3D u, Vector3D v)
+            {
+                Point3D C(double s, double r) => p + u * s + v * r;
+                LinearPath Rect(double a, double b) => new LinearPath(new[]
+                    { C(-a / 2, -b / 2), C(a / 2, -b / 2), C(a / 2, b / 2), C(-a / 2, b / 2), C(-a / 2, -b / 2) });
+                return new devregion(Rect(dH, dW), Rect(dH - 2 * t, dW - 2 * t));
+            }
+
+            void Add(Brep b, Color c)
+            {
+                b.Regen(0.1);
+                totalKg += b.GetMass(mat, linearUnitsType.Millimeters, massUnitsType.Kilograms, out _);
+                drawing.Entities.Add(b, c);
+            }
+
+            void Straight(double len)
+            {
+                if (wallInnerX > 0 && cutZ == 0 && dir.X > 0.5 &&
+                    pos.X < wallOuterX && pos.X + len > wallInnerX)
+                    cutZ = pos.Z;                                       // this piece goes through the wall
+
+                var u = Vector3D.Cross(side, dir);
+                Add(Section(pos, u, side).ExtrudeAsBrep(dir * len), Color.LightSteelBlue);
+                pos = pos + dir * len;
+            }
+
+            // elbow: turn from 'dir' toward unit vector n (perpendicular to dir) by 'angle' radians
+            void Elbow(Vector3D n, double angle, Color col)
+            {
+                var k = Vector3D.Cross(dir, n); k.Normalize();
+                var center = pos + n * R;
+                var u = Vector3D.Cross(side, dir);
+                Add(Section(pos, u, side).RevolveAsBrep(angle, k, center), col);
+
+                double c = Math.Cos(angle), s = Math.Sin(angle);
+                pos = center + n * (-R * c) + dir * (R * s);      // end of arc
+                var newDir = dir * c + n * s; newDir.Normalize();
+                side = Rot(side, k, angle);
+                dir = newDir;
+            }
+
+            void TrackHorizontal() { if (Math.Abs(dir.Z) < 0.5) lastH = dir; }
+
+            double pieceW = model.W / Math.Max(1, transitionCount);
+
+            for (int s = 0; s < Math.Max(1, transitionCount); s++)
+            {
+                pos = new Point3D(model.D + model.D3 / 2 + offsetX, s * pieceW + pieceW / 2, ecHeight + 300 + blowerGap);
+                dir = Vector3D.AxisZ;
+                side = Vector3D.AxisY;
+                lastH = Vector3D.AxisX;
+
+                foreach (var r in rows.OrderBy(x => x.DuctId))
+                {
+                    string type = (r.BendType ?? "").Trim();
+                    string d = (r.BendDirection ?? "").Trim().ToLower();
+
+                    if (type.Equals("Duct", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (d == "vertical" && Math.Abs(dir.Z) < 0.5) dir = Vector3D.AxisZ;
+                        if (d == "horizontal" && Math.Abs(dir.Z) > 0.5) dir = lastH;
+
+                        double len = Convert.ToDouble(r.DuctLength ?? 0);
+                        if (len > 0) Straight(len);
+                    }
+                    else // 90° bend
+                    {
+                        Vector3D dirOut = d switch
+                        {
+                            "up" => Vector3D.AxisZ,
+                            "down" => Neg(Vector3D.AxisZ),
+                            "right" => Vector3D.AxisX,
+                            "left" => Neg(Vector3D.AxisX),
+                            _ => Vector3D.AxisZ
+                        };
+                        if (Math.Abs(Vector3D.Dot(dir, dirOut)) > 0.99) continue;
+                        // Up-bend after a +X horizontal leg must start outside the wall (client layout)
+                        if (wallInnerX > 0 && dir.X > 0.5 && dirOut.Z > 0.5 && pos.X < wallOuterX + wallClear)
+                        {
+                            if (cutZ == 0) cutZ = pos.Z;
+                            Straight(wallOuterX + wallClear - pos.X);               // wall sleeve / extension
+                        }
+                        Elbow(dirOut, Math.PI / 2, Color.OrangeRed);
+                    }
+                    TrackHorizontal();
+                }
+
+                // ── Exit goose-neck: outlet always ends 45° below horizontal ──
+                if (Math.Abs(dir.Z) < 0.5)
+                    Elbow(Neg(Vector3D.AxisZ), Math.PI / 4, Color.Orange);          // horizontal end → 45° down
+                else if (dir.Z > 0)
+                    Elbow(lastH, 3 * Math.PI / 4, Color.Orange);                    // vertical end → 90° + 45° (135°)
+                                                                                    // run already pointing down → no exit bend needed
+            }
+
+            #region Write file
+            var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
+            if (!Directory.Exists(path + "/PaintBooth drawing"))
+                Directory.CreateDirectory(path + "/PaintBooth drawing");
+            string dwgFilePath = $"{path}/PaintBooth drawing/ExhaustDucting {DateTime.Now:hh - mm}.dwg";
+            new WriteAutodesk(new WriteAutodeskParams(drawing), dwgFilePath).DoWork();
+            #endregion
+
+            double cutSize = Math.Ceiling((Math.Max(dW, dH) + 200) / 10) * 10;   // ~100 clearance each side
+            return new PanelDrawResult
+            {
+                drawing = drawing,
+                Weight = Math.Round(totalKg, 3),
+                lstpath = dwgFilePath,
+                DuctCutZ = cutZ,
+                DuctCutSize = cutSize
+            };
+        }
+        #endregion
+
+        #region Site wall (3D) with duct cut-out(s)
+        /// <summary>
+        /// Brick wall at X = wallInnerX (thickness along +X), spanning the booth width + margin,
+        /// with a square cut-out per duct run at (run centre Y, cutZ).
+        /// </summary>
+        public PanelDrawResult SiteWallDrawing(PaintBoothModel model, double wallInnerX, double wallThk,
+                                               double wallTop, double cutZ, double cutSize,
+                                               int transitionCount, double margin = 1000)
+        {
+            drawing = new();
+            drawing.Units = linearUnitsType.Millimeters;
+            if (wallInnerX <= 0 || wallTop <= 0)
+                return new PanelDrawResult { drawing = drawing, Weight = 0, lstpath = "" };
+
+            double y0 = -margin, y1 = model.W + margin;
+            double x = wallInnerX;
+
+            LinearPath Loop(params Point3D[] p) => new LinearPath(p.Append(p[0]).ToArray());
+
+            // outer face of the wall in the YZ plane at x = wallInnerX
+            var curves = new List<ICurve>
+    {
+        Loop(new Point3D(x, y0, 0), new Point3D(x, y1, 0),
+             new Point3D(x, y1, wallTop), new Point3D(x, y0, wallTop))
+    };
+
+            // one square cut-out per duct run (same Y centres as the ducting)
+            if (cutZ > 0 && cutSize > 0)
+            {
+                int runs = Math.Max(1, transitionCount);
+                double pieceW = model.W / runs, h = cutSize / 2;
+                for (int s = 0; s < runs; s++)
+                {
+                    double yc = s * pieceW + pieceW / 2;
+                    curves.Add(Loop(new Point3D(x, yc - h, cutZ - h), new Point3D(x, yc + h, cutZ - h),
+                                    new Point3D(x, yc + h, cutZ + h), new Point3D(x, yc - h, cutZ + h)));
+                }
+            }
+
+            Brep wall = new devregion(curves.ToArray()).ExtrudeAsBrep(new Vector3D(wallThk, 0, 0));
+            drawing.Entities.Add(wall, Color.Firebrick);
+
+            var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
+            if (!Directory.Exists(path + "/PaintBooth drawing"))
+                Directory.CreateDirectory(path + "/PaintBooth drawing");
+            string dwgFilePath = $"{path}/PaintBooth drawing/SiteWall {DateTime.Now:hh - mm}.dwg";
+            new WriteAutodesk(new WriteAutodeskParams(drawing), dwgFilePath).DoWork();
+
+            return new PanelDrawResult { drawing = drawing, Weight = 0, lstpath = dwgFilePath };
+        }
+        #endregion
+        #endregion
+
+
         #region Export Views
         public static List<string> ExportAllViewsWithSection(DesignDocument designDoc, string outputFolder)// Y-coordinate for the XZ-plane section
         {
