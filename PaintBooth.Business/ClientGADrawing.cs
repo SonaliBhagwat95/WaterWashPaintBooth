@@ -56,6 +56,8 @@ namespace PaintBooth.Business
         public double BoothWidth { get; set; }      // model.W
         public int DuctRuns { get; set; } = 1;      // one run per transition piece
         public double WallMargin { get; set; } = 500;   // how far the wall extends past the booth sides
+        public double DuctLegX { get; set; }
+        public List<string> DuctNoteLines { get; set; } = new();
     }
 
     public class GAScopeItem
@@ -203,6 +205,7 @@ namespace PaintBooth.Business
             DrawElevationDecor(doc, m, info);
             if (views.ContainsKey("ELEV")) AddWallAndFflDims(sheet.Entities, info, ElevToSheet);
             if (views.ContainsKey("ELEV")) AddEcHeightDim(sheet.Entities, info, ElevToSheet);
+            if (views.ContainsKey("ELEV")) AddDuctNote(sheet.Entities, info, ElevToSheet);
             if (views.ContainsKey("PLAN")) AddWallPlan(sheet.Entities, info, PlanToSheet);
             if (views.ContainsKey("SIDE")) AddWallSide(sheet.Entities, info, SideToSheet);
             NamePlate(doc, m, info);
@@ -278,8 +281,77 @@ namespace PaintBooth.Business
             return new Point2D(v.X + (c.X - p.X) * sc,
                                v.Y + (c.Y - p.Y) * sc);
         }
+        /// <summary>
+        /// Elevation: client-style duct callout — balloon 5 above a note block, leader from the
+        /// "St. duct" line to the vertical duct leg. Placed just outside the duct, kept inside the frame.
+        /// </summary>
+        private void AddDuctNote(IList<Entity> ents, ClientGAInfo info,
+                                 Func<Point3D, Point2D> toSheet, string layer = null)
+        {
+            if (info.DuctNoteLines == null || info.DuctNoteLines.Count == 0) return;
+            if (info.DuctLegX <= 0 && info.DuctMaxX <= 0) return;
+            layer ??= LText;
 
-  
+            double txt = 2.5, lineGap = 4.2, arr = 1.5;              // paper mm
+            double ecRear = info.BoothDepth + info.ECDepth;
+
+            Point2D P(double x, double z) => toSheet(new Point3D(x, 0, z));
+            void L(Point2D a, Point2D b) =>
+                AddC(new Line(a.X, a.Y, b.X, b.Y), LBal, Color.SaddleBrown);   // same leader colour as other balloons
+
+            // outward direction on the sheet (booth → duct side), handles the 180° mirror
+            double sgn = Math.Sign(P(ecRear + 100, 0).X - P(ecRear, 0).X);
+            if (sgn == 0) sgn = 1;
+            bool outLeft = sgn < 0;
+
+            // ── leader target: middle of the vertical duct leg ──
+            double legX = info.DuctLegX > 0 ? info.DuctLegX : info.DuctMaxX;
+            double zLo = info.DuctCutZ > 0 ? info.DuctCutZ : info.DuctTopZ * 0.4;
+            double zHi = info.DuctTopZ > 0 ? info.DuctTopZ : zLo + 1000;
+            Point2D target = P(legX, (zLo + zHi) / 2);
+
+            // ── text block size (rough) ──
+            double textW = info.DuctNoteLines.Max(s => s.Length) * txt * 0.8;
+
+            // ── anchor: just outside the outermost duct, but never past the frame margin ──
+            double longestW = info.DuctNoteLines.Max(s => s.Length) * txt * 0.8;
+            double outerX = Math.Max(info.DuctMaxX, legX);
+            double anchorX = P(outerX, 0).X + sgn * 6;                                   // 6 mm outside the duct
+            if (outLeft) anchorX = Math.Max(anchorX, ML + 4 + longestW);                 // stay inside the frame
+            else anchorX = Math.Min(anchorX, SW - MO - RCOL - 10 - longestW);
+
+            var align = outLeft ? Text.alignmentType.MiddleRight : Text.alignmentType.MiddleLeft;
+
+            // line 3 ("St. duct …") a little above the target
+            int leaderLine = Math.Min(2, info.DuctNoteLines.Count - 1);
+            double yLeader = target.Y + 8;
+            double yTop = yLeader + leaderLine * lineGap;
+
+            for (int i = 0; i < info.DuctNoteLines.Count; i++)
+                ents.Add(new Text(anchorX, yTop - i * lineGap, 0, info.DuctNoteLines[i], txt, align) { LayerName = layer });
+
+            // ── leader: short horizontal from the end of line 3, then straight to the duct, with arrow + dot ──
+            var lStart = new Point2D(anchorX - sgn * 1.5, yLeader);
+            var lKnee = new Point2D(lStart.X - sgn * 6, yLeader);
+            L(lStart, lKnee);
+            L(lKnee, target);
+
+            double dx = target.X - lKnee.X, dy = target.Y - lKnee.Y, len = Math.Sqrt(dx * dx + dy * dy);
+            if (len > 0.01)
+            {
+                dx /= len; dy /= len;
+                double bx = target.X - dx * arr, by = target.Y - dy * arr;
+                L(target, new Point2D(bx - dy * arr * 0.35, by + dx * arr * 0.35));
+                L(target, new Point2D(bx + dy * arr * 0.35, by - dx * arr * 0.35));
+            }
+
+            // ── balloon 5 above the note block, same style as all other balloons ──
+            double longest = info.DuctNoteLines.Max(s => s.Length) * txt * 0.8;
+            double balX = anchorX + (outLeft ? -longest / 2 : longest / 2);
+            double balY = yTop + lineGap + 4.5;
+            DrawBalloonAt(new Point2D(balX, balY), 5);
+        }
+
         /// <summary>
         /// Plan view: brick wall strip at (EC rear + WallDistance) with a gap per duct run,
         /// "xxx Sq. C/S" label beside each cut-out and the "1000" From-wall dimension.
@@ -565,11 +637,6 @@ namespace PaintBooth.Business
                 DimV("ELEV", new Point3D(0, 0, 0), new Point3D(0, 0, H), b.R + 10, "Working height");
                 DimV("ELEV", new Point3D(0, 0, 0), new Point3D(0, 0, Hov), b.R + 20, "");
 
-                // left = E/C side → now drawn next to the EC / wall by AddEcHeightDim + AddWallAndFflDims
-                //double xl = xs[^1];
-                //if (hasEC && ECh > 0)
-                //    DimV("ELEV", new Point3D(xl, 0, 0), new Point3D(xl, 0, ECh), b.L - 10, "E/C height");
-                //DimV("ELEV", new Point3D(xl, 0, 0), new Point3D(xl, 0, topOfBlowerZ), b.L - 20, "Approx. from FFL");
             }
             #endregion
 
@@ -758,6 +825,27 @@ namespace PaintBooth.Business
                     AddC(tx, LBal, Color.White);
                 }
             }
+        }
+        /// <summary>One client-style balloon (shaded ball, black box, white bold number) centred at cc.</summary>
+        private void DrawBalloonAt(Point2D cc, int number)
+        {
+            const double r = 4.5;
+            Color dark = Color.FromArgb(15, 35, 160);
+            Color light = Color.FromArgb(170, 205, 255);
+
+            // shaded ball
+            FillDisc(cc.X, cc.Y, r, dark, light, 0.35);
+            AddC(new Circle(new Point3D(cc.X, cc.Y, 0), r), LBal, Color.FromArgb(10, 25, 120));
+
+            // black box + white number
+            string no = number.ToString();
+            double th = 3.2;
+            double bw = th * 0.75 * no.Length + 0.8, bh = th * 1.3;
+            FillRect(cc.X - bw / 2, cc.Y - bh / 2, cc.X + bw / 2, cc.Y + bh / 2, Color.Black);
+
+            // white text, drawn twice slightly offset = bold look
+            foreach (double ox in new[] { -0.06, 0.06 })
+                AddC(new Text(cc.X + ox, cc.Y, 0, no, th, Text.alignmentType.MiddleCenter), LBal, Color.White);
         }
 
         /// <summary>Solid disc made of concentric circles; colour runs outer → inner,
@@ -1286,18 +1374,25 @@ namespace PaintBooth.Business
             int maxChars = (int)((x1 - x0 - 6) / (h * 0.9));
 
             double y = top - 4;
-            Txt(x0 + 3, y, "NOTES :-", 2.8, Text.alignmentType.MiddleLeft, LTitle);
-            y -= lineH + 1;
+
+            // "NOTES:" heading, underlined; note 1 continues on the same line
+            const string head = "NOTES:";
+            double headW = head.Length * h * 0.9;
+            Txt(x0 + 3, y, head, h, Text.alignmentType.MiddleLeft, LTitle);
+            Add(new Line(x0 + 3, y - h / 2 - 0.6, x0 + 3 + headW, y - h / 2 - 0.6), LTitle);
+            double firstX = x0 + 3 + headW + h * 0.6;
 
             for (int i = 0; i < info.Notes.Count && y > bottom + 3; i++)
             {
-                foreach (var line in Wrap($"{i + 1}) {info.Notes[i]}", maxChars))
+                var lines = Wrap($"{i + 1}) {info.Notes[i]}", maxChars).ToList();
+                for (int j = 0; j < lines.Count; j++)
                 {
                     if (y <= bottom + 3) break;
-                    Txt(x0 + 3, y, line, h, Text.alignmentType.MiddleLeft, LTitle);
+                    double lx = (i == 0 && j == 0) ? firstX : x0 + 3;
+                    Txt(lx, y, lines[j], h, Text.alignmentType.MiddleLeft, LTitle);
                     y -= lineH;
                 }
-                y -= 1;
+                y -= lineH;          // blank line between notes (like the client sheet)
             }
             Rect(x0, Math.Max(y, bottom), x1, top, LTitle);
         }
@@ -1575,7 +1670,6 @@ namespace PaintBooth.Business
             e.ColorMethod = colorMethodType.byLayer;
             sheet.Entities.Add(e);
         }
-
         private void Rect(double xa, double ya, double xb, double yb, string layer)
         {
             Add(new Line(xa, ya, xb, ya), layer);
@@ -1596,17 +1690,20 @@ namespace PaintBooth.Business
 
         private static IEnumerable<string> Wrap(string text, int max)
         {
-            var line = "";
-            foreach (var word in text.Split(' '))
+            foreach (var part in text.Split('\n'))          // each \n starts a new line (A, B, C, D)
             {
-                if (line.Length + word.Length + 1 > max && line.Length > 0)
+                var line = "";
+                foreach (var word in part.Split(' ', StringSplitOptions.RemoveEmptyEntries))
                 {
-                    yield return line;
-                    line = "   " + word;
+                    if (line.Length + word.Length + 1 > max && line.Length > 0)
+                    {
+                        yield return line;
+                        line = " " + word;                   // small indent on wrapped lines
+                    }
+                    else line = line.Length == 0 ? word : line + " " + word;
                 }
-                else line = line.Length == 0 ? word : line + " " + word;
+                if (line.Length > 0) yield return line;
             }
-            if (line.Length > 0) yield return line;
         }
         #endregion
     }

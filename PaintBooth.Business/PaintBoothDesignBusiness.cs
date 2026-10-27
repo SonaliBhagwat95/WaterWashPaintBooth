@@ -8362,6 +8362,7 @@ namespace PaintBooth.Business
             var mat = new Material(Materials);
             double totalKg = 0;
             double cutZ = 0;                                   // duct centre height at the wall
+            double legX = 0;                                   // X of the first vertical-up straight (leader target)
             double wallOuterX = wallInnerX > 0 ? wallInnerX + wallThk : 0;
             // run state (reset per transition piece)
             Point3D pos = Point3D.Origin;
@@ -8395,6 +8396,7 @@ namespace PaintBooth.Business
 
             void Straight(double len)
             {
+                if (legX == 0 && dir.Z > 0.5) legX = pos.X;        // first vertical duct going up
                 if (wallInnerX > 0 && cutZ == 0 && dir.X > 0.5 &&
                     pos.X < wallOuterX && pos.X + len > wallInnerX)
                     cutZ = pos.Z;                                       // this piece goes through the wall
@@ -8488,7 +8490,8 @@ namespace PaintBooth.Business
                 Weight = Math.Round(totalKg, 3),
                 lstpath = dwgFilePath,
                 DuctCutZ = cutZ,
-                DuctCutSize = cutSize
+                DuctCutSize = cutSize,
+                DuctLegX = legX,       
             };
         }
         #endregion

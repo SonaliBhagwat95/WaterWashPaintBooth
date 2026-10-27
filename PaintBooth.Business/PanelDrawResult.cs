@@ -11,6 +11,7 @@ namespace PaintBooth.Business
         public int NoOfTransitionPieces { get; set; }
         public double DuctCutZ { get; set; }      // centre height of duct where it passes the wall
         public double DuctCutSize { get; set; }   // wall cut-out size (square)
+        public double DuctLegX { get; set; }
     }
 
 

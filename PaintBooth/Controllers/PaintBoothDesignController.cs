@@ -493,7 +493,7 @@ namespace PaintBooth.Controllers
                 }
                 // ── Exhaust ducting (blower space left empty) ──────────────────────
                 List<ExhaustDuctings> ductRows = new();
-                Point3D ductMid = null;
+                Point3D ductMid = null; double ductLegX = 0;
                 double ductTopZ = 0, ductCutZ = 0, ductCutSize = 0, ductMaxX=0;
 
                 if (PaintBoothTypefromEnquiry != "4" && PaintBoothTypefromEnquiry != "5" &&
@@ -507,6 +507,7 @@ namespace PaintBooth.Controllers
                     var duct = panel.ExhaustDuctingDrawing(model, ductRows, ExtractionC_Height, pieces,
                                                            blowerGap: 900, offsetX: 600,
                                                            wallInnerX: wallInnerX, wallThk: 250);
+                    
                     if (duct.drawing.Entities.Count > 0)
                     {
                         service.designdictionary["ExhaustDucting"] = new List<DesignDocument> { duct.drawing };
@@ -520,6 +521,7 @@ namespace PaintBooth.Controllers
                         ductMaxX = mx.X;                                              // ← add
                         ductCutZ = duct.DuctCutZ;
                         ductCutSize = duct.DuctCutSize;// ← add (top of the duct run)
+                        ductLegX = duct.DuctLegX;
                     }
                 }
                 // ── Site wall (3D) — only when a wall distance is given ──
@@ -650,13 +652,28 @@ namespace PaintBooth.Controllers
                         new GAScopeItem { Title = "INCLINED TUBE MANOMETER", Lines = { "QTY : 1 NO." } },
                         new GAScopeItem { Title = "STAR DELTA STARTER + MCB", Lines = { "QTY : 1 NO." } },
                     },
+                    //Notes =
+                    //{
+                    //    "Civil work, foundation and floor levelling by customer.",
+                    //    "Wall cut-outs and making good after erection by customer.",
+                    //    "Electrical cabling up to starter by customer.",
+                    //    "Platform, ladder and lifting tackle not in our scope.",
+                    //    "Unloading and material handling at site by customer.",
+                    //},
+
                     Notes =
                     {
-                        "Civil work, foundation and floor levelling by customer.",
-                        "Wall cut-outs and making good after erection by customer.",
-                        "Electrical cabling up to starter by customer.",
-                        "Platform, ladder and lifting tackle not in our scope.",
-                        "Unloading and material handling at site by customer.",
+                        "PAINT SCHEME -\n" +
+                        "A) PAINT BOOTH INSIDE SHADE - BRILLIANT WHITE.\n" +
+                        "B) PAINT BOOTH OUTSIDE SHADE - JASMINE WISP.\n" +
+                        "C) EXTERNAL FACE OF STRUCTURAL MEMBER SHADE - POST OFFICE RED.\n" +
+                        "D) IF ANY SPECIAL SHADE IS REQUIRED, PLEASE SPECIFY ON G.A. AT THE TIME OF APPROVAL.",
+                        "WALL CUT-OUT & SEALING FOR EXHAUST DUCT ROUTING IS IN CUSTOMER SCOPE AT THE TIME OF EQUIPMENT INSTALLATION.",
+                        "DUCT SUPPORTING FROM BUILDING WALL / PURLIN OF PRE-FAB BUILDING AT THE TIME OF INSTALLATION.",
+                        "PLATFORM, LADDER FOR MAINTENANCE OF TUBE LIGHT IN CUSTOMER SCOPE.",
+                        "MAIN UTILITY IS IN CUSTOMER SCOPE.",
+                        "MATERIAL HANDLING (O.H. CONVEYOR) IS IN CUSTOMER SCOPE & COMPONENT ENTRY / EXIT C/O TO BE CONFIRMED BY CUSTOMER.",
+                        "ELECTRICAL LOAD: 5 KW APPROX. ALL ELECTRICAL CABLES WILL BE COPPER FLEXIBLE CABLE.",
                     },
                     Balloons =   // targets in ORIGINAL model coords; Dx/Dy = paper-mm offset, tune visually
                     {
@@ -679,13 +696,21 @@ namespace PaintBooth.Controllers
                     ductItem.Lines.Add("EXIT BEND WITH BIRD GRID : 1 NO.");
                     ductItem.Lines.Add($"G.I. {ds.Thickness:0.0} MM THK");
                     ductItem.Lines.Add($"QTY : {Math.Max(1, model.NoOfBlowers)} SET.");
-
-                    gaInfo.Scope.Insert(4, ductItem);                 // after manometer, before starter
+                    gaInfo.Scope.Insert(4, ductItem);
 
                     var starter = gaInfo.Balloons.FirstOrDefault(b => b.No == 5);
                     if (starter != null) starter.No = 6;
 
-                    gaInfo.Balloons.Add(new GABalloon { No = 5, View = "ELEV", Target = ductMid, Dx = -30, Dy = 20 });
+                    // client-style note beside the duct (balloon 5 is drawn with the note)
+                    gaInfo.DuctLegX = ductLegX;
+                    gaInfo.DuctNoteLines = new List<string>
+                    {
+                        "Exhaust duct set up",
+                        "with birdgrid duct.",
+                        $"St. duct - {ds.TotalDuctCount} nos.",
+                        $"Bend 90° - {ds.TotalBendCount}-no{(ds.TotalBendCount == 1 ? "" : "s")}.",
+                        "Bird grid duct - 1-no."
+                    };
                 }
 
                 string clientGaPath = new ClientGADrawing(_configuration).Build(gaModel, model, gaInfo);

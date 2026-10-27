@@ -5,6 +5,7 @@ using devDept.Geometry;
 using global::PaintBooth.Models;
 using Microsoft.Extensions.Configuration;
 using PaintBooth.Business.Water_Wash_Parts.Water_Trough;
+using System.Text;
 using static PaintBooth.Business.SheetProfile;
 using static PaintBooth.Business.Water_Wash_Parts.AssemblyHelper;
 using BasePlate1Part = PaintBooth.Business.BasePlate1;
@@ -928,5 +929,30 @@ namespace PaintBooth.Business.Water_Wash_Parts
             AddCopy(doc, part, retX, y + partD / 2, retZ, rotZDeg: 180);   // centred on cutout
         Put("BasePlate_Return", doc);
     }
-}
+
+        private static List<string> WrapNote(string note, int maxChars)
+        {
+            var lines = new List<string>();
+
+            foreach (var part in note.Split('\n'))
+            {
+                string indent = new string(' ', part.Length - part.TrimStart().Length);
+                var words = part.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var sb = new StringBuilder(indent);
+
+                foreach (var w in words)
+                {
+                    if (sb.Length > indent.Length && sb.Length + 1 + w.Length > maxChars)
+                    {
+                        lines.Add(sb.ToString());
+                        sb.Clear().Append(indent + " ");   // continuation indent
+                    }
+                    if (sb.Length > indent.Length && sb[sb.Length - 1] != ' ') sb.Append(' ');
+                    sb.Append(w);
+                }
+                lines.Add(sb.ToString());
+            }
+            return lines;
+        }
+    }
 }
