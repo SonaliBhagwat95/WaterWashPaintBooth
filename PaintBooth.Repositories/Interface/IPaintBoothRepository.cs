@@ -61,5 +61,7 @@ namespace PaintBooth.Repositories.Interface
         public string GetFilterType(int enquiryID);
         public string FetchCatagoryType(int ComponentId);
         public string FetchWashingTankType(int ComponentId);
+        public (double waterTankDepth, double waterTankHeight)FetchWatertankDetails(int ComponentId);
+        public (string conveyor, double length, double width) FetchEOTCutout(int componentId);
     }
 }

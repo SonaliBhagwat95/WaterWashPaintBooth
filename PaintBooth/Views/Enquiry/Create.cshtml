@@ -642,6 +642,21 @@
                     </select>
                 </div>
             </div>
+            
+            <div class="col-md-3 eot-cutout-field" style="display:none;">
+                <div class="pb-form-group">
+                    <label class="pb-label">EOT Cutout Length (mm) <span class="req-star">*</span></label>
+                    <input asp-for="Component.EOTCutoutLength" class="pb-input"
+                           id="txtEOTCutoutLength" placeholder="0" />
+                </div>
+            </div>
+            <div class="col-md-3 eot-cutout-field" style="display:none;">
+                <div class="pb-form-group">
+                    <label class="pb-label">EOT Cutout Width (mm) <span class="req-star">*</span></label>
+                    <input asp-for="Component.EOTCutoutWidth" class="pb-input"
+                           id="txtEOTCutoutWidth" placeholder="0" />
+                </div>
+            </div>
             <div class="col-md-3" id="carryCapacityDiv" style="display:none;">
                 <div class="pb-form-group">
                     <label class="pb-label">Carrying Capacity (Kg)</label>
@@ -761,19 +776,7 @@
                 <span asp-validation-for="Component.ExtractionChamberHeight" class="form-field-error"></span>
 
             </div>
-            <div class="col-md-3">
-                <div class="pb-form-group" id="divWashingChamberTank" style="display:none;">
-                    <label class="pb-label">Washing chamber tank <span class="req-star">*</span></label>
-                    <select asp-for="Component.WashingChamberTank" class="pb-select"
-                            id="drpWashingChamberTank">
-                        <option value="">-- Select --</option>
-                        <option value="Civil">Civil</option>
-                        <option value="Fabricated">Fabricated</option>
-                    </select>
-                </div>
-                <span asp-validation-for="Component.WashingChamberTank" class="form-field-error"></span>
-
-            </div>
+          
             <div class="col-md-3">
                 <div class="pb-form-group" id="divMOC" style="display:none;">
                     <label class="pb-label">MOC</label>
@@ -785,6 +788,37 @@
                         <option value="Al">Al</option>
                     </select>
                 </div>
+            </div>
+        </div>
+
+        <div class="row g-3" id="divWashingChamberTank" style="display:none;">
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Washing chamber tank <span class="req-star">*</span></label>
+                    <select asp-for="Component.WashingChamberTank" class="pb-select"
+                            id="drpWashingChamberTank">
+                        <option value="">-- Select --</option>
+                        <option value="Civil">Civil</option>
+                        <option value="Fabricated">Fabricated</option>
+                    </select>
+                </div>
+                <span asp-validation-for="Component.WashingChamberTank" class="form-field-error"></span>
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Washing chamber tank Depth<span class="req-star">*</span></label>
+                    <input asp-for="Component.WashingChamberTankDepth" class="pb-input"
+                           id="txtExtractionHeight" />
+                </div>
+                <span asp-validation-for="Component.WashingChamberTankDepth" class="form-field-error"></span>
+            </div>
+            <div class="col-md-3">
+                <div class="pb-form-group">
+                    <label class="pb-label">Washing chamber tank Height<span class="req-star">*</span></label>
+                    <input asp-for="Component.WashingChamberTankHeight" class="pb-input"
+                           id="txtExtractionHeight"/>
+                </div>
+                <span asp-validation-for="Component.WashingChamberTankHeight" class="form-field-error"></span>
             </div>
         </div>
     </div>

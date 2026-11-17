@@ -1,4 +1,5 @@
-﻿@model PaintBooth.Models.ProposalPriceBIDViewModel
+﻿@using PaintBooth.Database
+@model PaintBooth.Models.ProposalPriceBIDViewModel
 @inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
 @{
     ViewData["Title"] = "Proposal";
@@ -254,7 +255,99 @@
         <div class="prop-page-break"></div> *@
 
         <!-- ── BASIS OF DESIGN ───────────────────────── -->
-        <div class="prop-section">
+        @{
+            var bodRows = Model.BasisOfDesignRows ?? new List<ProposalBasisOfDesign>();
+            var bodMap = bodRows.Where(r => !r.IsCustom).ToDictionary(r => r.RowKey);
+
+            string BV(string key, string def) =>
+            bodMap.TryGetValue(key, out var r) && !string.IsNullOrWhiteSpace(r.Value) ? r.Value : def;
+            bool Inc(string key) => !bodMap.TryGetValue(key, out var r) || r.IsIncluded;
+
+            var p = Model.ProposalDetails;
+            var fixedRows = new List<(string Key, string Label, string Default)>
+        {
+        ("Components",       "Components",                          NS(p.Component)),
+        ("MOC",              "M.O.C. of components",                NS(p.MaterialOfConstruction)),
+        ("Image",            "Image/Photo/Drawing",                 null),
+        ("Shifts",           "No. of shifts per day",               NS(p.NumberofShifts)),
+        ("WorkingHrs",       "Effective working hrs.",              NS(p.EffectiveWorking)),
+        ("RequiredSpace",    "Required Space in Mtr/ Shed drawing", "Not Specified"),
+        ("Dimension",        "Component Dimension in mm",           NSDim(p.Length, p.WidthSize, p.HeightSize)),
+        ("Production",       "Production",                          NS(p.ProductionRequirement)),
+        ("PaintConsumption", "Paint Consumption per day",           NS(p.Paint)),
+        ("MaterialHandling", "Material Handling",                   NS(p.ComponentHandling)),
+        ("PaintDrying",      "Component Paint Drying",              "Not Specified"),
+        ("Temperature",      "Temperature",                         "Ambient 10 – 35 Deg C (Natural drying)"),
+        };
+        }
+
+        <!-- ── BASIS OF DESIGN ───────────────────────── -->
+        <div class="prop-section" id="bodSection">
+            <table class="prop-table" id="tblBasisOfDesign" data-enquiry-id="@p.EnquiryID">
+                <thead>
+                    <tr>
+                        <th colspan="5" style="text-align:center; font-size:13px; font-weight:700; color:var(--text-primary); text-transform:none; letter-spacing:0;">
+                            BASIS OF DESIGN
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in fixedRows)
+                    {
+                        <tr data-key="@r.Key">
+                            <td class="bod-chk-col"><input type="checkbox" class="bod-chk" @(Inc(r.Key) ? "checked" : "") /></td>
+                            <td class="bod-no" style="width:40px; color:var(--text-muted);"></td>
+                            <td>@r.Label</td>
+                            @if (r.Key == "Image")
+                            {
+                                <td colspan="2">
+                                    @if (isPicture)
+                                    {
+                                        <img src="@imgPath" alt="Component image" style="max-height:120px; max-width:100%; object-fit:contain;" />
+                                    }
+                                    else if (hasImg)
+                                    {
+                                        <span>Provided (attached separately)</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Not Specified</span>
+                                    }
+                                </td>
+                            }
+                            else
+                            {
+                                <td colspan="2" class="bod-val" contenteditable="true" data-field="Value">@BV(r.Key, r.Default)</td>
+                            }
+                        </tr>
+                    }
+                    @foreach (var c in bodRows.Where(x => x.IsCustom))
+                    {
+                        <tr data-key="@c.RowKey" class="bod-custom">
+                            <td class="bod-chk-col"><input type="checkbox" class="bod-chk" @(c.IsIncluded ? "checked" : "") /></td>
+                            <td class="bod-no" style="color:var(--text-muted);"></td>
+                            <td class="bod-desc" contenteditable="true" data-field="Description" data-ph="Description">@c.Description</td>
+                            <td class="bod-val" contenteditable="true" data-field="Value" data-ph="Value">@c.Value</td>
+                            <td class="bod-del-col"><button type="button" class="bod-del" title="Delete item"><i class="bi bi-trash"></i></button></td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="5" style="font-size:12px; color:var(--text-muted); padding-top:10px; border-top:1px solid var(--border);">
+                            <strong>Note: The Basis of Design is as per Customers submitted RFQ.</strong>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+            <div class="bod-actions">
+                <button type="button" class="btn-pb-secondary" id="btnAddBodItem">
+                    <i class="bi bi-plus-lg"></i> Add Item
+                </button>
+            </div>
+        </div>
+
+        @* <div class="prop-section">
             <table class="prop-table">
                 <thead>
                     <tr>
@@ -307,7 +400,7 @@
                         <td style="color:var(--text-muted);">6.</td>
                         <td>Required Space in Mtr/ Shed drawing</td>
                         <td colspan="2">Not Specified</td>   @* replace with @NS(...) if enquiry captures it *@
-                    </tr>
+                    @* </tr>
                     <tr>
                         <td style="color:var(--text-muted);">7.</td>
                         <td>Component Dimension in mm</td>
@@ -335,7 +428,7 @@
                 <tr>
                     <td style="color:var(--text-muted);">11.</td>
                     <td>Component Paint Drying</td>
-                    <td colspan="2">Not Specified</td>   @* replace with @NS(...) if enquiry captures it *@
+                    <td colspan="2">Not Specified</td>
                 </tr>
                 <tr>
                     <td style="color:var(--text-muted);">12.</td>
@@ -351,7 +444,7 @@
                 </tr>
             </tfoot>
         </table>
-    </div>
+    </div> *@ 
     <!-- ── SCOPE OF SUPPLY ───────────────────────── -->
     <div class="prop-section prop-no-break">
         <table class="prop-table">
@@ -1621,6 +1714,7 @@
     <script>
         $(function () {
             initAutocomplete('@Url.Action("SearchEnquiryCode", "Costing")');
+            initBasisOfDesign('@Url.Content("~/Costing/")');
             initPriceCalc();
             initAlerts();
 

@@ -298,7 +298,6 @@ namespace PaintBooth.Controllers
         [HttpGet]
         public async Task<IActionResult> BOCalculations_Create(string enquiryCode = null)
         {
-            // ViewBag.ActivePage = "BO Calculations";
 
             // No enquiry code → return blank form
             if (string.IsNullOrWhiteSpace(enquiryCode))
@@ -323,7 +322,6 @@ namespace PaintBooth.Controllers
                 var exhaustDucts = _repo.GetAllExhaustDuctingDetails(enquiryCode);
                 var paintBooth = _repo.GetAllBlowerDetails(enquiryCode);
 
-                // ── Auto-fetch rates from Item API ──────────────────
                 // ── Auto-fetch rates from Item API ──────────────────
                 await PopulateRatesFromApi(tubeLights,
                     x => x.ItemCode,
@@ -779,6 +777,9 @@ namespace PaintBooth.Controllers
                             _repo.GetAllPaymentTerms(
                                 viewModel.ProposalDetails.EnquiryID);
                         viewModel.salesEngineer = _repo.GetSalesDetails(viewModel.ProposalDetails.SalesEngineerId);
+                        // ── Basis of Design (edited values / checkboxes / custom items) ──
+                        viewModel.BasisOfDesignRows = _repo.GetBasisOfDesignRows(viewModel.ProposalDetails.EnquiryID);
+
                     }
                 }
 
@@ -798,6 +799,72 @@ namespace PaintBooth.Controllers
             if (productionPerShift == 0) return 0;
             return Math.Round((decimal)shiftMinutes / productionPerShift, 2);
         }
+
+        // ─────────────────────────────────────────────────────────
+        // BASIS OF DESIGN (Proposal) — AJAX
+        // ─────────────────────────────────────────────────────────
+        private static readonly HashSet<string> BodKeys = new()
+{
+    "Components","MOC","Image","Shifts","WorkingHrs","RequiredSpace","Dimension",
+    "Production","PaintConsumption","MaterialHandling","PaintDrying","Temperature"
+};
+        private static readonly HashSet<string> BodFields = new() { "Value", "Description", "IsIncluded" };
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public JsonResult SaveBasisOfDesign(int enquiryId, string rowKey, string field, string value)
+        {
+            try
+            {
+                bool isCustom = rowKey?.StartsWith("C_") == true;
+                if ((!isCustom && !BodKeys.Contains(rowKey)) || !BodFields.Contains(field))
+                    return Json(new { success = false, message = "Invalid request." });
+                if (field == "Description" && !isCustom)
+                    return Json(new { success = false, message = "Standard labels cannot be edited." });
+
+                _repo.SaveBasisOfDesignField(enquiryId, rowKey, field, (value ?? "").Trim());
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                _Ex.SaveException("CostingController", "SaveBasisOfDesign", ex.Message, userId);
+                return Json(new { success = false, message = "Something went wrong. Please try again." });
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public JsonResult AddBasisOfDesignItem(int enquiryId)
+        {
+            try
+            {
+                string key = _repo.AddBasisOfDesignItem(enquiryId);
+                return Json(new { success = true, rowKey = key });
+            }
+            catch (Exception ex)
+            {
+                _Ex.SaveException("CostingController", "AddBasisOfDesignItem", ex.Message, userId);
+                return Json(new { success = false, message = "Something went wrong. Please try again." });
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public JsonResult DeleteBasisOfDesignItem(int enquiryId, string rowKey)
+        {
+            try
+            {
+                _repo.DeleteBasisOfDesignItem(enquiryId, rowKey);
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                _Ex.SaveException("CostingController", "DeleteBasisOfDesignItem", ex.Message, userId);
+                return Json(new { success = false, message = "Something went wrong. Please try again." });
+            }
+        }
+
+
         #endregion
 
         #region Materials

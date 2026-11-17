@@ -13,8 +13,7 @@ namespace PaintBooth.Models
         public EnquirySalesEnDetails salesEngineer { get; set; }
         public List<ExhaustDuctings> ExhaustDuctings { get; set; }
         public ExhaustDuctingSummary ExhaustDuctingSummary { get; set; }
-
         public string samplingPlatformAndLadder { get; set; }
-
+        public List<ProposalBasisOfDesign> BasisOfDesignRows { get; set; } = new();
     }
 }

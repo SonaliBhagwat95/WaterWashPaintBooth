@@ -262,6 +262,18 @@ namespace PaintBooth.Repositories
         {
             return _db.ComponentTables.Where(c => c.ComponentID == ComponentId && c.IsActive == true).Select(c => c.WashingChamberTank).FirstOrDefault();
         }
+        public (double waterTankDepth, double waterTankHeight) FetchWatertankDetails(int componentId)
+        {
+            var tank = _db.ComponentTables
+                .Where(c => c.ComponentID == componentId && c.IsActive == true)
+                .Select(c => new { c.WashingChamberTankDepth, c.WashingChamberTankHeight })   // use your actual column names
+                .FirstOrDefault();
+
+            if (tank == null)
+                return (0, 0);   // or throw, if a missing component is an error
+
+            return ((double)tank.WashingChamberTankDepth, (double)tank.WashingChamberTankHeight);
+        }
         public decimal FetchRatedOutputHP(int MotorCatalogID)
         {
             return (decimal)_db.MotorFlange.Where(c => c.MotorCatalogID == MotorCatalogID).Select(c => c.RatedOutputHP).FirstOrDefault();
@@ -533,10 +545,13 @@ namespace PaintBooth.Repositories
            double TubeLightCalculations = (double)Math.Ceiling((PaintBoothArea * LuxLevel) / (Lumens * TubeLightQuantity * 0.5m));//0.5m is scaleing factor
             model.Lights = (int)TubeLightCalculations;
 
-          
-            // Step 2: Retrieve the saved record based on a unique identifier
-            var savedRecord = _db.TubeLightDetails.FirstOrDefault(x => x.EnquiryID == model.EnquiryId || x.SalesNo == model.SalesNO);
 
+            // Step 2: Retrieve the saved record based on a unique identifier
+            //var savedRecord = _db.TubeLightDetails.FirstOrDefault(x => x.EnquiryID == model.EnquiryId || x.SalesNo == model.SalesNO);
+            // Retrieve the active saved record
+            var savedRecord = _db.TubeLightDetails.FirstOrDefault(x =>
+                  x.IsActive &&
+                (x.EnquiryID == model.EnquiryId || x.SalesNo == model.SalesNO));
             // Step 3: Update the Quantity value
             if (savedRecord != null)
             {
@@ -632,5 +647,18 @@ namespace PaintBooth.Repositories
                       .OrderBy(x => x.DuctId)
                       .ToList();
         }
+        public (string conveyor, double length, double width) FetchEOTCutout(int componentId)
+        {
+            var c = _db.ComponentTables                     // use your actual DbSet name
+                .Where(x => x.ComponentID == componentId)
+                .Select(x => new { x.Conveyor, x.EOTCutoutLength, x.EOTCutoutWidth })
+                .FirstOrDefault();
+
+            if (c == null) return ("", 0, 0);
+            return (c.Conveyor ?? "",
+                    (double)(c.EOTCutoutLength ?? 0),
+                    (double)(c.EOTCutoutWidth ?? 0));
+        }
+
     }
 }

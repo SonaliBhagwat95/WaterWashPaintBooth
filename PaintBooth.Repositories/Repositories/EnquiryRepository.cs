@@ -81,41 +81,6 @@ namespace PaintBooth.Repositories
                                && x.IsActive == true)
                       .FirstOrDefault();
         }
-
-        // ── Add — insert ComponentTable first, then EnquiryMaster ─
-        //public int Add(EnquiryMaster enquiry, ComponentTable component,MotorDetails motor)
-        //{
-        //    if (enquiry.SubTypeOfDraftType == "1")
-        //    {
-        //        component.ComponentEntry = "";
-        //        component.DoorType = "";
-        //        component.DoorSubType = "";
-        //        component.SideDoorLOcation = "";
-        //        component.TypeOfHingedDoor = "";
-        //        component.TypeOfHinges = "";
-        //    }
-        //    // Step 1: save ComponentTable
-        //    component.IsActive   = true;
-        //    component.CreatedDate = DateTime.UtcNow;
-        //    _db.ComponentTables.Add(component);
-        //    _db.SaveChanges();
-
-        //    // Step 2: link ComponentID to EnquiryMaster
-        //    enquiry.ComponentID    = component.ComponentID;
-        //    enquiry.CreatedDate    = DateTime.UtcNow;
-        //    enquiry.IsActive      = true;
-        //    _db.EnquiryMasters.Add(enquiry);
-        //    _db.SaveChanges();
-
-        //    motor.MotorTypes=motor.MotorTypes;
-        //    motor.EnquiryID= enquiry.EnquiryID;
-        //    motor.IsActive = true;
-        //    motor.MotorCatalogID = 1;
-        //    _db.MotorDetails.Add(motor);
-        //    _db.SaveChanges();
-
-        //    return enquiry.EnquiryID;
-        //}
         public int Add(EnquiryMaster enquiry, ComponentTable component, MotorDetails motor)
         {
             // ── Null defaults for string fields ──────────────────────
@@ -128,6 +93,8 @@ namespace PaintBooth.Repositories
             component.ConveyorNumber = component.ConveyorNumber ?? "";
             component.Image_Path = component.Image_Path ?? "";
             component.Conveyor = component.Conveyor ?? "";
+            component.EOTCutoutLength = (component.Conveyor == "1" || component.Conveyor == "2") ? component.EOTCutoutLength : 0;
+            component.EOTCutoutWidth = (component.Conveyor == "1" || component.Conveyor == "2") ? component.EOTCutoutWidth : 0;
             component.LoadingUnloading = component.LoadingUnloading ?? "";
             component.ComponentHandling = component.ComponentHandling ?? "";
             component.TypeOfPaint = component.TypeOfPaint ?? "";
@@ -140,6 +107,8 @@ namespace PaintBooth.Repositories
             component.SideDoorLOcation = component.SideDoorLOcation ?? "";
             component.TypeOfHingedDoor = component.TypeOfHingedDoor ?? "";
             component.TypeOfHinges = component.TypeOfHinges ?? "";
+            component.WashingChamberTankDepth = component.WashingChamberTankDepth ?? 0;
+            component.WashingChamberTankHeight = component.WashingChamberTankHeight ?? 0;
             // ── Shape/Orientation dimension mapping ──────────────────────
             var shape = component.Shape ?? "";
             var orientation = component.Orientation ?? "";
@@ -237,9 +206,6 @@ namespace PaintBooth.Repositories
             return _db.MotorDetails
                 .Where(x => x.EnquiryID == enquiryId && x.IsActive == true).FirstOrDefault();
         }
-
-
-
         // ── Update — update both tables ───────────────────────────
         public void Update(EnquiryMaster enquiry, ComponentTable component, MotorDetails motor)
         {
@@ -283,6 +249,9 @@ namespace PaintBooth.Repositories
                 existingComponent.Weight = component.Weight;
                 existingComponent.CarringCapacity = component.CarringCapacity;
                 existingComponent.MaterialofConstruction = component.MaterialofConstruction;
+                existingComponent.Conveyor = component.Conveyor ?? "";
+                existingComponent.EOTCutoutLength = (component.Conveyor == "1" || component.Conveyor == "2") ? component.EOTCutoutLength : 0;
+                existingComponent.EOTCutoutWidth = (component.Conveyor == "1" || component.Conveyor == "2") ? component.EOTCutoutWidth : 0;
                 existingComponent.OverheadConveyorSubTypes = component.OverheadConveyorSubTypes;
                 existingComponent.ConveyorNumber = component.ConveyorNumber;
                 existingComponent.SurfaceArea = component.SurfaceArea;
@@ -292,7 +261,6 @@ namespace PaintBooth.Repositories
                 existingComponent.NumberofShifts = component.NumberofShifts;
                 existingComponent.Image_Path = component.Image_Path ?? "";
                 existingComponent.EffectiveWorking = component.EffectiveWorking ?? 0;
-                existingComponent.Conveyor = component.Conveyor ?? "";
                 existingComponent.Pitch = component.Pitch ?? 0;
                 existingComponent.Speed = component.Speed ?? 0;
                 existingComponent.LoadingUnloading = component.LoadingUnloading;
@@ -317,6 +285,8 @@ namespace PaintBooth.Repositories
                 existingComponent.DoorHeight = component.DoorHeight ?? 0;
                 existingComponent.TypeOfHinges = component.TypeOfHinges ?? "";
                 existingComponent.WashingChamberTank = component.WashingChamberTank;
+                existingComponent.WashingChamberTankDepth = component.WashingChamberTankDepth;
+                existingComponent.WashingChamberTankHeight = component.WashingChamberTankHeight;
                 existingComponent.MOC = component.MOC;
                 existingComponent.ModifiedBy = component.ModifiedBy;
                 existingComponent.ModifiedDate = DateTime.Now;

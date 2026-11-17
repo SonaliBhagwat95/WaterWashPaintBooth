@@ -12,8 +12,6 @@ namespace PaintBooth.Controllers
     [Authorize]
     public class EnquiryController(IEnquiryRepository _repo, IWebHostEnvironment _env, IExceptionRepository _Ex, FrappeOpportunityService _frappeService) : Controller
     {
-
-
         // ── GET /Enquiry/Index ────────────────────────────────────
         public IActionResult Index()
         {

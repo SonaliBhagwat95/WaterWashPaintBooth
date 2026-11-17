@@ -78,5 +78,10 @@ namespace PaintBooth.Repositories.Interface
         public ENCCalculation GetENCCalculation(string salesNO);
         public EnquirySalesEnDetails GetSalesDetails(int salesID);
 
+        List<ProposalBasisOfDesign> GetBasisOfDesignRows(int enquiryId);
+        void SaveBasisOfDesignField(int enquiryId, string rowKey, string field, string value);
+        string AddBasisOfDesignItem(int enquiryId);
+        void DeleteBasisOfDesignItem(int enquiryId, string rowKey);
+
     }
 }

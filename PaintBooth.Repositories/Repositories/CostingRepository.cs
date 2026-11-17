@@ -869,7 +869,9 @@ namespace PaintBooth.Repositories.Repositories
                                            .FirstOrDefault(),   // ← takes only 1, no multiplication
                         POVALUE = p.POVALUE,
                         CreatedDate = p.CreatedDate,
-                        RevisionNo = p.RevisionNo
+                        RevisionNo = 0
+
+                        //RevisionNo = p.RevisionNo
                     })
                     .ToList();
         }
@@ -1171,6 +1173,69 @@ namespace PaintBooth.Repositories.Repositories
                       .Where(d => d.EnquiryID == enquiryId && d.IsActive == true)
                       .Sum(d => d.DuctNetWeight ?? 0);
         }
+
+        #region Proposal Basis of design 
+        public List<ProposalBasisOfDesign> GetBasisOfDesignRows(int enquiryId)
+        {
+            return _db.ProposalBasisOfDesign
+
+             .Where(x => x.EnquiryID == enquiryId && x.IsActive)
+                .OrderBy(x => x.SortOrder)
+                .ToList();
+        }
+
+        public void SaveBasisOfDesignField(int enquiryId, string rowKey, string field, string value)
+        {
+            var row = _db.ProposalBasisOfDesign
+                .FirstOrDefault(x => x.EnquiryID == enquiryId && x.RowKey == rowKey && x.IsActive);
+
+            if (row == null)
+            {
+                row = new ProposalBasisOfDesign { EnquiryID = enquiryId, RowKey = rowKey, IsIncluded = true };
+                _db.ProposalBasisOfDesign.Add(row);
+            }
+
+            switch (field)
+            {
+                case "Value": row.Value = value; break;
+                case "Description": row.Description = value; break;
+                case "IsIncluded": row.IsIncluded = value == "true"; break;
+            }
+            _db.SaveChanges();
+        }
+
+        public string AddBasisOfDesignItem(int enquiryId)
+        {
+            int next = (_db.ProposalBasisOfDesign
+                           .Where(x => x.EnquiryID == enquiryId && x.IsCustom && x.IsActive)
+                           .Max(x => (int?)x.SortOrder) ?? 0) + 1;
+
+            var row = new ProposalBasisOfDesign
+            {
+                EnquiryID = enquiryId,
+                RowKey = "C_" + Guid.NewGuid().ToString("N")[..10],
+                Description = "",
+                Value = "",
+                IsIncluded = true,
+                IsCustom = true,
+                SortOrder = next
+            };
+            _db.ProposalBasisOfDesign.Add(row);
+            _db.SaveChanges();
+            return row.RowKey;
+        }
+
+        public void DeleteBasisOfDesignItem(int enquiryId, string rowKey)
+        {
+            var row = _db.ProposalBasisOfDesign
+                .FirstOrDefault(x => x.EnquiryID == enquiryId && x.RowKey == rowKey && x.IsCustom);
+            if (row != null)
+            {
+                row.IsActive = false;
+                _db.SaveChanges();
+            }
+        }
+        #endregion
 
     }
 }

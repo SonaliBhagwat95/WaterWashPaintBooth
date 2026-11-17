@@ -95,12 +95,17 @@ function initPriceCalc() {
 
 
 
+//function initPDF(salesNo, revisionNo, currentDate) {
+//    $('#btnDownloadPDF').on('click', function () {
+//        var $btn = $(this);
+//        $btn.prop('disabled', true)
+//            .html('<i class="bi bi-hourglass-split"></i> Generating PDF...');
 function initPDF(salesNo, revisionNo, currentDate) {
     $('#btnDownloadPDF').on('click', function () {
+        if (document.activeElement) document.activeElement.blur();   // ← new line
         var $btn = $(this);
         $btn.prop('disabled', true)
             .html('<i class="bi bi-hourglass-split"></i> Generating PDF...');
-
         var element = document.getElementById('proposalContent');
         var fileNo = salesNo || $.trim($('#txtSalesNO').val()) || 'Proposal';
         var revLabel = 'R' + (revisionNo || '0');
@@ -710,6 +715,115 @@ function initAlerts() {
         setTimeout(function () { $el.fadeOut(400, function () { $el.remove(); }); }, 4000);
     });
 }
+/* ════════════════════════════════════════════════════════
+   7. BASIS OF DESIGN — edit values, include/exclude, add/delete items
+════════════════════════════════════════════════════════ */
+function initBasisOfDesign(baseUrl) {
+    var $tbl = $('#tblBasisOfDesign');
+    if (!$tbl.length) return;                       // no proposal loaded yet
 
+    function token() { return $('input[name="__RequestVerificationToken"]').val(); }
+    function enquiryId() { return $tbl.data('enquiry-id'); }
+
+    function renumber() {
+        var n = 0;
+        $tbl.find('tbody tr').each(function () {
+            var inc = $(this).find('.bod-chk').is(':checked');
+            $(this).toggleClass('bod-excluded', !inc);
+            $(this).find('.bod-no').text(inc ? (++n) + '.' : '');
+        });
+    }
+
+    function save(rowKey, field, value, onFail) {
+        $.post(baseUrl + 'SaveBasisOfDesign', {
+            enquiryId: enquiryId(), rowKey: rowKey, field: field, value: value,
+            __RequestVerificationToken: token()
+        }).done(function (res) {
+            if (!res.success) { PB.toast(res.message, 'error'); onFail && onFail(); }
+        }).fail(function () {
+            PB.toast('Save failed', 'error'); onFail && onFail();
+        });
+    }
+
+    renumber();
+
+    // ── checkbox: include / exclude ──
+    $tbl.on('change', '.bod-chk', function () {
+        var $chk = $(this);
+        var checked = $chk.is(':checked');
+        renumber();
+        save($chk.closest('tr').data('key'), 'IsIncluded', checked ? 'true' : 'false', function () {
+            $chk.prop('checked', !checked); renumber();
+        });
+    });
+
+    // ── inline edit ──
+    $tbl.on('focus', '[contenteditable]', function () {
+        $(this).data('orig', $.trim($(this).text()));
+    });
+    $tbl.on('keydown', '[contenteditable]', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); $(this).blur(); }
+    });
+    $tbl.on('blur', '[contenteditable]', function () {
+        var $cell = $(this);
+        var value = $.trim($cell.text());
+        $cell.text(value);
+        if (value === $cell.data('orig')) return;
+        save($cell.closest('tr').data('key'), $cell.data('field'), value, function () {
+            $cell.text($cell.data('orig'));
+        });
+    });
+
+    // ── add item ──
+    $('#btnAddBodItem').on('click', function () {
+        $.post(baseUrl + 'AddBasisOfDesignItem', {
+            enquiryId: enquiryId(),
+            __RequestVerificationToken: token()
+        }).done(function (res) {
+            if (!res.success) { PB.toast(res.message, 'error'); return; }
+            var $row = $(
+                '<tr data-key="' + res.rowKey + '" class="bod-custom">' +
+                '<td class="bod-chk-col"><input type="checkbox" class="bod-chk" checked /></td>' +
+                '<td class="bod-no" style="color:var(--text-muted);"></td>' +
+                '<td class="bod-desc" contenteditable="true" data-field="Description" data-ph="Description"></td>' +
+                '<td class="bod-val" contenteditable="true" data-field="Value" data-ph="Value"></td>' +
+                '<td class="bod-del-col"><button type="button" class="bod-del" title="Delete item"><i class="bi bi-trash"></i></button></td>' +
+                '</tr>');
+            $tbl.find('tbody').append($row);
+            renumber();
+            $row.find('.bod-desc').focus();
+        }).fail(function () { PB.toast('Could not add item', 'error'); });
+    });
+
+    // ── delete item ──
+    $tbl.on('click', '.bod-del', function () {
+        var $row = $(this).closest('tr');
+        if (!confirm('Delete this item?')) return;
+        $.post(baseUrl + 'DeleteBasisOfDesignItem', {
+            enquiryId: enquiryId(),
+            rowKey: $row.data('key'),
+            __RequestVerificationToken: token()
+        }).done(function (res) {
+            if (!res.success) { PB.toast(res.message, 'error'); return; }
+            $row.remove();
+            renumber();
+        }).fail(function () { PB.toast('Delete failed', 'error'); });
+    });
+}
+
+/* Collect included Basis of Design rows (used by Word export) */
+function getBasisOfDesignRows() {
+    var rows = [];
+    $('#tblBasisOfDesign tbody tr').not('.bod-excluded').each(function () {
+        var $tr = $(this);
+        var label = $tr.hasClass('bod-custom')
+            ? $.trim($tr.find('.bod-desc').text())
+            : $.trim($tr.children('td').eq(2).text());
+        var $val = $tr.children('td').eq(3);
+        var value = $val.find('img').length ? 'Provided (attached)' : $.trim($val.text());
+        if (label || value) rows.push([label, value]);
+    });
+    return rows;
+}
 
 

@@ -20,21 +20,22 @@ namespace PaintBooth.Business.Water_Wash_Parts
         // leftDir / rightDir : +1 = flange "UP" (+X), -1 = "DOWN" (-X) as in the plan
         // Panel 1: (1140, 1130, +1, -1)   Panel 2: (1140, 1130, -1, -1)   Panel 3: (572, 570, -1, +1)
         public DesignDocument DrawWaterScreenPanel(PaintBoothModel model, string name,
-                                                   double width, double stiffLen, int leftDir, int rightDir)
+                                           double width, double stiffLen, int leftDir, int rightDir,
+                                           double h = 0)
         {
             DesignDocument design = new DesignDocument();
             design.Units = linearUnitsType.Millimeters;
 
             // ---- Inputs (mm) ----
             double T = 1.6;
-            double W = width;     // along Y
-            double H = 2348;      // overall height
-            double TopLip = 22;        // lip at top, turned back (-X)          (CHECK)
+            double W = width;                       // along Y
+            double H = h > 0 ? h : 2348;            // CHANGED - overall height, 2348 if not passed
+            double TopLip = 22;
             double TopBand = 65;
-            double MainL = 2091;
-            double BotH = 192;       // bottom part, vertical height
-            double KinkDeg = 8;         // 180 - 172
-            double Foot = 38;        // (F) foot at bottom, toward -X         (CHECK)
+            double BotH = 192;
+            double MainL = H - TopBand - BotH;      // CHANGED - was 2091; stretches with H
+            double KinkDeg = 8;
+            double Foot = 38;
 
             double FlD = 19;        // side flange depth
             double SlotW = 10, SlotL = 12;

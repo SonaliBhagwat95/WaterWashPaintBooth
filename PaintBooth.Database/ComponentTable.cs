@@ -82,5 +82,9 @@ namespace PaintBooth.Database
         public double? WatchglassWidth { get; set; }
         public string? WashingChamberTank { get; set; }
         public string? MOC { get; set; }
+        public double? WashingChamberTankDepth { get; set; }
+        public double? WashingChamberTankHeight { get; set; }
+        public decimal? EOTCutoutLength { get; set; }
+        public decimal? EOTCutoutWidth { get; set; }
     }
 }

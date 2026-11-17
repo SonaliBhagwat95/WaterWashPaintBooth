@@ -631,14 +631,22 @@ $(function () {
         $('#conveyorNumberDiv').hide();
         $('#pitchDiv').hide();
         $('#speedDiv').hide();
+        $('.eot-cutout-field').hide();
 
         if (val === '3') {
             $('#conveyorSubTypeDiv').show();
             $('#conveyorNumberDiv').show();
             $('#pitchDiv').show();
             $('#speedDiv').show();
-        } else if (['1','2','6','7','8'].indexOf(val) > -1) {
+        } else if (['1', '2', '6', '7', '8'].indexOf(val) > -1) {
             $('#carryCapacityDiv').show();
+        }
+
+        // EOT Crane / Hoist → cutout dimensions
+        if (val === '1' || val === '2') {
+            $('.eot-cutout-field').show();
+        } else {
+            $('#txtEOTCutoutLength, #txtEOTCutoutWidth').val('');
         }
     }
     // Define all sub-options as a static map — no DOM cloning needed

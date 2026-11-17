@@ -295,6 +295,8 @@ namespace PaintBooth.Controllers
                 int ComponentID = _repo.FetchComponentId(enquiryId);
                 string CatagoryType = _repo.FetchCatagoryType(ComponentID);
 
+                var (eotConveyor, eotLength, eotWidth) = _repo.FetchEOTCutout(ComponentID);
+                bool hasEOTCutout = (eotConveyor == "1" || eotConveyor == "2") && eotLength > 0 && eotWidth > 0;
 
                 int PlenumHeight = 0; string filterType = "";
                 var PaintBoothTypefromEnquiry = _repo.FetchPaintBoothType(model.SalesNO);
@@ -332,7 +334,6 @@ namespace PaintBooth.Controllers
                     return NotFound("No settings found for the given SalesNo.");
                 }
                 // Assuming you want the first setting for the PaintBoothDesign
-                //var setting = paintBoothModel.Settings.First();
                 var paintBoothSetting = paintBoothModel.Settings.FirstOrDefault(x => x.SettingType == "Paintbooth");
                 var extractionSetting = new SettingItemViewModel();
 
@@ -431,8 +432,6 @@ namespace PaintBooth.Controllers
                     bool waterWash = CatagoryType == "Water wash paint booth";
                     service.D3Panels(model, panel, ExtractionC_Height, PaintBoothTypefromEnquiry, waterWash);
 
-                    
-
                     if (CatagoryType != "Water wash paint booth")
                     {
                         service.FiltersAndBaffles(model, panel, ExtractionC_Height, PaintBoothTypefromEnquiry);
@@ -441,11 +440,12 @@ namespace PaintBooth.Controllers
                     else
                     {
                         string? washingTankType = _repo.FetchWashingTankType(ComponentID)?.Trim();
+                        (double waterTankDepth, double waterTankHeight) = _repo.FetchWatertankDetails(ComponentID);
 
                         if (string.Equals(washingTankType, "Fabricated", StringComparison.OrdinalIgnoreCase))
                         {
                             // new WaterWashAssembly(_configuration).Build(model, panel, service.designdictionary);
-                            new WaterWashAssembly(_configuration).Build(model, panel, service.designdictionary, ExtractionC_Height, extractionSetting.WaterCurtain);
+                            new WaterWashAssembly(_configuration).Build(model, panel, service.designdictionary, ExtractionC_Height, extractionSetting.WaterCurtain,waterTankDepth,waterTankHeight);
                         }
                         // else: civil / other tank type - add its parts here if needed
                     }
@@ -535,6 +535,15 @@ namespace PaintBooth.Controllers
                     if (wall.drawing.Entities.Count > 0)
                         service.designdictionary["SiteWall"] = new List<DesignDocument> { wall.drawing };
                 }
+                void ApplyEOT(DesignDocument doc)
+                {
+                    if (!hasEOTCutout) return;
+                    double zBottom = model.H - 100;                                  // catches roof panel bends; tune
+                    double zTop = model.H + (PlenumHeight > 0 ? PlenumHeight : 0) + 500; // through FAS plenum if present
+                    int cut = EOTCutoutHelper.Apply(doc, -20, Math.Min(eotLength, model.D) + 20,
+                                model.W / 2.0, eotWidth, zBottom, zTop);
+                }
+
                 #region WriteFile
                 //string BaseFilePath = "C:/Bullows/Paintbooth_Drawing";
                 string BaseFilePath = _configuration["FolderPathConfig:DrawingPath"].ToString();
@@ -543,7 +552,7 @@ namespace PaintBooth.Controllers
                     Directory.CreateDirectory(BaseFilePath);
                 }
                 DesignDocument combinedDrawing = CombineAssemblies2(service.designdictionary, (double)paintBoothSetting.PanelHeight, (double)paintBoothSetting.PanelWidth, PaintBoothTypefromEnquiry, ExtractionC_Height, SameSpaceBetweenDoors, doorModel);
-
+                ApplyEOT(combinedDrawing);
 
                 string combinedDwgFilePath = BaseFilePath + "/GA3D.dwg";
                 WriteAutodeskParams autoCombined = new WriteAutodeskParams(combinedDrawing);
@@ -603,6 +612,7 @@ namespace PaintBooth.Controllers
                     (double)paintBoothSetting.PanelWidth, PaintBoothTypefromEnquiry, ExtractionC_Height,
                     SameSpaceBetweenDoors, doorModel);
 
+                ApplyEOT(gaModel);
                 double D = model.D, D3 = model.D3, W = model.W, H = model.H;
                 int lightsAlong = Math.Max(1, Math.Min(model.Lights, (int)Math.Round(D / 1000.0)));
                 double firstLightX = ClientGADrawing.LightCentres(D, (double)paintBoothSetting.PanelWidth, model.Lights)

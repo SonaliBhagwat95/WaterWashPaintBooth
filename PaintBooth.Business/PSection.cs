@@ -10,12 +10,13 @@ namespace PaintBooth.Business
 {
     public class PSection(IConfiguration _configuration)
     {
-        public DesignDocument DrawPSection(PaintBoothModel model, double zBottom)
+        public DesignDocument DrawPSection(PaintBoothModel model, double zBottom,double tankHeight, double xStart)
         {
             DesignDocument design = new DesignDocument();
             design.Units =  linearUnitsType.Millimeters;
             
-            double H = 460;   // overall height
+            //double H = 460;   // overall height
+            double H = tankHeight;   // overall height
             double W = 40;    // flange width
             double T = 3;     // sheet thickness
             double L = 15;    // lip length (outer)
@@ -40,30 +41,32 @@ namespace PaintBooth.Business
             devDept.Eyeshot.Entities.Region profile = new devDept.Eyeshot.Entities.Region(p);
             Brep brepPesection = profile.ExtrudeAsBrep(new Vector3D(0, (double)model.W, 0));
             // top of P-section (Z = H) sits on the underside of the base frame
-            brepPesection.Translate(W, 0, zBottom - H);
+            //brepPesection.Translate(W, 0, zBottom - H);
+            brepPesection.Translate(xStart + W, 0, zBottom - H);
             design.Entities.Add(brepPesection, Color.DarkGray);
-            //var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
+            var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
 
-            //if (!Directory.Exists(path + "/PaintBooth drawing"))
-            //    Directory.CreateDirectory(path + "/PaintBooth drawing");
-            //string dwgFilePath = "";
+            if (!Directory.Exists(path + "/PaintBooth drawing"))
+                Directory.CreateDirectory(path + "/PaintBooth drawing");
+            string dwgFilePath = "";
 
-           
-            //dwgFilePath = $"{path}/PaintBooth drawing/PSection  {DateTime.Now:hh - mm}.dwg";
-           
-            //WriteAutodeskParams auto = new WriteAutodeskParams(design);
-            //WriteAutodesk dwgg1 = new WriteAutodesk(auto, dwgFilePath);
-            //dwgg1.DoWork();
-          
+
+            dwgFilePath = $"{path}/PaintBooth drawing/PSection  {DateTime.Now:hh - mm}.dwg";
+
+            WriteAutodeskParams auto = new WriteAutodeskParams(design);
+            WriteAutodesk dwgg1 = new WriteAutodesk(auto, dwgFilePath);
+            dwgg1.DoWork();
+
             return design;
         }
         //right left section
-        public DesignDocument DrawQSection(PaintBoothModel model, double zBottom, double totalLength, double segmentLength, bool farSide)
+        public DesignDocument DrawQSection(PaintBoothModel model, double zBottom, double xStart, double xEnd, double totalLength, double segmentLength, bool farSide, double tankHeight)
         {
             DesignDocument design = new DesignDocument();
             design.Units = linearUnitsType.Millimeters;
 
-            double H = 460;   // overall height (bottom to top of top flange)
+            //double H = 460;   // overall height (bottom to top of top flange)
+            double H = tankHeight;   // overall height (bottom to top of top flange)
             double T = 3;     // sheet thickness
             double Wt = 40;    // top flange width
             double Lt = 19;    // top lip, rising above top flange
@@ -87,30 +90,30 @@ namespace PaintBooth.Business
                 new Point3D(-Wb,     0, 0)
             });
 
-            // ── Split total length into 2390 pieces + remainder ─────────
-            double start = 0;
-            while (start < totalLength - 0.01)
-            {
-                double len = Math.Min(segmentLength, totalLength - start);
+            //// ── Split total length into 2390 pieces + remainder ─────────
+            //double start = 0;
+            //while (start < totalLength - 0.01)
+            //{
+            //    double len = Math.Min(segmentLength, totalLength - start);
 
-                Brep b = channel.ExtrudeAsBrep(new Vector3D(0, len, 0));
+            //    Brep b = channel.ExtrudeAsBrep(new Vector3D(0, len, 0));
 
-                if (!farSide)
-                {
-                    // Wall at Y = 0: flanges face +Y, piece runs from X = start to start + len
-                    b.Rotate(Math.PI / 2, Vector3D.AxisZ);
-                    b.Translate(start + len, 0, zBottom - H);
-                }
-                else
-                {
-                    // Wall at Y = W: flanges face -Y, piece runs from X = start to start + len
-                    b.Rotate(-Math.PI / 2, Vector3D.AxisZ);
-                    b.Translate(start, (double)model.W, zBottom - H);
-                }
+            //    if (!farSide)
+            //    {
+            //        // Wall at Y = 0: flanges face +Y, piece runs from X = start to start + len
+            //        b.Rotate(Math.PI / 2, Vector3D.AxisZ);
+            //        b.Translate(start + len, 0, zBottom - H);
+            //    }
+            //    else
+            //    {
+            //        // Wall at Y = W: flanges face -Y, piece runs from X = start to start + len
+            //        b.Rotate(-Math.PI / 2, Vector3D.AxisZ);
+            //        b.Translate(start, (double)model.W, zBottom - H);
+            //    }
 
-                design.Entities.Add(b, Color.DarkGray);
-                start += len;
-            }
+            //    design.Entities.Add(b, Color.DarkGray);
+            //    start += len;
+            //}
 
             //// ── Write file ──────────────────────────────────────────────
             //string basePath = _configuration["FolderPathConfig:DrawingPath"];
@@ -124,15 +127,40 @@ namespace PaintBooth.Business
             //WriteAutodesk dwg = new WriteAutodesk(auto, dwgFilePath);
             //dwg.DoWork();
 
+            //return design;
+            double end = xEnd;
+            while (end > xStart + 0.01)
+            {
+                double len = Math.Min(segmentLength, end - xStart);
+                double s = end - len;          // this piece runs from X = s to X = end
+
+                Brep b = channel.ExtrudeAsBrep(new Vector3D(0, len, 0));
+
+                if (!farSide)
+                {
+                    b.Rotate(Math.PI / 2, Vector3D.AxisZ);
+                    b.Translate(end, 0, zBottom - H);
+                }
+                else
+                {
+                    b.Rotate(-Math.PI / 2, Vector3D.AxisZ);
+                    b.Translate(s, (double)model.W, zBottom - H);
+                }
+
+                design.Entities.Add(b, Color.DarkGray);
+                end = s;
+            }
+
             return design;
         }
 
-        public DesignDocument DrawbackQSection(PaintBoothModel model, double zBottom, double totalLength)
+        public DesignDocument DrawbackQSection(PaintBoothModel model, double zBottom, double xEnd, double totalLength, double tankHeight)
         {
             DesignDocument design = new DesignDocument();
             design.Units = linearUnitsType.Millimeters;
 
-            double H = 460;   // overall height (bottom to top of top flange)
+            //double H = 460;   // overall height (bottom to top of top flange)
+            double H = tankHeight;   // overall height (bottom to top of top flange)
             double T = 3;     // sheet thickness
             double Wt = 40;    // top flange width
             double Lt = 19;    // top lip, rising above top flange
@@ -157,7 +185,8 @@ namespace PaintBooth.Business
             });
             Brep brepPesection = channel.ExtrudeAsBrep(new Vector3D(0, (double)model.W, 0));
             // top of P-section (Z = H) sits on the underside of the base frame
-            brepPesection.Translate(totalLength, 0, zBottom - H);
+            //brepPesection.Translate(totalLength, 0, zBottom - H);
+            brepPesection.Translate(xEnd, 0, zBottom - H);
             design.Entities.Add(brepPesection, Color.DarkGray);
             //var path = _configuration["FolderPathConfig:DrawingPath"].ToString();
 
