@@ -15,5 +15,6 @@ namespace PaintBooth.Models
         public ExhaustDuctingSummary ExhaustDuctingSummary { get; set; }
         public string samplingPlatformAndLadder { get; set; }
         public List<ProposalBasisOfDesign> BasisOfDesignRows { get; set; } = new();
+        public ControlPanelDetails ControlPanel { get; set; }
     }
 }

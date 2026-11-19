@@ -58,6 +58,12 @@ namespace PaintBooth.Business
         public double WallMargin { get; set; } = 500;   // how far the wall extends past the booth sides
         public double DuctLegX { get; set; }
         public List<string> DuctNoteLines { get; set; } = new();
+        public Point3D SamplingPortAt { get; set; }
+        public Point3D DuctSupportAt { get; set; }
+        public Point3D PlatformAt { get; set; }
+        public double AccessoryMaxX { get; set; }       // outermost X of platform / ladder / cage (original model coords)
+        public Point3D LadderAt { get; set; }           // a point on the ladder, mid-height
+        public bool HasCage { get; set; }
     }
 
     public class GAScopeItem
@@ -89,11 +95,11 @@ namespace PaintBooth.Business
         const double RCOL = 230;                // right column: scope + notes + title block
         const double GAP = 50;                  // room for dimensions between views
         const double TXT = 2.5, ARW = 2.5, EXT = 2;
-
+        readonly List<(double lo, double hi)> usedY = new();   // sheet Y ranges already taken by side notes
         const string LFrame = "GA_Frame", LDim = "GA_Dim", LText = "GA_Text",
                      LTitle = "GA_Title", LBal = "GA_Balloon", LFloor = "GA_Floor";
         const string LOper = "GA_Operator", LAirBand = "GA_Airflow", LAirHead = "GA_AirflowHead";
-        const string LLight = "GA_TubeLight"; const string LBaffle = "GA_Baffle"; const string LTB = "GA_TitleText";
+        const string LLight = "GA_TubeLight"; const string LBaffle = "GA_Baffle"; const string LTB = "GA_TitleText"; const double SIDEGAP = 28;   // paper mm between the outermost part and side-note text (FFL dims sit in this gap)
         Sheet sheet;
         Point3D c;                                                  // model bbox centre = rotation pivot
         readonly Dictionary<string, View> views = new();
@@ -206,6 +212,7 @@ namespace PaintBooth.Business
             if (views.ContainsKey("ELEV")) AddWallAndFflDims(sheet.Entities, info, ElevToSheet);
             if (views.ContainsKey("ELEV")) AddEcHeightDim(sheet.Entities, info, ElevToSheet);
             if (views.ContainsKey("ELEV")) AddDuctNote(sheet.Entities, info, ElevToSheet);
+            if (views.ContainsKey("ELEV")) AccessoryLabels(info);            // ← add
             if (views.ContainsKey("PLAN")) AddWallPlan(sheet.Entities, info, PlanToSheet);
             if (views.ContainsKey("SIDE")) AddWallSide(sheet.Entities, info, SideToSheet);
             NamePlate(doc, m, info);
@@ -315,7 +322,7 @@ namespace PaintBooth.Business
 
             // ── anchor: just outside the outermost duct, but never past the frame margin ──
             double longestW = info.DuctNoteLines.Max(s => s.Length) * txt * 0.8;
-            double outerX = Math.Max(info.DuctMaxX, legX);
+            double outerX = Math.Max(Math.Max(info.DuctMaxX, legX), info.AccessoryMaxX);
             double anchorX = P(outerX, 0).X + sgn * 6;                                   // 6 mm outside the duct
             if (outLeft) anchorX = Math.Max(anchorX, ML + 4 + longestW);                 // stay inside the frame
             else anchorX = Math.Min(anchorX, SW - MO - RCOL - 10 - longestW);
@@ -350,6 +357,7 @@ namespace PaintBooth.Business
             double balX = anchorX + (outLeft ? -longest / 2 : longest / 2);
             double balY = yTop + lineGap + 4.5;
             DrawBalloonAt(new Point2D(balX, balY), 5);
+            usedY.Add((yTop - (info.DuctNoteLines.Count - 1) * lineGap - txt, balY + 5));
         }
 
         /// <summary>
@@ -903,11 +911,88 @@ namespace PaintBooth.Business
             if (!OperatorFromDwg(doc, "ELEV", feet, mirror: false))
                 Operator("ELEV", feet, 1750);          // fallback: simple outline
 
+            // ── same operator in PLAN and SIDE VIEW (same depth position, centred on booth width) ──
+            var opAt = new Point3D(feet.X, m.W / 2, 0);
+
+            if (views.ContainsKey("PLAN") &&
+                !OperatorFromDwg(doc, "PLAN", opAt, fileName: "Operator_Plan.dwg"))
+                OperatorPlan("PLAN", opAt);
+
+            if (views.ContainsKey("SIDE") &&
+                !OperatorFromDwg(doc, "SIDE", opAt, fileName: "Operator_Side.dwg"))
+                OperatorSide("SIDE", opAt, 1750);
+
+
+
             // maintenance door label (only when the door is on the wall the elevation sees)
             if (m.chkServiceDoor && (m.ServiceDoorLocation == "LeftSide" || m.ServiceDoorLocation == "Both Side"))
             {
                 Point2D dc = P("ELEV", new Point3D(m.D + m.D3 / 2, 0, 100 + m.DoorHeight / 2));
                 Txt(dc.X, dc.Y + 3, "MAINTAINANCE DOOR", 2.2, Text.alignmentType.MiddleCenter, LText);
+            }
+        }
+
+        /// <summary>
+        /// Elevation: client-style labels (magenta text, cyan leader + arrow) for the sampling port,
+        /// platform, ladder and duct support. Text sits outside the ladder/cage, stacked so it never
+        /// overlaps the duct note or other labels.
+        /// </summary>
+        private void AccessoryLabels(ClientGAInfo info)
+        {
+            if (!views.ContainsKey("ELEV")) return;
+
+            var items = new List<(Point3D at, string text)>();
+            if (info.SamplingPortAt != null) items.Add((info.SamplingPortAt, "SAMPLING PORT"));
+            if (info.PlatformAt != null) items.Add((info.PlatformAt, "SAMPLING PLATFORM"));
+            if (info.LadderAt != null) items.Add((info.LadderAt, info.HasCage ? "LADDER WITH SAFETY CAGE" : "LADDER"));
+            if (info.DuctSupportAt != null) items.Add((info.DuctSupportAt, "DUCT SUPPORT"));
+            if (items.Count == 0) return;
+
+            double txt = 2.5, arr = 1.5, rowH = 5;
+            Color leaderCol = Color.Cyan;
+
+            // outward direction on the sheet (booth → duct side), same as the duct note
+            double ecRear = info.BoothDepth + info.ECDepth;
+            double sgn = Math.Sign(P("ELEV", new Point3D(ecRear + 100, 0, 0)).X - P("ELEV", new Point3D(ecRear, 0, 0)).X);
+            if (sgn == 0) sgn = 1;
+            bool outLeft = sgn < 0;
+
+            // text column just outside the outermost accessory, kept inside the frame
+            double outer = Math.Max(info.AccessoryMaxX, info.DuctMaxX);
+            double textX = P("ELEV", new Point3D(outer, 0, 0)).X + sgn * 6;
+            double longest = items.Max(i => i.text.Length) * txt * 0.8;
+            if (outLeft) textX = Math.Max(textX, ML + 4 + longest);
+            else textX = Math.Min(textX, SW - MO - RCOL - 10 - longest);
+            var align = outLeft ? Text.alignmentType.MiddleRight : Text.alignmentType.MiddleLeft;
+
+            bool Free(double y) => usedY.All(r => y + rowH / 2 < r.lo || y - rowH / 2 > r.hi);
+
+            // place top → bottom so the labels keep the same order as the parts
+            foreach (var (at, text) in items.OrderByDescending(i => i.at.Z))
+            {
+                Point2D t = P("ELEV", at);
+
+                // nearest free row to the target height (search up and down)
+                double y = t.Y;
+                for (int k = 0; k < 200 && !Free(y); k++)
+                    y = t.Y + (k % 2 == 0 ? 1 : -1) * (k / 2 + 1) * 1.0;
+                usedY.Add((y - rowH / 2, y + rowH / 2));
+
+                Txt(textX, y, text, txt, align, LTitle);                       // magenta, like the client sheet
+
+                // leader: short horizontal from the text, then to the part, with arrow
+                var knee = new Point2D(textX - sgn * 1.5 - sgn * 4, y);
+                AddC(new Line(textX - sgn * 1.5, y, knee.X, knee.Y), LBal, leaderCol);
+                AddC(new Line(knee.X, knee.Y, t.X, t.Y), LBal, leaderCol);
+
+                double dx = t.X - knee.X, dy = t.Y - knee.Y, len = Math.Sqrt(dx * dx + dy * dy);
+                if (len > 0.01)
+                {
+                    dx /= len; dy /= len;
+                    double bx = t.X - dx * arr, by = t.Y - dy * arr;
+                    AddC(new Line(t.X, t.Y, bx - dy * arr * 0.35, by + dx * arr * 0.35), LBal, leaderCol);
+                    AddC(new Line(t.X, t.Y, bx + dy * arr * 0.35, by - dx * arr * 0.35), LBal, leaderCol);
+                }
             }
         }
 
@@ -949,14 +1034,82 @@ namespace PaintBooth.Business
             }
         }
 
+        /// <summary>PLAN: operator seen from above, facing sheet-left (towards the E/C), gun + spray fan.
+        /// at = model point under the operator's centre (X along depth, Y across width).</summary>
+        private void OperatorPlan(string view, Point3D at)
+        {
+            Point2D o = P(view, at);
+            double s = views[view].Scale;
+            Point3D Q(double xmm, double ymm) => new Point3D(o.X + xmm * s, o.Y + ymm * s, 0);
+            void Poly(params (double x, double y)[] pts) =>
+                Add(new LinearPath(pts.Select(p => Q(p.x, p.y)).ToArray()), LOper);
+
+            // shoulders — ellipse 240 deep × 460 wide
+            var sh = new List<Point3D>();
+            for (int i = 0; i <= 24; i++)
+            {
+                double a = 2 * Math.PI * i / 24;
+                sh.Add(Q(120 * Math.Cos(a), 230 * Math.Sin(a)));
+            }
+            Add(new LinearPath(sh.ToArray()), LOper);
+
+            // head, slightly forward
+            Add(new Circle(Q(-20, 0), 110 * s), LOper);
+
+            // arms from both shoulders forward to the gun
+            Poly((-30, 190), (-260, 150), (-420, 30));
+            Poly((-30, -190), (-260, -150), (-420, -30));
+
+            // spray gun body + paint cup (seen from above)
+            Poly((-420, -25), (-600, -25), (-600, 25), (-420, 25), (-420, -25));
+            Add(new Circle(Q(-470, 0), 45 * s), LOper);
+
+            // spray fan from the nozzle, ±15° around sheet-left
+            Point3D nz = Q(-600, 0);
+            double len = 385 * s;
+            for (int i = -3; i <= 3; i++)
+            {
+                double a = Math.PI + i * 5.0 * Math.PI / 180;
+                Add(new Line(nz, new Point3D(nz.X + Math.Cos(a) * len, nz.Y + Math.Sin(a) * len, 0)), LOper);
+            }
+        }
+
+        /// <summary>SIDE (R.H.): view looks into the open front, operator faces the E/C → seen from behind.
+        /// feet = model point on the floor under the operator's centre.</summary>
+        private void OperatorSide(string view, Point3D feet, double heightMm)
+        {
+            Point2D o = P(view, feet);
+            double k = heightMm / 1750.0 * views[view].Scale;          // proportions below are for a 1750 mm figure
+            Point3D Q(double u, double v) => new Point3D(o.X + u * k, o.Y + v * k, 0);
+            void Poly(params (double u, double v)[] pts) =>
+                Add(new LinearPath(pts.Select(p => Q(p.u, p.v)).ToArray()), LOper);
+
+            // head + neck
+            Add(new Circle(Q(0, 1625), 110 * k), LOper);
+            Poly((-50, 1515), (-50, 1460));
+            Poly((50, 1515), (50, 1460));
+
+            // torso (back)
+            Poly((-230, 1460), (-215, 1150), (-190, 900), (190, 900), (215, 1150), (230, 1460), (-230, 1460));
+
+            // legs
+            Poly((-190, 900), (-180, 30), (-230, 0), (-60, 0), (-50, 30), (0, 820),
+                 (50, 30), (60, 0), (230, 0), (180, 30), (190, 900));
+
+            // arms bent forward towards the gun (only upper arms visible from behind)
+            Poly((-230, 1440), (-275, 1220), (-170, 1130));
+            Poly((230, 1440), (275, 1220), (170, 1130));
+        }
+
         /// <summary>
         /// Inserts the client's operator figure from Operator.dwg (WBLOCKed at real size, base point = floor under feet).
         /// Returns false if the file is missing so the simple figure can be used instead.
         /// </summary>
-        private bool OperatorFromDwg(DrawingDocument doc, string view, Point3D feet, bool mirror = false)
+        private bool OperatorFromDwg(DrawingDocument doc, string view, Point3D feet,
+                               bool mirror = false, string fileName = "Operator.dwg")
         {
             string dir = _configuration["StpFilePathConfig:DrawingPath"];
-            string file = Path.Combine(dir ?? "", "Operator.dwg");
+            string file = Path.Combine(dir ?? "", fileName);
             if (!File.Exists(file)) return false;
 
             var ra = new ReadAutodesk(file);

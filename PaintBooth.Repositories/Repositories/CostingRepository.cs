@@ -1236,6 +1236,10 @@ namespace PaintBooth.Repositories.Repositories
             }
         }
         #endregion
-
+        public ControlPanelDetails GetControlPanelDetails(int enquiryId)
+        {
+            return _db.ControlPanelDetails
+                .FirstOrDefault(x => x.EnquiryID == enquiryId && x.IsActive);
+        }
     }
 }

@@ -15,22 +15,13 @@ namespace PaintBooth.Repositories.Interface
         int GetComponentID(string EnquiryNo);
         // Autocomplete
         List<string> SearchEnquiryCodes(string term);
-
-            // Search — load enquiry + setting
-           // EnquiryModel GetEnquiryDetailsByCode(string enquiryCode);
-            //string GetMotorTypesByEnqID(int enquiryId);
-           // PaintBoothModel GetSettingDetailsByCode(string enquiryCode);
-
-            // Water column
-            List<Database.PressureDrop> GetAallWaterColumnDetails();
-
-            // Motor
-            List<MotorFlangeModel> GetMotorDetails(decimal blowerHp);
+        List<Database.PressureDrop> GetAallWaterColumnDetails();
+        List<MotorFlangeModel> GetMotorDetails(decimal blowerHp);
         BlowerDetails GetBlowerDetails(int enquiryId);
         public void SaveExhaustDucting(int enquiryId, string salesNo, PaintBoothModel model, int userId);
         public List<ExhaustDuctings> GetExhaustDuctingByEnquiry(int enquiryId);
             // Save
-            bool Exists(int enquiryId);
+        bool Exists(int enquiryId);
 
         EnquirySearchResultViewModel GetEnquiryData(string salesNo);
 
@@ -63,5 +54,8 @@ namespace PaintBooth.Repositories.Interface
         public string FetchWashingTankType(int ComponentId);
         public (double waterTankDepth, double waterTankHeight)FetchWatertankDetails(int ComponentId);
         public (string conveyor, double length, double width) FetchEOTCutout(int componentId);
+        void SaveControlPanelDetails(int enquiryId, ControlPanelModel cp, double connectedLoadKW, int userId);
+        ControlPanelDetails GetControlPanelDetails(int enquiryId);
+        public bool IsSamplingPlatformProvided(int enquiryId);
     }
 }

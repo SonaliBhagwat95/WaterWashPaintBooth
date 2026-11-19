@@ -13,8 +13,6 @@
             ? ((int)v.Value).ToString()
             : v.Value.ToString("G29");
     }
-
-
     // Value as entered, or "Not Specified" if empty
     string NS(object value)
     {
@@ -786,367 +784,403 @@
                 </tfoot>
             </table>
         </div>
+        @{
+            var cp = Model.ControlPanel;
+            bool hasCP = cp != null && cp.IsRequired;
+
+            string cpType = cp?.PanelType == "Floor" ? "Floor Mounted" : "Wall Mounted";
+            string cpProtect = $"{(cp?.IPRating ?? "IP54").Replace("IP", "IP ")}, " +
+            (cp?.Enclosure == "FLP" ? "Flame proof" : "Non-Flame proof");
+            string cpStarter = cp?.StarterType ?? "Star-Delta";
+            int cpBlowers = Math.Max(1, Model.ProposalDetails?.NoOfBlowers ?? 1);
+            string cpIncomer = cp?.IncomerRating > 0
+            ? $"{cp.IncomerType} {cp.IncomerRating:0} A"
+            : (cp?.IncomerType ?? "Rotary switch");
+            string cpSize = cp != null
+            ? $"{cp.Width:0} W × {cp.Height:0} H × {cp.Depth:0} D mm, CRCA {cp.SheetThickness} mm, Shade {cp.PanelShade}"
+            : "";
+
+            var cpInterlocks = new List<string>();
+            if (cp?.EmergencyStop == true) cpInterlocks.Add("When operator presses the Emergency push button, all blowers will be turned off.");
+            if (cp?.BlowerGunInterlock == true) cpInterlocks.Add("Spray gun air supply will be enabled only when the exhaust blower is running.");
+            if (cp?.DPSwitch == true) cpInterlocks.Add("Alarm will be generated when filter differential pressure exceeds the set limit (filter choke).");
+            if (cp?.DoorLimitSwitch == true) cpInterlocks.Add("Booth door open status is monitored through door limit switch.");
+            if (cp?.FireAlarmInterface == true) cpInterlocks.Add("All blowers will be stopped on signal from the plant fire alarm system.");
+
+            var cpProvisions = new List<(string Desc, string Detail)>
+        {
+        ("Overload Protection", "For every Motor"),
+        ("Alarm", "In case of Motor Trip"),
+        };
+            if (cp?.Ammeter == true) cpProvisions.Add(("Ammeter", "On panel front"));
+            if (cp?.Voltmeter == true) cpProvisions.Add(("Voltmeter", "On panel front"));
+            if (cp?.IndicationLamps == true) cpProvisions.Add(("Indication Lamps", "ON / OFF / Trip"));
+            if (cp?.HourMeter == true) cpProvisions.Add(("Hour Meter", "Blower running hours"));
+            if (cp?.PLCWithHMI == true) cpProvisions.Add(("PLC with HMI", "Auto / Manual control & alarms"));
+            cpProvisions.Add(("Tower Lamp", "Green- Auto mode, Yellow- Man mode, Red- Fault"));
+        }
+
         <!-- ── TECHNICAL SPECIFICATION OF CONTROL PANEL ───────────────────────── -->
-        <div class="prop-section prop-cp">
-            <table class="prop-table">
-                <thead>
-                    <tr>
-                        <th colspan="3" style="text-align:center; font-size:13px; font-weight:700; color:var(--text-primary); text-transform:none; letter-spacing:0;">
-                            TECHNICAL SPECIFICATION OF CONTROL PANEL
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
+        @if (hasCP)
+        {
+            <div class="prop-section prop-cp">
+                <table class="prop-table">
+                    <thead>
+                        <tr>
+                            <th colspan="3" style="text-align:center; font-size:13px; font-weight:700; color:var(--text-primary); text-transform:none; letter-spacing:0;">
+                                TECHNICAL SPECIFICATION OF CONTROL PANEL
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
 
-                    @* 1.1 Operational Philosophy *@
-                    <tr>
-                        <td style="width:60px; color:var(--text-muted); font-weight:600;">1.1</td>
-                        <td colspan="2">
-                            This Operational Philosophy summarizes the various components of the system and presents a detailed
-                            overview of the associated control system.
-                        </td>
-                    </tr>
+                        @* 1.1 Operational Philosophy *@
+                        <tr>
+                            <td style="width:60px; color:var(--text-muted); font-weight:600;">1.1</td>
+                            <td colspan="2">
+                                This Operational Philosophy summarizes the various components of the system and presents a detailed
+                                overview of the associated control system.
+                            </td>
+                        </tr>
 
-                    @* Section 2 heading *@
-                    <tr>
-                        <td colspan="3" style="font-weight:700; color:var(--text-primary); background:var(--bg-hover);">
-                            2. ELECTRICAL SPECIFICATIONS
-                        </td>
-                    </tr>
+                        @* Section 2 heading *@
+                        <tr>
+                            <td colspan="3" style="font-weight:700; color:var(--text-primary); background:var(--bg-hover);">
+                                2. ELECTRICAL SPECIFICATIONS
+                            </td>
+                        </tr>
 
-                    @* Sub-header row *@
-                    <tr style="background:var(--bg-hover);">
-                        <td style="font-weight:700; color:var(--text-primary);">Sr No.</td>
-                        <td style="font-weight:700; color:var(--text-primary);">Description</td>
-                        <td style="font-weight:700; color:var(--text-primary);">Type/Status</td>
-                    </tr>
+                        @* Sub-header row *@
+                        <tr style="background:var(--bg-hover);">
+                            <td style="font-weight:700; color:var(--text-primary);">Sr No.</td>
+                            <td style="font-weight:700; color:var(--text-primary);">Description</td>
+                            <td style="font-weight:700; color:var(--text-primary);">Type/Status</td>
+                        </tr>
 
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;">1</td>
-                        <td>No. Of Control Panel</td>
-                        <td>1 No.For Painting Booth </td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;">2</td>
-                        <td>Type of Control panel</td>
-                        @* <td>Wall Mounted/ Floor Mounted</td> *@
-                        <td>
-                            <div class="prop-radio-group">
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;">1</td>
+                            <td>No. Of Control Panel</td>
+                            <td>1 No. For Painting Booth</td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;">2</td>
+                            <td>Type of Control panel</td>
+                            <td>@cpType</td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;">3</td>
+                            <td>Power Supply</td>
+                            <td>3 Phase &amp; Neutral, 50 HZ 415 VAC, 4 Wires</td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;">4</td>
+                            <td>Degree Of Protection</td>
+                            <td>@cpProtect</td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;">5</td>
+                            <td>Type of Cabling (Field &amp; Panel)</td>
+                            <td>flexible (Poly cab) cable for exhaust blowers</td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;">6</td>
+                            <td>Type of Earthing</td>
+                            <td>Copper</td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;">7</td>
+                            <td>Control Panel Fabrication</td>
+                            <td>Bullows Make — @cpSize</td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;">8</td>
+                            <td>Starter for Exhaust Blower(s)</td>
+                            <td>@cpStarter × @cpBlowers No(s).</td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;">9</td>
+                            <td>Cable Entry / Exit</td>
+                            <td>Bottom</td>
+                        </tr>
 
-                                <label><input type="radio" name="TypeOfControlPanel" value="Wall Mounted" />Wall Mounted</label>
-                                <label><input type="radio" name="TypeOfControlPanel" value="Floor Mounted" checked />Floor Mounted</label>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;">3</td>
-                        <td>Power Supply</td>
-                        <td>3 Phase &amp; Neutral, 50 HZ 415 VAC, 4 Wires</td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;">4</td>
-                        <td>Degree Of Protection</td>
-                        <td>
-                            <div class="prop-radio-group">
-                                IP 54
-                                <label><input type="radio" name="DOP" value="Yes" />Flame proof</label>
-                                <label><input type="radio" name="DOP" value="No" checked />Non-Flame proof</label>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;">5</td>
-                        <td>Type of Cabling (Field &amp; Panel)</td>
-                        <td>
-                            flexible (Poly cab) cable for exhaust blowers
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;">6</td>
-                        <td>Type of Earthing</td>
-                        <td>Copper</td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;">7</td>
-                        <td>Control Panel Fabrication</td>
-                        <td>Bullows Make</td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;">8</td>
-                        <td>All Pump &amp; Blower up to 5 HP</td>
-                        <td>DOL</td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;">9</td>
-                        <td>All Pump &amp; Blower above 5 HP</td>
-                        <td>Star Delta</td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;">10</td>
-                        <td>Cable Entry / Exit</td>
-                        <td>Bottom</td>
-                    </tr>
-                    @* Section 2.1 heading *@
-                    <tr>
-                        <td colspan="3" style="font-weight:700; color:var(--text-primary); background:var(--bg-hover);">
-                            2.1 Power, Control &amp; Metering Section
-                        </td>
-                    </tr>
+                        @* Section 2.1 heading *@
+                        <tr>
+                            <td colspan="3" style="font-weight:700; color:var(--text-primary); background:var(--bg-hover);">
+                                2.1 Power, Control &amp; Metering Section
+                            </td>
+                        </tr>
 
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;">1.</td>
-                        <td>Main Incomer</td>
-                        <td>Rotary switch</td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;">2.</td>
-                        <td>MCB, Contactors, S/d Timers &amp; OLR Relay</td>
-                        <td>
-                            Type 2 Co-Ordination Chart
-                            Make- Delta
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;">3.</td>
-                        <td>Relay</td>
-                        <td>Omron/ Equivalent Make</td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;">4.</td>
-                        <td>Selector Switch, Push Buttons &amp; Indication Lamp</td>
-                        <td>Teknik/ Siemens/Schneider/Mitsubishi/ Equivalent make</td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;">5.</td>
-                        <td>Panel Tube light</td>
-                        <td>Philips/Equivalent make</td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;">6.</td>
-                        <td>Terminals</td>
-                        <td>Connect well / Equivalent make</td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;">7.</td>
-                        <td>Type of Wiring for Panel </td>
-                        <td>In Cable Duct (Flexible Polycab) </td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;">8.</td>
-                        <td>Type of Wiring for Field </td>
-                        <td>In Cable Tray (Flexible Polycab) </td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;">9.</td>
-                        <td>Wire Ends </td>
-                        <td>Lugs, Ferrules </td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;">10.</td>
-                        <td>Panel Labels </td>
-                        <td>Anodised Aluminium white label with black text/ Acrylic labels </td>
-                    </tr>
-                </tbody>
-                <tbody class="pb-keep">
-                    @* Special Features row *@
-                    <tr>
-                        <td colspan="3" style="font-weight:700; color:var(--text-primary); background:var(--bg-hover);">
-                            Special Features of Plant Control
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;"></td>
-                        <td colspan="2">There will be 2 modes for operation. Manual mode &amp; Auto mode.</td>
-                    </tr>
-                    <tr>
-                        <td style="text-align:center;">2.2</td>
-                        <td colspan="2">Legends for Circuit Diagram</td>
-                    </tr>
-                    <tr>
-                        <td style="text-align:center;"></td>
-                        <td>EPB</td>
-                        <td>Emergency Push button</td>
-                    </tr>
-                    <tr>
-                        <td style="text-align:center;"></td>
-                        <td>ILPB</td>
-                        <td>Illuminated Push button</td>
-                    </tr>
-                    <tr>
-                        <td style="text-align:center;"></td>
-                        <td>SSW</td>
-                        <td>Selector switch</td>
-                    </tr>
-                    <tr>
-                        <td style="text-align:center;"></td>
-                        <td>IL</td>
-                        <td>Indication lamps</td>
-                    </tr>
-                    <tr>
-                        <td style="text-align:center;"></td>
-                        <td>PB</td>
-                        <td>Push button</td>
-                    </tr>
-                    <tr>
-                        <td style="text-align:center;"></td>
-                        <td>K</td>
-                        <td>Contactor</td>
-                    </tr>
-                    @* Section 3 heading *@
-                    <tr>
-                        <td colspan="3" style="font-weight:700; color:var(--text-primary); background:var(--bg-hover);">
-                            3. Electrical Utility Break-up Details
-                        </td>
-                    </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;">1.</td>
+                            <td>Main Incomer</td>
+                            <td>@cpIncomer</td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;">2.</td>
+                            <td>MCB, Contactors, S/d Timers &amp; OLR Relay</td>
+                            <td>Type 2 Co-Ordination Chart Make- Delta</td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;">3.</td>
+                            <td>Relay</td>
+                            <td>Omron/ Equivalent Make</td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;">4.</td>
+                            <td>Selector Switch, Push Buttons &amp; Indication Lamp</td>
+                            <td>Teknik/ Siemens/Schneider/Mitsubishi/ Equivalent make</td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;">5.</td>
+                            <td>Panel Tube light</td>
+                            <td>Philips/Equivalent make</td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;">6.</td>
+                            <td>Terminals</td>
+                            <td>Connect well / Equivalent make</td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;">7.</td>
+                            <td>Type of Wiring for Panel</td>
+                            <td>In Cable Duct (Flexible Polycab)</td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;">8.</td>
+                            <td>Type of Wiring for Field</td>
+                            <td>In Cable Tray (Flexible Polycab)</td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;">9.</td>
+                            <td>Wire Ends</td>
+                            <td>Lugs, Ferrules</td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;">10.</td>
+                            <td>Panel Labels</td>
+                            <td>Anodised Aluminium white label with black text/ Acrylic labels</td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;">11.</td>
+                            <td>Control Voltage</td>
+                            <td>@(cp.ControlVoltage ?? "230V AC")</td>
+                        </tr>
+                    </tbody>
+                    <tbody class="pb-keep">
+                        @* Special Features row *@
+                        <tr>
+                            <td colspan="3" style="font-weight:700; color:var(--text-primary); background:var(--bg-hover);">
+                                Special Features of Plant Control
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;"></td>
+                            <td colspan="2">There will be 2 modes for operation. Manual mode &amp; Auto mode.</td>
+                        </tr>
+                        <tr>
+                            <td style="text-align:center;">2.2</td>
+                            <td colspan="2">Legends for Circuit Diagram</td>
+                        </tr>
+                        <tr>
+                            <td style="text-align:center;"></td>
+                            <td>EPB</td>
+                            <td>Emergency Push button</td>
+                        </tr>
+                        <tr>
+                            <td style="text-align:center;"></td>
+                            <td>ILPB</td>
+                            <td>Illuminated Push button</td>
+                        </tr>
+                        <tr>
+                            <td style="text-align:center;"></td>
+                            <td>SSW</td>
+                            <td>Selector switch</td>
+                        </tr>
+                        <tr>
+                            <td style="text-align:center;"></td>
+                            <td>IL</td>
+                            <td>Indication lamps</td>
+                        </tr>
+                        <tr>
+                            <td style="text-align:center;"></td>
+                            <td>PB</td>
+                            <td>Push button</td>
+                        </tr>
+                        <tr>
+                            <td style="text-align:center;"></td>
+                            <td>K</td>
+                            <td>Contactor</td>
+                        </tr>
 
-                    @* Sub-header row for utility table *@
-                    <tr style="background:var(--bg-hover);">
-                        <td style="font-weight:700; color:var(--text-primary);">Sr No.</td>
-                        <td style="font-weight:700; color:var(--text-primary);">Item Description</td>
-                        <td style="font-weight:700; color:var(--text-primary);">
-                            <table style="width:100%; border:none; border-collapse:collapse;">
-                                <tr>
-                                    <td style="border:none; padding:0 4px; font-weight:700; width:25%;">HP</td>
-                                    <td style="border:none; padding:0 4px; font-weight:700; width:25%;">Kw</td>
-                                    <td style="border:none; padding:0 4px; font-weight:700; width:25%;">Qty</td>
-                                    <td style="border:none; padding:0 4px; font-weight:700; width:25%;">Total Kw</td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;">A</td>
-                        <td>Paint Booth</td>
-                        <td>
-                            <table style="width:100%; border:none; border-collapse:collapse;">
-                                <tr>
-                                    <td style="border:none; padding:0 4px; width:25%;"></td>
-                                    <td style="border:none; padding:0 4px; width:25%;"></td>
-                                    <td style="border:none; padding:0 4px; width:25%;"></td>
-                                    <td style="border:none; padding:0 4px; width:25%;"></td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-                    @* Exhaust blower motor *@
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;">1</td>
-                        <td>Paint Exhaust Blowers -1</td>
-                        <td>
-                            <table style="width:100%; border:none; border-collapse:collapse;">
-                                <tr>
-                                    <td style="border:none; padding:0 4px; width:25%;">@Model.MaterialList?.MotorCapacity</td>
-                                    <td style="border:none; padding:0 4px; width:25%;">@blowerKwEach</td>
-                                    <td style="border:none; padding:0 4px; width:25%;">@Model.ProposalDetails?.NoOfBlowers</td>
-                                    <td style="border:none; padding:0 4px; width:25%;">@blowerTotalKw</td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
+                        @* Section 3 heading *@
+                        <tr>
+                            <td colspan="3" style="font-weight:700; color:var(--text-primary); background:var(--bg-hover);">
+                                3. Electrical Utility Break-up Details
+                            </td>
+                        </tr>
 
-                    @* Tube Light *@
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;">2</td>
-                        <td>Tube Light</td>
-                        <td>
-                            <table style="width:100%; border:none; border-collapse:collapse;">
-                                <tr>
-                                    <td style="border:none; padding:0 4px; width:25%;"></td>
-                                    <td style="border:none; padding:0 4px; width:25%;">@tubeLightKwEach</td>
-                                    <td style="border:none; padding:0 4px; width:25%;">@Model.MaterialList?.TubelightQuantity</td>
-                                    <td style="border:none; padding:0 4px; width:25%;">@tubeLightTotalKw</td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
+                        @* Sub-header row for utility table *@
+                        <tr style="background:var(--bg-hover);">
+                            <td style="font-weight:700; color:var(--text-primary);">Sr No.</td>
+                            <td style="font-weight:700; color:var(--text-primary);">Item Description</td>
+                            <td style="font-weight:700; color:var(--text-primary);">
+                                <table style="width:100%; border:none; border-collapse:collapse;">
+                                    <tr>
+                                        <td style="border:none; padding:0 4px; font-weight:700; width:25%;">HP</td>
+                                        <td style="border:none; padding:0 4px; font-weight:700; width:25%;">Kw</td>
+                                        <td style="border:none; padding:0 4px; font-weight:700; width:25%;">Qty</td>
+                                        <td style="border:none; padding:0 4px; font-weight:700; width:25%;">Total Kw</td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;">A</td>
+                            <td>Paint Booth</td>
+                            <td>
+                                <table style="width:100%; border:none; border-collapse:collapse;">
+                                    <tr>
+                                        <td style="border:none; padding:0 4px; width:25%;"></td>
+                                        <td style="border:none; padding:0 4px; width:25%;"></td>
+                                        <td style="border:none; padding:0 4px; width:25%;"></td>
+                                        <td style="border:none; padding:0 4px; width:25%;"></td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
 
-                    @* Total Electrical Utility *@
-                    <tr>
-                        <td colspan="2" style="text-align:right; font-weight:700; color:var(--text-primary);">
-                            Total Electrical utility
-                        </td>
-                        <td>
-                            <table style="width:100%; border:none; border-collapse:collapse;">
-                                <tr>
-                                    <td style="border:none; padding:0 4px; width:25%;"></td>
-                                    <td style="border:none; padding:0 4px; width:25%;"></td>
-                                    <td style="border:none; padding:0 4px; width:25%;"></td>
-                                    <td style="border:none; padding:0 4px; width:25%; font-weight:700; color:var(--text-primary);"> @totalElectricalKw Kw</td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
+                        @* Exhaust blower motor *@
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;">1</td>
+                            <td>Paint Exhaust Blowers -1</td>
+                            <td>
+                                <table style="width:100%; border:none; border-collapse:collapse;">
+                                    <tr>
+                                        <td style="border:none; padding:0 4px; width:25%;">@Model.MaterialList?.MotorCapacity</td>
+                                        <td style="border:none; padding:0 4px; width:25%;">@blowerKwEach</td>
+                                        <td style="border:none; padding:0 4px; width:25%;">@Model.ProposalDetails?.NoOfBlowers</td>
+                                        <td style="border:none; padding:0 4px; width:25%;">@blowerTotalKw</td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
 
-                    @* Note *@
-                    <tr>
-                        <td colspan="3" style="font-size:12px; color:var(--text-muted);">
-                            <strong>Note:</strong> - Above Power requirement provided by supplier this may vary at actual. This will be confirmed at the time of DAP.
-                        </td>
-                    </tr>
+                        @* Tube Light *@
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;">2</td>
+                            <td>Tube Light</td>
+                            <td>
+                                <table style="width:100%; border:none; border-collapse:collapse;">
+                                    <tr>
+                                        <td style="border:none; padding:0 4px; width:25%;"></td>
+                                        <td style="border:none; padding:0 4px; width:25%;">@tubeLightKwEach</td>
+                                        <td style="border:none; padding:0 4px; width:25%;">@Model.MaterialList?.TubelightQuantity</td>
+                                        <td style="border:none; padding:0 4px; width:25%;">@tubeLightTotalKw</td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
 
-                    @* Section 4.2 *@
-                    <tr>
-                        <td style="color:var(--text-muted); font-weight:600;">4.2</td>
-                        <td colspan="2" style="font-weight:600; color:var(--text-primary);">Interlock Details:</td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;">1</td>
-                        <td colspan="2">When operator pressed Em push button then all blowers will be turn off</td>
-                    </tr>
+                        @* Total Electrical Utility *@
+                        <tr>
+                            <td colspan="2" style="text-align:right; font-weight:700; color:var(--text-primary);">
+                                Total Electrical utility
+                            </td>
+                            <td>
+                                <table style="width:100%; border:none; border-collapse:collapse;">
+                                    <tr>
+                                        <td style="border:none; padding:0 4px; width:25%;"></td>
+                                        <td style="border:none; padding:0 4px; width:25%;"></td>
+                                        <td style="border:none; padding:0 4px; width:25%;"></td>
+                                        <td style="border:none; padding:0 4px; width:25%; font-weight:700; color:var(--text-primary);">@totalElectricalKw Kw</td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
 
-                    @* Section 4.4 *@
-                    <tr>
-                        <td style="color:var(--text-muted); font-weight:600;">4.4</td>
-                        <td colspan="2" style="font-weight:600; color:var(--text-primary);">Safety Details:</td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;"></td>
-                        <td colspan="2">only one emergency stop button is to be provided.</td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;"></td>
-                        <td colspan="2">
-                            Overload protection for motor. Alarm will be generated whenever motor trip because of
-                            overload.
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;"></td>
-                        <td colspan="2">Earthing to be provided.</td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;"></td>
-                        <td colspan="2">IP 55 / 65 protection for motor.</td>
-                    </tr>
+                        @* Note *@
+                        <tr>
+                            <td colspan="3" style="font-size:12px; color:var(--text-muted);">
+                                <strong>Note:</strong> - Above Power requirement provided by supplier this may vary at actual. This will be confirmed at the time of DAP.
+                            </td>
+                        </tr>
 
-                    @* Section 4.5 *@
-                    <tr>
-                        <td style="color:var(--text-muted); font-weight:600;">4.5</td>
-                        <td colspan="2" style="font-weight:600; color:var(--text-primary);">Provision Details: -</td>
-                    </tr>
-                    <tr style="background:var(--bg-hover);">
-                        <td style="color:var(--text-muted);"></td>
-                        <td style="font-weight:700; color:var(--text-primary);">Description</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;"></td>
-                        <td>Overload Protection</td>
-                        <td>For every Motor</td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;"></td>
-                        <td>Alarm</td>
-                        <td>In case of Motor Trip</td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted); text-align:center;"></td>
-                        <td>Tower Lamp</td>
-                        <td>Green- Auto mode, Yellow- Man mode, Red- Fault</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+                        @* Section 4.2 — Interlocks (from saved checkboxes) *@
+                        <tr>
+                            <td style="color:var(--text-muted); font-weight:600;">4.2</td>
+                            <td colspan="2" style="font-weight:600; color:var(--text-primary);">Interlock Details:</td>
+                        </tr>
+                        @if (cpInterlocks.Count == 0)
+                        {
+                            <tr>
+                                <td style="color:var(--text-muted); text-align:center;"></td>
+                                <td colspan="2">Not Applicable</td>
+                            </tr>
+                        }
+                        @for (int i = 0; i < cpInterlocks.Count; i++)
+                        {
+                            <tr>
+                                <td style="color:var(--text-muted); text-align:center;">@(i + 1)</td>
+                                <td colspan="2">@cpInterlocks[i]</td>
+                            </tr>
+                        }
+
+                        @* Section 4.4 *@
+                        <tr>
+                            <td style="color:var(--text-muted); font-weight:600;">4.4</td>
+                            <td colspan="2" style="font-weight:600; color:var(--text-primary);">Safety Details:</td>
+                        </tr>
+                        @if (cp.EmergencyStop)
+                        {
+                            <tr>
+                                <td style="color:var(--text-muted); text-align:center;"></td>
+                                <td colspan="2">Only one emergency stop button is to be provided.</td>
+                            </tr>
+                        }
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;"></td>
+                            <td colspan="2">
+                                Overload protection for motor. Alarm will be generated whenever motor trip because of
+                                overload.
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;"></td>
+                            <td colspan="2">Earthing to be provided.</td>
+                        </tr>
+                        <tr>
+                            <td style="color:var(--text-muted); text-align:center;"></td>
+                            <td colspan="2">IP 55 / 65 protection for motor.</td>
+                        </tr>
+
+                        @* Section 4.5 — Provisions (from saved checkboxes) *@
+                        <tr>
+                            <td style="color:var(--text-muted); font-weight:600;">4.5</td>
+                            <td colspan="2" style="font-weight:600; color:var(--text-primary);">Provision Details: -</td>
+                        </tr>
+                        <tr style="background:var(--bg-hover);">
+                            <td style="color:var(--text-muted);"></td>
+                            <td style="font-weight:700; color:var(--text-primary);">Description</td>
+                            <td></td>
+                        </tr>
+                        @foreach (var l in cpProvisions)
+                        {
+                            <tr>
+                                <td style="color:var(--text-muted); text-align:center;"></td>
+                                <td>@l.Desc</td>
+                                <td>@l.Detail</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="prop-section prop-cp">
+                <p style="color:var(--text-muted);"><strong>Electrical Control Panel:</strong> In customer scope.</p>
+            </div>
+        }
         <!-- ── UTILITIES REQUIREMENTS ───────────────────────── -->
         <div class="prop-section">
             <table class="prop-table">

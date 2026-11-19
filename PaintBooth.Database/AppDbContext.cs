@@ -46,6 +46,7 @@ namespace PaintBooth.Database
         public DbSet<ExceptionHandler> ExceptionHandler { get; set; }
         public DbSet<EnquirySalesEnDetails> EnquirySalesEndDetails { get; set; }
         public DbSet<ProposalBasisOfDesign> ProposalBasisOfDesign { get; set; }
+        public DbSet<ControlPanelDetails> ControlPanelDetails { get; set; }
 
         // ── Primary keys ──────────────────────────────────────
 

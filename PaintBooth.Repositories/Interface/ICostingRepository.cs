@@ -1,5 +1,4 @@
 
-
 using PaintBooth.Database;
 
 using PaintBooth.Models;
@@ -82,6 +81,7 @@ namespace PaintBooth.Repositories.Interface
         void SaveBasisOfDesignField(int enquiryId, string rowKey, string field, string value);
         string AddBasisOfDesignItem(int enquiryId);
         void DeleteBasisOfDesignItem(int enquiryId, string rowKey);
+        ControlPanelDetails GetControlPanelDetails(int enquiryId);
 
     }
 }

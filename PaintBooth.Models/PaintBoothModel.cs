@@ -141,6 +141,9 @@ namespace PaintBooth.Models
         public double WallDistance { get; set; }
         public double WallThickness { get; set; } = 250;      // client sheet shows 250 brick wall
         public double DuctHeightFromFFL { get; set; }
+        //Control panel model
+        public ControlPanelModel ControlPanel { get; set; } = new();
+        public bool IsSamplingPlatform { get; set; }
 
     }
 
@@ -155,7 +158,7 @@ namespace PaintBooth.Models
     {
         public string? BendType { get; set; }
         public string? BendDirection { get; set; }   // NEW — Up/Down/Left/Right for bends
-        public int? DuctLength { get; set; }          // nullable — only ducts have a length
+        public int? DuctLength { get; set; }       
         public decimal DuctWidth { get; set; }
         public decimal DuctHeight { get; set; }
         public decimal DuctThickness { get; set; }

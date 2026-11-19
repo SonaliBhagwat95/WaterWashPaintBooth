@@ -71,8 +71,8 @@ namespace PaintBooth.Controllers
                 ComponentTable WatchGlass = _repo.GetWatchGlassDetails(componentId);
                 var blowerDetails = _repo.GetBlowerDetails(existing.EnquiryId);
                 var wcRows = _repo.GetWaterColumnDetails(existing.EnquiryId);
-                var motor = _repo.GetMotorBySalesNo(salesNo); // add this repo method
-                                                              // Serialize rows back to JSON for the hidden field
+                var motor = _repo.GetMotorBySalesNo(salesNo);
+                var controlPanel = _repo.GetControlPanelDetails(existing.EnquiryId);
                 var wcRowsJson = System.Text.Json.JsonSerializer.Serialize(
                     wcRows.Select(x => new WaterColumnRowDto
                     {
@@ -150,7 +150,9 @@ namespace PaintBooth.Controllers
                     WatchGlassBottomDistance = (double)(WatchGlass?.WatchGlassBottomDistance ?? 0),
                     WatchglassWidth = (double)(WatchGlass?.WatchglassWidth ?? 0),
                     WatchglassHeight = (double)(WatchGlass?.WatchglassHeight ?? 0),
-                    PaintBoothType = PaintboothType
+                    PaintBoothType = PaintboothType,
+                    ControlPanel = MapControlPanel(controlPanel),
+                    IsSamplingPlatform=existing.IsSamplingPlatform
                 };
                 return View("Create", model);
             }
@@ -376,6 +378,15 @@ namespace PaintBooth.Controllers
                 HttpContext.Session.SetInt32("settingPanelHeight", (int)paintBoothSetting.PanelHeight);
                 _repo.UpdateTubelightDetails(model, paintBoothSetting.LuxLevel, paintBoothSetting.Lumens);
                 panel.CalculateTubeLights(model);
+
+                // ── Control panel ───────────────────────────────────────────
+                const double LightWattsEach = 40;   // ← placeholder: confirm wattage per FLP fitting
+                double connectedLoadKW =
+                      ((double)model.RatedOutputHP * 0.746 * Math.Max(1, model.NoOfBlowers))
+                    + (model.Lights * LightWattsEach / 1000.0);
+
+                _repo.SaveControlPanelDetails(enquiryId, model.ControlPanel, connectedLoadKW, userId);
+
                 string selectedLocation = model.ServiceDoorLocation;
 
                 // Check if the record already exists
@@ -495,6 +506,7 @@ namespace PaintBooth.Controllers
                 List<ExhaustDuctings> ductRows = new();
                 Point3D ductMid = null; double ductLegX = 0;
                 double ductTopZ = 0, ductCutZ = 0, ductCutSize = 0, ductMaxX=0;
+                double ductLegBottomZ = 0, ductLegTopZ = 0;          
 
                 if (PaintBoothTypefromEnquiry != "4" && PaintBoothTypefromEnquiry != "5" &&
                     PaintBoothTypefromEnquiry != "6" && PaintBoothTypefromEnquiry != "7")
@@ -522,6 +534,8 @@ namespace PaintBooth.Controllers
                         ductCutZ = duct.DuctCutZ;
                         ductCutSize = duct.DuctCutSize;// ← add (top of the duct run)
                         ductLegX = duct.DuctLegX;
+                        ductLegBottomZ = duct.DuctLegBottomZ;
+                        ductLegTopZ = duct.DuctLegTopZ;
                     }
                 }
                 // ── Site wall (3D) — only when a wall distance is given ──
@@ -535,6 +549,81 @@ namespace PaintBooth.Controllers
                     if (wall.drawing.Entities.Count > 0)
                         service.designdictionary["SiteWall"] = new List<DesignDocument> { wall.drawing };
                 }
+                // ── Duct accessories: supports, sampling port, platform + ladder ─────
+                Point3D portAt = null, supportAt = null, platformAt = null;
+                double accMaxX = 0;
+                Point3D ladderAt = null;
+                bool hasCage = false;
+
+                if (ductLegX > 0 && ductCutZ > 0)                       // any duct run through the wall
+                {
+                    int runs = model.NoOfBlowers <= 2 ? Math.Max(1, model.NoOfBlowers) : model.NoOfBlowers / 2;
+                    double pieceW = model.W / runs;
+
+                    // same X references the duct drawing uses
+                    double ecRearX = model.D + model.D3;
+                    double wallInnerX = model.WallDistance > 0 ? ecRearX + model.WallDistance : 0;
+                    double wallOuterX = model.WallDistance > 0 ? wallInnerX + 250 : 0;
+
+                    bool hasStack = ductLegTopZ - ductLegBottomZ >= 1500;   // tall enough for port / platform
+                    bool withPlatform = model.IsSamplingPlatform && hasStack;
+
+                    var accDoc = new DesignDocument { Units = linearUnitsType.Millimeters };
+                    accDoc.Layers.Add(new Layer("DuctAccessories", Color.Goldenrod));
+
+                    var legYs = new List<double>();
+                    for (int s = 0; s < runs; s++)
+                    {
+                        double legY = s * pieceW + pieceW / 2;
+                        legYs.Add(legY);
+
+                        // supports for the horizontal run + seat under the stack bend — every duct, every stack
+                        panel.DuctRunSupports(accDoc, ecRearX, wallInnerX, wallOuterX,
+                                              ductLegX, legY,
+                                              model.ExhaustWidth, model.ExhaustDuctHeight,   // width across Y, height in Z
+                                              ductCutZ);
+
+                        // sampling port + stack supports — only when there is a real stack
+                        if (hasStack)
+                        {
+                            var acc = panel.DuctAccessoriesDrawing(
+                                ductLegX, legY,
+                                model.ExhaustDuctHeight, model.ExhaustWidth,
+                                ductLegBottomZ, ductLegTopZ, wallOuterX,
+                                withPlatform: false);
+
+                            foreach (Entity e in acc.drawing.Entities)
+                                accDoc.Entities.Add((Entity)e.Clone());
+
+                            if (s == 0) { portAt = acc.portAt; supportAt = acc.supportAt; }
+                        }
+                    }
+
+                    // ── one common platform + ladder for all stacks ──
+                    if (withPlatform && portAt != null)
+                    {
+                        double outX = portAt.X - 160;                 // port nozzle sits 160 out from the duct face
+                        double y0 = legYs.Min() - 600;
+                        double y1 = legYs.Max() + 600;
+                        double ladderY = runs > 1 ? (legYs.Min() + legYs.Max()) / 2 : legYs[0];
+
+                        platformAt = panel.PlatformAndLadder(accDoc, outX, y0, y1, portAt.Z, ladderY);
+
+                        double zPl = portAt.Z - 1100;
+                        ladderAt = new Point3D(outX + 1030, ladderY, zPl / 2);
+                        hasCage = zPl > 3000;
+                    }
+
+                    // extent of the accessories, so GA text can go outside them
+                    if (accDoc.Entities.Count > 0)
+                    {
+                        accDoc.Entities.Regen();
+                        accDoc.Entities.UpdateBoundingBox();
+                        accMaxX = accDoc.Entities.BoxMax.X;
+                        service.designdictionary["DuctAccessories"] = new List<DesignDocument> { accDoc };
+                    }
+                }
+
                 void ApplyEOT(DesignDocument doc)
                 {
                     if (!hasEOTCutout) return;
@@ -542,6 +631,21 @@ namespace PaintBooth.Controllers
                     double zTop = model.H + (PlenumHeight > 0 ? PlenumHeight : 0) + 500; // through FAS plenum if present
                     int cut = EOTCutoutHelper.Apply(doc, -20, Math.Min(eotLength, model.D) + 20,
                                 model.W / 2.0, eotWidth, zBottom, zTop);
+                }
+                // ── Control panel (3D) ─────────────────────────────────────
+                ControlPanelDetails cp = _repo.GetControlPanelDetails(enquiryId);
+                Point3D cpCenter = null;
+
+                if (cp != null && cp.IsRequired)
+                {
+                    bool hasEC = PaintBoothTypefromEnquiry != "4" && PaintBoothTypefromEnquiry != "5" &&
+                                 PaintBoothTypefromEnquiry != "6" && PaintBoothTypefromEnquiry != "7";
+                    double rearX = model.D + (hasEC ? model.D3 : 0);
+
+                    //var cpRes = panel.ControlPanelDrawing(model, cp, rearX);
+                    var cpRes = panel.ControlPanelDrawing(model, cp, rearX, 0, model.W);
+                    service.designdictionary["ControlPanel"] = new List<DesignDocument> { cpRes.drawing };
+                    cpCenter = cpRes.center;
                 }
 
                 #region WriteFile
@@ -713,6 +817,12 @@ namespace PaintBooth.Controllers
 
                     // client-style note beside the duct (balloon 5 is drawn with the note)
                     gaInfo.DuctLegX = ductLegX;
+                    gaInfo.SamplingPortAt = portAt;
+                    gaInfo.DuctSupportAt = supportAt;
+                    gaInfo.PlatformAt = platformAt;
+                    gaInfo.AccessoryMaxX = accMaxX;
+                    gaInfo.LadderAt = ladderAt;
+                    gaInfo.HasCage = hasCage;
                     gaInfo.DuctNoteLines = new List<string>
                     {
                         "Exhaust duct set up",
@@ -722,6 +832,34 @@ namespace PaintBooth.Controllers
                         "Bird grid duct - 1-no."
                     };
                 }
+                // ── Control panel in client GA ─────────────────────────────
+                if (cp != null && cp.IsRequired)
+                {
+                    var cpItem = new GAScopeItem { Title = "ELECTRICAL CONTROL PANEL" };
+                    cpItem.Lines.Add($"{(cp.PanelType == "Wall" ? "WALL MOUNTED" : "FLOOR STANDING")}, {cp.Enclosure}, {cp.IPRating}");
+                    cpItem.Lines.Add($"STARTER : {cp.StarterType?.ToUpper()} × {Math.Max(1, model.NoOfBlowers)} NOS.");
+                    if (cp.IncomerRating > 0) cpItem.Lines.Add($"INCOMER : {cp.IncomerType} {cp.IncomerRating:0} A");
+                    cpItem.Lines.Add("QTY : 1 NO.");
+
+                    // replace the fixed "STAR DELTA STARTER + MCB" item
+                    int si = gaInfo.Scope.FindIndex(s => s.Title.StartsWith("STAR DELTA"));
+                    if (si >= 0) gaInfo.Scope[si] = cpItem; else gaInfo.Scope.Add(cpItem);
+
+                    // real connected load instead of "5 KW APPROX"
+                    int ni = gaInfo.Notes.FindIndex(n => n.StartsWith("ELECTRICAL LOAD"));
+                    if (ni >= 0 && cp.ConnectedLoadKW > 0)
+                        gaInfo.Notes[ni] = $"ELECTRICAL LOAD: {cp.ConnectedLoadKW:0.#} KW APPROX. ALL ELECTRICAL CABLES WILL BE COPPER FLEXIBLE CABLE.";
+
+                    // point the starter balloon at the panel in PLAN view
+                    int starterNo = ductMid != null ? 6 : 5;
+                    var b = gaInfo.Balloons.FirstOrDefault(x => x.No == starterNo);
+                    if (b != null && cpCenter != null)
+                    {
+                        b.View = "PLAN";
+                        b.Target = cpCenter;
+                    }
+                }
+
 
                 string clientGaPath = new ClientGADrawing(_configuration).Build(gaModel, model, gaInfo);
                 AllFilesPath.Add(clientGaPath);
@@ -775,6 +913,8 @@ namespace PaintBooth.Controllers
                 combinedDrawing.Layers.Add(new Layer("ZigZag", Color.GreenYellow));
                 combinedDrawing.Layers.Add(new Layer("Rectangle", Color.White));
                 combinedDrawing.Layers.Add(new Layer("SmallRectangle", Color.Gray));
+                combinedDrawing.Layers.Add(new Layer("ControlPanel", Color.LightSteelBlue));
+                combinedDrawing.Layers.Add(new Layer("DuctAccessories", Color.Goldenrod));
                 combinedDrawing.Units = linearUnitsType.Millimeters;
                 #endregion
 
@@ -1780,23 +1920,6 @@ namespace PaintBooth.Controllers
                     Directory.Delete(tempFolderPath, recursive: true);
             }
         }
-
-        private static DesignDocument CopyMoved(DesignDocument src, double dx, double dy, double dz,
-                                        double rotZDeg = 0)
-        {
-            var dst = new DesignDocument();
-            dst.Units = src.Units;
-
-            foreach (Entity e in src.Entities)
-            {
-                Entity c = (Entity)e.Clone();
-                if (rotZDeg != 0)
-                    c.Rotate(rotZDeg * Math.PI / 180.0, Vector3D.AxisZ, Point3D.Origin);  // turn first, about part origin
-                c.Translate(dx, dy, dz);                                                   // then move into the booth
-                dst.Entities.Add(c);                                                       // keeps BurlyWood / Gray
-            }
-            return dst;
-        }
         private static DesignDocument CloneDoc(DesignDocument src)
         {
             var dst = new DesignDocument { Units = src.Units };
@@ -1820,7 +1943,52 @@ namespace PaintBooth.Controllers
             }
             return dst;
         }
-    
+
+        private static ControlPanelModel MapControlPanel(ControlPanelDetails cp)
+        {
+            if (cp == null) return new ControlPanelModel();   // nothing saved yet → defaults
+
+            return new ControlPanelModel
+            {
+                IsRequired = cp.IsRequired,
+                PanelType = cp.PanelType ?? "Wall",
+                Enclosure = cp.Enclosure ?? "NFLP",
+                IPRating = cp.IPRating ?? "IP54",
+                StarterType = cp.StarterType ?? "Star-Delta",
+
+                Side = cp.Side ?? "Right",
+                OffsetAlong = (double)(cp.OffsetAlong ?? 500),
+                DistanceFromBooth = (double)(cp.DistanceFromBooth ?? 1000),
+                MountHeight = (double)(cp.MountHeight ?? 800),
+
+                Width = (double)(cp.Width ?? 600),
+                Height = (double)(cp.Height ?? 800),
+                Depth = (double)(cp.Depth ?? 300),
+                SheetThickness = cp.SheetThickness ?? "1.6",
+                PanelShade = cp.PanelShade ?? "RAL 7032",
+
+                IncomerType = cp.IncomerType ?? "MCB",
+                IncomerRating = (double)(cp.IncomerRating ?? 0),
+                ControlVoltage = cp.ControlVoltage ?? "230V AC",
+                ConnectedLoadKW = (double)(cp.ConnectedLoadKW ?? 0),
+
+                Ammeter = cp.Ammeter,
+                Voltmeter = cp.Voltmeter,
+                IndicationLamps = cp.IndicationLamps,
+                HourMeter = cp.HourMeter,
+                EmergencyStop = cp.EmergencyStop,
+                BlowerGunInterlock = cp.BlowerGunInterlock,
+                DPSwitch = cp.DPSwitch,
+                DoorLimitSwitch = cp.DoorLimitSwitch,
+                FireAlarmInterface = cp.FireAlarmInterface,
+                PLCWithHMI = cp.PLCWithHMI,
+
+                TrayWidth = cp.TrayWidth ?? "100",
+                TrayType = cp.TrayType ?? "Perforated GI",
+                TrayLength = (double)(cp.TrayLength ?? 0)
+            };
+        }
+
     }
     public class AssemblyValueModel
     {

@@ -10,7 +10,6 @@ namespace PaintBooth.Repositories
     public class PaintBoothRepository(AppDbContext _db) : IPaintBoothRepository
     {
 
-
         // ── Get all ───────────────────────────────────────────────
         public List<PaintBoothListViewModel> GetAll()
         {
@@ -45,7 +44,6 @@ namespace PaintBooth.Repositories
                     })
                     .ToList();
         }
-
 
         // ── Get by SalesNo ────────────────────────────────────────
         public PaintBoothDetails? GetBySalesNo(string salesNo)
@@ -357,6 +355,7 @@ namespace PaintBooth.Repositories
                     objtbl.CreatedDate = DateTime.Now;
                     objtbl.ModifiedBy = 0;
                     objtbl.designStatus = true;
+                    objtbl.IsSamplingPlatform = model.IsSamplingPlatform;
                     _db.PaintBoothDetails.Add(objtbl);
                 
                 _db.SaveChanges();
@@ -392,7 +391,7 @@ namespace PaintBooth.Repositories
                     record.ServiceDoorLocation = model.ServiceDoorLocation == null ? "" : model.ServiceDoorLocation;
                     record.ServiceDoorWidth = model.DoorWidth;
                     record.ServiceDoorHeight = model.DoorHeight;
-
+                    record.IsSamplingPlatform = model.IsSamplingPlatform;
                     record.ModifiedBy = 1;
                     record.ModifiedDate = DateTime.Now;
                     _db.SaveChanges();
@@ -658,6 +657,89 @@ namespace PaintBooth.Repositories
             return (c.Conveyor ?? "",
                     (double)(c.EOTCutoutLength ?? 0),
                     (double)(c.EOTCutoutWidth ?? 0));
+        }
+        public void SaveControlPanelDetails(int enquiryId, ControlPanelModel cp, double connectedLoadKW, int userId)
+        {
+            if (cp == null) return;
+
+            var row = _db.ControlPanelDetails.FirstOrDefault(x => x.EnquiryID == enquiryId);
+            bool isNew = row == null;
+
+            if (isNew)
+            {
+                row = new ControlPanelDetails
+                {
+                    EnquiryID = enquiryId,
+                    IsActive = true,
+                    CreatedBy = userId,
+                    CreatedDate = DateTime.Now
+                };
+                _db.ControlPanelDetails.Add(row);
+            }
+            else
+            {
+                row.IsActive = true;
+                row.ModifiedDate = DateTime.Now;
+            }
+
+            // ── General ──
+            row.IsRequired = cp.IsRequired;
+            row.PanelType = cp.PanelType;
+            row.Enclosure = cp.Enclosure;
+            row.IPRating = cp.IPRating;
+            row.StarterType = cp.StarterType;
+
+            // ── Location ──
+            row.Side = cp.Side;
+            row.OffsetAlong = (decimal)cp.OffsetAlong;
+            row.DistanceFromBooth = (decimal)cp.DistanceFromBooth;
+            row.MountHeight = cp.PanelType == "Wall" ? (decimal)cp.MountHeight : null;
+
+            // ── Size & finish ──
+            row.Width = (decimal)cp.Width;
+            row.Height = (decimal)cp.Height;
+            row.Depth = (decimal)cp.Depth;
+            row.SheetThickness = cp.SheetThickness;
+            row.PanelShade = cp.PanelShade;
+
+            // ── Power ──
+            row.IncomerType = cp.IncomerType;
+            row.IncomerRating = cp.IncomerRating > 0 ? (decimal)cp.IncomerRating : null;
+            row.ControlVoltage = cp.ControlVoltage;
+            row.ConnectedLoadKW = (decimal)Math.Round(connectedLoadKW, 2);
+
+            // ── Metering & interlocks ──
+            row.Ammeter = cp.Ammeter;
+            row.Voltmeter = cp.Voltmeter;
+            row.IndicationLamps = cp.IndicationLamps;
+            row.HourMeter = cp.HourMeter;
+            row.EmergencyStop = cp.EmergencyStop;
+            row.BlowerGunInterlock = cp.BlowerGunInterlock;
+            row.DPSwitch = cp.DPSwitch;
+            row.DoorLimitSwitch = cp.DoorLimitSwitch;
+            row.FireAlarmInterface = cp.FireAlarmInterface;
+            row.PLCWithHMI = cp.PLCWithHMI;
+
+            // ── Cable tray ──
+            row.TrayWidth = cp.TrayWidth;
+            row.TrayType = cp.TrayType;
+            row.TrayLength = cp.TrayLength > 0 ? (decimal)cp.TrayLength : row.TrayLength;
+
+            _db.SaveChanges();
+        }
+
+        public ControlPanelDetails GetControlPanelDetails(int enquiryId)
+        {
+            return _db.ControlPanelDetails
+                .FirstOrDefault(x => x.EnquiryID == enquiryId && x.IsActive);
+        }
+
+        public bool IsSamplingPlatformProvided(int enquiryId)
+        {
+            return _db.CostingAdditionalRM
+                .Any(x => x.EnquiryId == enquiryId
+                       && x.Description == "Sampling Inspection Platform" && x.Amount > 0);
+
         }
 
     }

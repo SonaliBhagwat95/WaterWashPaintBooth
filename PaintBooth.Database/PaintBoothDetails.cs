@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata.Internal;
+﻿using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -61,5 +62,6 @@ namespace PaintBooth.Database
         public int? ModifiedBy { get; set; }
         public DateTime? ModifiedDate { get; set; }
         public bool IsActive { get; set; }
+        public bool IsSamplingPlatform { get; set; }
     }
 }

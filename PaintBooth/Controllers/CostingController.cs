@@ -779,6 +779,8 @@ namespace PaintBooth.Controllers
                         viewModel.salesEngineer = _repo.GetSalesDetails(viewModel.ProposalDetails.SalesEngineerId);
                         // ── Basis of Design (edited values / checkboxes / custom items) ──
                         viewModel.BasisOfDesignRows = _repo.GetBasisOfDesignRows(viewModel.ProposalDetails.EnquiryID);
+                        // ── Control panel (saved on Paint Booth Design page) ──
+                        viewModel.ControlPanel = _repo.GetControlPanelDetails(viewModel.ProposalDetails.EnquiryID);
 
                     }
                 }

@@ -611,6 +611,37 @@ function restoreMotorForEdit(savedMotorId) {
         }
     });
 }
+function initControlPanel() {
+    function toggleCP() {
+        $('#controlPanelFields').toggle($('#chkControlPanel').is(':checked'));
+    }
+
+    function toggleType() {
+        var isWall = $('#drpCPType').val() === 'Wall';
+        $('#divCPMountHeight').toggle(isWall);
+    }
+
+    // suggest a size when the type changes (user can still edit)
+    function suggestSize() {
+        if ($('#drpCPType').val() === 'Floor') {
+            $('#txtCPWidth').val(800); $('#txtCPHeight').val(1800); $('#txtCPDepth').val(400);
+        } else {
+            $('#txtCPWidth').val(600); $('#txtCPHeight').val(800); $('#txtCPDepth').val(300);
+        }
+    }
+
+    function checkFlp() {
+        var dist = parseFloat($('#txtCPDistance').val()) || 0;
+        var nflp = $('#drpCPEnclosure').val() === 'NFLP';
+        $('#cpFlpWarning').toggle(nflp && dist > 0 && dist < 1000);   // threshold: confirm with electrical team
+    }
+
+    $('#chkControlPanel').on('change', toggleCP);
+    $('#drpCPType').on('change', function () { toggleType(); suggestSize(); });
+    $('#txtCPDistance, #drpCPEnclosure').on('input change', checkFlp);
+
+    toggleCP(); toggleType(); checkFlp();   // initial state (edit mode keeps saved sizes)
+}
 
 /* ─────────────────────────────────────────────────────────────
    DOCUMENT READY
@@ -1105,6 +1136,8 @@ $(function () {
     $('#drpMotorPhase, #drpMotorPoles, #drpMotorProof, #drpMotorMount, #drpMotorIE').on('change', generateMotorItemCode);
     $('#txtMotorSerial, #drpMotorProof').on('input', generateMotorItemCode);
 
+    /* ── 17a. CONTROL PANEL ─────────────────────────────────── */
+    initControlPanel();
     /* ── 18. FORM SUBMIT ────────────────────────────────────── */
     $('#pbForm').on('submit', function () {
         if (!validateServiceDoor()) return false;

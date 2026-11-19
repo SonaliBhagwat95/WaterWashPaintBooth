@@ -529,20 +529,7 @@
                         </select>
                     </div>
                 </div>
-                @* <div class="col-md-3">
-                    <div class="pb-form-group">
-                        <label class="pb-label">No. Of Blowers<span class="req-star">*</span></label>
-                        <input asp-for="NoOfBlowers" class="pb-input pb-readonly"
-                               id="txtNoOfBlowers" />
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="pb-form-group">
-                        <label class="pb-label">Capacity for each Blowers<span class="req-star">*</span></label>
-                        <input asp-for="CapacityofEachBlower" class="pb-input pb-readonly"
-                               id="txtCapacityofeachBlower" readonly />
-                    </div>
-                </div> *@
+                
             </div>
         </div>
 
@@ -687,38 +674,14 @@
                         </span>
                     </div>
                 </div>
+
+                <div class="col-md-4">
+                    <label class="enq-checkbox-label">
+                        <input type="checkbox" asp-for="IsSamplingPlatform" id="chkSamplingPlatform" />
+                        Sampling port platform &amp; ladder
+                    </label>
+                </div>
             </div>
-            <!-- Ducting component add row -->
-            @* <div class="row g-3 align-items-end mb-3">
-                <div class="col-md-3">
-                    <div class="pb-form-group mb-0">
-                        <label class="pb-label pb-label-accent">
-                            Ducting Component
-                        </label>
-                        <select asp-for="ExhaustDucting" class="pb-select"
-                                id="drpBendDucting">
-                            <option value="">-- Select --</option>
-                            <option value="Bend Upwards" selected>Bend Upwards</option>
-                            <option value="Duct">Duct</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-2" id="dicductlength" style="display:none;">
-                    <div class="pb-form-group mb-0">
-                        <label class="pb-label pb-label-accent">
-                            Duct Length (mm)
-                        </label>
-                        <input asp-for="DuctLength" class="pb-input"
-                               id="txtDuctLength" />
-                    </div>
-                </div>
-                <div class="col-md-auto">
-                    <button type="button" id="btnAdd"
-                            class="btn-pb-secondary">
-                        <i class="bi bi-plus-circle"></i> Add
-                    </button>
-                </div>
-            </div> *@
             <div class="row g-3 align-items-end mb-3">
                 <div class="col-md-3">
                     <div class="pb-form-group mb-0">
@@ -943,7 +906,223 @@
                 </table>
             </div>
         </div>
+        <!-- ── CONTROL PANEL ───────────────────────── -->
+        <div class="pb-card mb-3" id="controlPanelSection">
+            <div class="form-section-title">
+                <i class="bi bi-motherboard"></i>
+                Electrical Control Panel
+            </div>
 
+            <div class="row g-3 mb-3">
+                <div class="col-12">
+                    <label class="enq-checkbox-label">
+                        <input type="checkbox" asp-for="ControlPanel.IsRequired" id="chkControlPanel" />
+                        Control panel in Bullows scope
+                    </label>
+                </div>
+            </div>
+
+            <div id="controlPanelFields">
+
+                <!-- General -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Panel Type <span class="req-star">*</span></label>
+                            <select asp-for="ControlPanel.PanelType" class="pb-select" id="drpCPType">
+                                <option value="Wall">Wall Mounted</option>
+                                <option value="Floor">Floor Standing</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Enclosure <span class="req-star">*</span></label>
+                            <select asp-for="ControlPanel.Enclosure" class="pb-select" id="drpCPEnclosure">
+                                <option value="NFLP">Non-FLP (outside hazardous zone)</option>
+                                <option value="FLP">FLP (inside hazardous zone)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="pb-form-group">
+                            <label class="pb-label">IP Rating</label>
+                            <select asp-for="ControlPanel.IPRating" class="pb-select">
+                                <option value="IP54">IP54</option>
+                                <option value="IP55">IP55</option>
+                                <option value="IP65">IP65</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Starter Type <span class="req-star">*</span></label>
+                            <select asp-for="ControlPanel.StarterType" class="pb-select">
+                                <option value="DOL">DOL</option>
+                                <option value="Star-Delta">Star-Delta</option>
+                                <option value="VFD">VFD</option>
+                                <option value="Soft Starter">Soft Starter</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Location -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Panel Location (Side) <span class="req-star">*</span></label>
+                            <select asp-for="ControlPanel.Side" class="pb-select" id="drpCPSide">
+                                <option value="Right">Right Side</option>
+                                <option value="Left">Left Side</option>
+                                <option value="Front">Front Side</option>
+                                <option value="Rear">Rear Side</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Position Along Side (mm) <span class="req-star">*</span></label>
+                            <input asp-for="ControlPanel.OffsetAlong" class="pb-input" id="txtCPOffset" placeholder="500" />
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Distance From Booth (mm) <span class="req-star">*</span></label>
+                            <input asp-for="ControlPanel.DistanceFromBooth" class="pb-input" id="txtCPDistance" placeholder="1000" />
+                        </div>
+                    </div>
+                    <div class="col-md-3" id="divCPMountHeight">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Mounting Height from FFL (mm)</label>
+                            <input asp-for="ControlPanel.MountHeight" class="pb-input" id="txtCPMountHeight" placeholder="800" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Size & finish -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-2">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Width (mm) <span class="req-star">*</span></label>
+                            <input asp-for="ControlPanel.Width" class="pb-input" id="txtCPWidth" />
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Height (mm) <span class="req-star">*</span></label>
+                            <input asp-for="ControlPanel.Height" class="pb-input" id="txtCPHeight" />
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Depth (mm) <span class="req-star">*</span></label>
+                            <input asp-for="ControlPanel.Depth" class="pb-input" id="txtCPDepth" />
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Sheet (CRCA) Thickness</label>
+                            <select asp-for="ControlPanel.SheetThickness" class="pb-select">
+                                <option value="1.6">1.6 mm</option>
+                                <option value="2.0">2.0 mm</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Panel Shade</label>
+                            <input asp-for="ControlPanel.PanelShade" class="pb-input" placeholder="RAL 7032" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Power -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Incomer Type</label>
+                            <select asp-for="ControlPanel.IncomerType" class="pb-select">
+                                <option value="MCB">MCB</option>
+                                <option value="MCCB">MCCB</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Incomer Rating (A)</label>
+                            <input asp-for="ControlPanel.IncomerRating" class="pb-input" placeholder="Auto" />
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Control Voltage</label>
+                            <select asp-for="ControlPanel.ControlVoltage" class="pb-select">
+                                <option value="230V AC">230 V AC</option>
+                                <option value="24V DC">24 V DC</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Connected Load (kW)</label>
+                            <input asp-for="ControlPanel.ConnectedLoadKW" class="pb-input" readonly placeholder="Auto on save" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metering & interlocks -->
+                <div class="row g-3 mb-3">
+                    <div class="col-12">
+                        <label class="pb-label enq-label-accent">Metering &amp; Interlocks</label>
+                    </div>
+                    <div class="col-md-3"><label class="enq-checkbox-label"><input type="checkbox" asp-for="ControlPanel.Ammeter" /> Ammeter</label></div>
+                    <div class="col-md-3"><label class="enq-checkbox-label"><input type="checkbox" asp-for="ControlPanel.Voltmeter" /> Voltmeter</label></div>
+                    <div class="col-md-3"><label class="enq-checkbox-label"><input type="checkbox" asp-for="ControlPanel.IndicationLamps" /> Indication Lamps</label></div>
+                    <div class="col-md-3"><label class="enq-checkbox-label"><input type="checkbox" asp-for="ControlPanel.HourMeter" /> Hour Meter</label></div>
+                    <div class="col-md-3"><label class="enq-checkbox-label"><input type="checkbox" asp-for="ControlPanel.EmergencyStop" /> Emergency Stop</label></div>
+                    <div class="col-md-3"><label class="enq-checkbox-label"><input type="checkbox" asp-for="ControlPanel.BlowerGunInterlock" /> Blower – Spray Gun Interlock</label></div>
+                    <div class="col-md-3"><label class="enq-checkbox-label"><input type="checkbox" asp-for="ControlPanel.DPSwitch" /> DP Switch (Filter Choke Alarm)</label></div>
+                    <div class="col-md-3"><label class="enq-checkbox-label"><input type="checkbox" asp-for="ControlPanel.DoorLimitSwitch" /> Door Limit Switch</label></div>
+                    <div class="col-md-3"><label class="enq-checkbox-label"><input type="checkbox" asp-for="ControlPanel.FireAlarmInterface" /> Fire Alarm Interface</label></div>
+                    <div class="col-md-3"><label class="enq-checkbox-label"><input type="checkbox" asp-for="ControlPanel.PLCWithHMI" /> PLC with HMI</label></div>
+                </div>
+
+                <!-- Cable tray -->
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Cable Tray Width</label>
+                            <select asp-for="ControlPanel.TrayWidth" class="pb-select">
+                                <option value="100">100 mm</option>
+                                <option value="150">150 mm</option>
+                                <option value="200">200 mm</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Cable Tray Type</label>
+                            <select asp-for="ControlPanel.TrayType" class="pb-select">
+                                <option value="Perforated GI">Perforated GI</option>
+                                <option value="Ladder GI">Ladder GI</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="pb-form-group">
+                            <label class="pb-label">Cable Tray Length (m)</label>
+                            <input asp-for="ControlPanel.TrayLength" class="pb-input" />
+                        </div>
+                    </div>
+                </div>
+
+                <div id="cpFlpWarning" class="form-field-error mt-2" style="display:none;">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Panel is close to the booth — consider FLP enclosure.
+                </div>
+            </div>
+        </div>
         <!-- ── SECTION 11: Blower Item Code ──────────────────── -->
         <div class="pb-card mb-3">
             <div class="form-section-title">
