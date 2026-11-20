@@ -554,6 +554,7 @@ namespace PaintBooth.Controllers
                 double accMaxX = 0;
                 Point3D ladderAt = null;
                 bool hasCage = false;
+                panel.ResetAccessoryWeights();
 
                 if (ductLegX > 0 && ductCutZ > 0)                       // any duct run through the wall
                 {
@@ -623,7 +624,7 @@ namespace PaintBooth.Controllers
                         service.designdictionary["DuctAccessories"] = new List<DesignDocument> { accDoc };
                     }
                 }
-
+                panel.SaveAccessoryWeights(model);
                 void ApplyEOT(DesignDocument doc)
                 {
                     if (!hasEOTCutout) return;
@@ -642,7 +643,6 @@ namespace PaintBooth.Controllers
                                  PaintBoothTypefromEnquiry != "6" && PaintBoothTypefromEnquiry != "7";
                     double rearX = model.D + (hasEC ? model.D3 : 0);
 
-                    //var cpRes = panel.ControlPanelDrawing(model, cp, rearX);
                     var cpRes = panel.ControlPanelDrawing(model, cp, rearX, 0, model.W);
                     service.designdictionary["ControlPanel"] = new List<DesignDocument> { cpRes.drawing };
                     cpCenter = cpRes.center;

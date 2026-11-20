@@ -47,6 +47,7 @@ namespace PaintBooth.Database
         public DbSet<EnquirySalesEnDetails> EnquirySalesEndDetails { get; set; }
         public DbSet<ProposalBasisOfDesign> ProposalBasisOfDesign { get; set; }
         public DbSet<ControlPanelDetails> ControlPanelDetails { get; set; }
+        public DbSet<DuctAccessoryDetails> DuctAccessoryDetails { get; set; }
 
         // ── Primary keys ──────────────────────────────────────
 

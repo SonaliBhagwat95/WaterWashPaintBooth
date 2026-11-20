@@ -20,7 +20,6 @@ namespace PaintBooth.Business
 {
     public class PaintBoothDesignBusiness(AppDbContext _DbContext, IConfiguration _configuration)
     {
-
         #region Variables
         public DesignDocument drawing { get; set; }
         public DesignDocument developmentdrawing { get; set; }
@@ -9004,70 +9003,104 @@ namespace PaintBooth.Business
         }
 
         #region Duct accessories (sampling port, platform + ladder, supports)
+
+        #region Weighted part helpers (Eyeshot GetMass)
+        /// Box for the 3D model + its weight (GetMass), added to accessory 'cat'.
+        private void AccBox(DesignDocument doc, double x0, double y0, double z0, double x1, double y1, double z1,
+                            Color c, string cat)
+        {
+            double dx = Math.Abs(x1 - x0), dy = Math.Abs(y1 - y0), dz = Math.Abs(z1 - z0);
+            if (dx < 0.1 || dy < 0.1 || dz < 0.1) return;
+
+            var b = Brep.CreateBox(dx, dy, dz);
+            b.Translate(Math.Min(x0, x1), Math.Min(y0, y1), Math.Min(z0, z1));
+
+            Material mat = new Material(Materials);
+            b.Regen(0.1);
+            double mass = b.GetMass(mat, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double _);
+            Tally(cat, Math.Round(Math.Abs(mass), 3));
+
+            b.LayerName = "DuctAccessories";
+            doc.Entities.Add(b, c);
+        }
+
+        /// Square bar from a to b (same Y) + its weight (GetMass), added to accessory 'cat'.
+        private void Strut(DesignDocument doc, Point3D a, Point3D b, double size, Color color, string cat)
+        {
+            double dx = b.X - a.X, dz = b.Z - a.Z;
+            double len = Math.Sqrt(dx * dx + dz * dz);
+            if (len < 1) return;
+
+            var bar = Brep.CreateBox(len, size, size);
+            bar.Translate(0, -size / 2, -size / 2);
+            bar.Rotate(-Math.Atan2(dz, dx), Vector3D.AxisY, Point3D.Origin);
+            bar.Translate(a.X, a.Y, a.Z);
+
+            Material mat = new Material(Materials);
+            bar.Regen(0.1);
+            double mass = bar.GetMass(mat, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double _);
+            Tally(cat, Math.Round(Math.Abs(mass), 3));
+
+            bar.LayerName = "DuctAccessories";
+            doc.Entities.Add(bar, color);
+        }
+        #endregion
+
         public (DesignDocument drawing, Point3D portAt, Point3D supportAt, Point3D platformAt)
-       DuctAccessoriesDrawing(
-           double legX, double legY,
-           double sizeX, double sizeY,
-           double zBottom, double zTop,
-           double wallOuterX,
-           bool withPlatform,
-           double cageAboveClimb = 3000)
+           DuctAccessoriesDrawing(
+               double legX, double legY,
+               double sizeX, double sizeY,
+               double zBottom, double zTop,
+               double wallOuterX,
+               bool withPlatform,
+               double cageAboveClimb = 3000)
         {
             var doc = new DesignDocument { Units = linearUnitsType.Millimeters };
             doc.Layers.Add(new Layer("DuctAccessories", Color.Goldenrod));
 
             var steel = Color.FromArgb(90, 90, 90);
-            var rail = Color.Gold;
-
-            void Box(double x0, double y0, double z0, double x1, double y1, double z1, Color c)
-            {
-                double dx = Math.Abs(x1 - x0), dy = Math.Abs(y1 - y0), dz = Math.Abs(z1 - z0);
-                if (dx < 0.1 || dy < 0.1 || dz < 0.1) return;
-                var b = Brep.CreateBox(dx, dy, dz);
-                b.Translate(Math.Min(x0, x1), Math.Min(y0, y1), Math.Min(z0, z1));
-                b.LayerName = "DuctAccessories";
-                doc.Entities.Add(b, c);
-            }
 
             double hx = sizeX / 2, hy = sizeY / 2;
             double outX = legX + hx;                         // outer face of the duct (away from the wall)
-            double inX = legX - hx;                         // inner face (towards the wall)
+            double inX = legX - hx;                          // inner face (towards the wall)
 
             // ── 1. Sampling port ─────────────────────────────────────
-            // rule of thumb: ~2 equivalent diameters below the top of the stack (confirm with client / PCB norms)
             double De = 2 * sizeX * sizeY / (sizeX + sizeY);
             double zPort = Math.Max(zBottom + 1500, zTop - 2 * De);
-            Box(outX, legY - 50, zPort - 50, outX + 150, legY + 50, zPort + 50, steel);         // nozzle 100 sq × 150
-            Box(outX + 150, legY - 80, zPort - 80, outX + 162, legY + 80, zPort + 80, steel);   // flange + cap
+            AccBox(doc, outX, legY - 50, zPort - 50, outX + 150, legY + 50, zPort + 50, steel, AccPort);         // nozzle
+            AccBox(doc, outX + 150, legY - 80, zPort - 80, outX + 162, legY + 80, zPort + 80, steel, AccPort);   // flange + cap
+            Tally(AccPort, 0, 1);                                                                                 // qty +1
             var portAt = new Point3D(outX + 160, legY, zPort);
 
-            // ── 2. Duct supports: collar around the leg + 2 arms back to the wall, every 2.5 m ──
+            // ── 2. Duct supports: collar + 2 arms back to the wall, every 2.5 m ──
             Point3D supportAt = null;
-            double t = 50;                                                   // 50×50 angle
+            double t = 50;
             for (double z = zBottom + 600; z < zTop - 400; z += 2500)
             {
-                // collar (4 sides)
-                Box(inX - t, legY - hy - t, z, outX + t, legY - hy, z + t, steel);
-                Box(inX - t, legY + hy, z, outX + t, legY + hy + t, z + t, steel);
-                Box(inX - t, legY - hy, z, inX, legY + hy, z + t, steel);
-                Box(outX, legY - hy, z, outX + t, legY + hy, z + t, steel);
+                AccBox(doc, inX - t, legY - hy - t, z, outX + t, legY - hy, z + t, steel, AccSupport);
+                AccBox(doc, inX - t, legY + hy, z, outX + t, legY + hy + t, z + t, steel, AccSupport);
+                AccBox(doc, inX - t, legY - hy, z, inX, legY + hy, z + t, steel, AccSupport);
+                AccBox(doc, outX, legY - hy, z, outX + t, legY + hy, z + t, steel, AccSupport);
 
-                // arms to the wall (only when the wall is behind the leg)
                 if (wallOuterX > 0 && inX - t > wallOuterX)
                 {
-                    Box(wallOuterX, legY - hy - t, z, inX - t, legY - hy, z + t, steel);
-                    Box(wallOuterX, legY + hy, z, inX - t, legY + hy + t, z + t, steel);
+                    AccBox(doc, wallOuterX, legY - hy - t, z, inX - t, legY - hy, z + t, steel, AccSupport);
+                    AccBox(doc, wallOuterX, legY + hy, z, inX - t, legY + hy + t, z + t, steel, AccSupport);
                 }
+                Tally(AccSupport, 0, 1);               // ← inside the for, outside the if
+                CountSupport("Stack collar");          // ← same place
+                System.Diagnostics.Debug.WriteLine($"[COLLAR] z={z:0}  stack {zBottom:0}→{zTop:0}");
                 supportAt ??= new Point3D(inX - t / 2, legY - hy - t / 2, z + t / 2);
             }
 
-            // ── 3. Platform + handrail + ladder (client style: no cage, knee brace under platform) ──
+            // ── 3. Platform + handrail + ladder ──
             Point3D platformAt = null;
             if (withPlatform)
                 platformAt = PlatformAndLadder(doc, outX, legY - 600, legY + 600, zPort, legY, cageAboveClimb);
 
             return (doc, portAt, supportAt, platformAt);
         }
+
         /// <summary>
         /// Common sampling platform along the outer face of one or more stacks, with ONE ladder.
         /// outX = outer face of the stacks, y0..y1 = platform span, ladderY = ladder centre,
@@ -9078,46 +9111,39 @@ namespace PaintBooth.Business
         {
             var steel = Color.FromArgb(90, 90, 90);
             var rail = Color.Gold;
-
-            void Box(double x0, double ya, double z0, double x1, double yb, double z1, Color c)
-            {
-                double dx = Math.Abs(x1 - x0), dy = Math.Abs(yb - ya), dz = Math.Abs(z1 - z0);
-                if (dx < 0.1 || dy < 0.1 || dz < 0.1) return;
-                var b = Brep.CreateBox(dx, dy, dz);
-                b.Translate(Math.Min(x0, x1), Math.Min(ya, yb), Math.Min(z0, z1));
-                b.LayerName = "DuctAccessories";
-                doc.Entities.Add(b, c);
-            }
+            const string P = AccPlatform, L = AccLadder;
 
             double zPl = zPort - 1100;
             double px0 = outX, px1 = outX + 1000;
 
             // ── grating + edge angles ──
-            Box(px0, y0, zPl - 40, px1, y1, zPl, steel);
-            Box(px0, y0, zPl - 100, px1, y0 + 50, zPl - 40, steel);
-            Box(px0, y1 - 50, zPl - 100, px1, y1, zPl - 40, steel);
-            Box(px1 - 50, y0, zPl - 100, px1, y1, zPl - 40, steel);
+            AccBox(doc, px0, y0, zPl - 40, px1, y1, zPl, steel, P);
+            AccBox(doc, px0, y0, zPl - 100, px1, y0 + 50, zPl - 40, steel, P);
+            AccBox(doc, px0, y1 - 50, zPl - 100, px1, y1, zPl - 40, steel, P);
+            AccBox(doc, px1 - 50, y0, zPl - 100, px1, y1, zPl - 40, steel, P);
+            Tally(P, 0, 1);
 
-            // ── knee braces: at both ends + every ~1500 in between ──
+            // ── knee braces ──
             int bays = Math.Max(1, (int)Math.Ceiling((y1 - y0) / 1500));
             for (int i = 0; i <= bays; i++)
             {
                 double by = y0 + 25 + (y1 - y0 - 50) * i / bays;
-                Strut(doc, new Point3D(px0, by, zPl - 700), new Point3D(px1 - 25, by, zPl - 100), 50, steel);
+                Strut(doc, new Point3D(px0, by, zPl - 700), new Point3D(px1 - 25, by, zPl - 100), 50, steel, P);
             }
-            Box(px0, y0, zPl - 760, px0 + 50, y1, zPl - 640, steel);          // cleat along the stacks
+            AccBox(doc, px0, y0, zPl - 760, px0 + 50, y1, zPl - 640, steel, P);          // cleat along the stacks
 
-            // ── ladder (one), centred on ladderY at the outer edge ──
+            // ── ladder ──
             double lw = 450;
             double ly0 = ladderY - lw / 2, ly1 = ladderY + lw / 2;
             double lx0 = px1, lx1 = px1 + 60;
             double lTop = zPl + 1000;
-            Box(lx0, ly0 - 20, 0, lx1, ly0, lTop, steel);
-            Box(lx0, ly1, 0, lx1, ly1 + 20, lTop, steel);
+            AccBox(doc, lx0, ly0 - 20, 0, lx1, ly0, lTop, steel, L);
+            AccBox(doc, lx0, ly1, 0, lx1, ly1 + 20, lTop, steel, L);
             for (double z = 300; z < zPl; z += 300)
-                Box(lx0 + 20, ly0, z, lx0 + 40, ly1, z + 20, steel);
+                AccBox(doc, lx0 + 20, ly0, z, lx0 + 40, ly1, z + 20, steel, L);
+            Tally(L, 0, 1);
 
-            // ── safety cage when the climb is long ──
+            // ── safety cage when the climb is long (counted with the ladder) ──
             if (cageAboveClimb > 0 && zPl > cageAboveClimb)
             {
                 double cageStart = 2300, cageOut = 700, cageHalfW = 350, hoopT = 8, hoopH = 50;
@@ -9125,66 +9151,57 @@ namespace PaintBooth.Business
                 double cx0 = lx1, cx1 = lx1 + cageOut;
                 for (double z = cageStart; z <= lTop; z += 900)
                 {
-                    Box(cx0, cy0, z, cx1, cy0 + hoopT, z + hoopH, rail);
-                    Box(cx0, cy1 - hoopT, z, cx1, cy1, z + hoopH, rail);
-                    Box(cx1 - hoopT, cy0, z, cx1, cy1, z + hoopH, rail);
-                    Box(lx0, cy0, z, cx0, ly0 - 20, z + hoopH, rail);
-                    Box(lx0, ly1 + 20, z, cx0, cy1, z + hoopH, rail);
+                    AccBox(doc, cx0, cy0, z, cx1, cy0 + hoopT, z + hoopH, rail, L);
+                    AccBox(doc, cx0, cy1 - hoopT, z, cx1, cy1, z + hoopH, rail, L);
+                    AccBox(doc, cx1 - hoopT, cy0, z, cx1, cy1, z + hoopH, rail, L);
+                    AccBox(doc, lx0, cy0, z, cx0, ly0 - 20, z + hoopH, rail, L);
+                    AccBox(doc, lx0, ly1 + 20, z, cx0, cy1, z + hoopH, rail, L);
                 }
                 foreach (double y in new[] { cy0 + 25, ladderY, cy1 - 25 })
-                    Box(cx1 - hoopT - 25, y - 25, cageStart, cx1 - hoopT, y + 25, lTop, rail);
+                    AccBox(doc, cx1 - hoopT - 25, y - 25, cageStart, cx1 - hoopT, y + 25, lTop, rail, L);
                 foreach (double y in new[] { cy0, cy1 - hoopT })
-                    Box(cx0 + cageOut / 2 - 25, y, cageStart, cx0 + cageOut / 2 + 25, y + hoopT, lTop, rail);
+                    AccBox(doc, cx0 + cageOut / 2 - 25, y, cageStart, cx0 + cageOut / 2 + 25, y + hoopT, lTop, rail, L);
             }
 
-            // ── handrail: posts every ~1500 on the outer edge + both ends, top & mid rails ──
+            // ── handrail (counted with the platform) ──
             var postYs = new List<double>();
             for (int i = 0; i <= bays; i++) postYs.Add(y0 + (y1 - y0) * i / bays);
             foreach (double py in postYs)
-                if (py < ly0 - 30 || py > ly1 + 30)                               // keep the ladder opening clear
-                    Box(px1 - 20, py - 20, zPl, px1 + 20, py + 20, zPl + 1000, rail);
+                if (py < ly0 - 30 || py > ly1 + 30)
+                    AccBox(doc, px1 - 20, py - 20, zPl, px1 + 20, py + 20, zPl + 1000, rail, P);
             foreach (double py in new[] { y0, y1 })
-                Box(px0 - 20, py - 20, zPl, px0 + 20, py + 20, zPl + 1000, rail); // inner corner posts
-            Box(px1 - 20, ly0 - 50, zPl, px1 + 20, ly0 - 10, zPl + 1000, rail);   // posts either side of the opening
-            Box(px1 - 20, ly1 + 10, zPl, px1 + 20, ly1 + 50, zPl + 1000, rail);
+                AccBox(doc, px0 - 20, py - 20, zPl, px0 + 20, py + 20, zPl + 1000, rail, P);
+            AccBox(doc, px1 - 20, ly0 - 50, zPl, px1 + 20, ly0 - 10, zPl + 1000, rail, P);
+            AccBox(doc, px1 - 20, ly1 + 10, zPl, px1 + 20, ly1 + 50, zPl + 1000, rail, P);
 
             foreach (double rz in new[] { zPl + 480, zPl + 960 })
             {
-                Box(px0, y0 - 20, rz, px1, y0 + 20, rz + 40, rail);                // end 1
-                Box(px0, y1 - 20, rz, px1, y1 + 20, rz + 40, rail);                // end 2
-                Box(px1 - 20, y0, rz, px1 + 20, ly0 - 30, rz + 40, rail);          // outer, before ladder
-                Box(px1 - 20, ly1 + 30, rz, px1 + 20, y1, rz + 40, rail);          // outer, after ladder
+                AccBox(doc, px0, y0 - 20, rz, px1, y0 + 20, rz + 40, rail, P);
+                AccBox(doc, px0, y1 - 20, rz, px1, y1 + 20, rz + 40, rail, P);
+                AccBox(doc, px1 - 20, y0, rz, px1 + 20, ly0 - 30, rz + 40, rail, P);
+                AccBox(doc, px1 - 20, ly1 + 30, rz, px1 + 20, y1, rz + 40, rail, P);
             }
-            Box(px0, y0, zPl, px1, y0 + 6, zPl + 100, rail);                       // toe plates
-            Box(px0, y1 - 6, zPl, px1, y1, zPl + 100, rail);
+            AccBox(doc, px0, y0, zPl, px1, y0 + 6, zPl + 100, rail, P);                   // toe plates
+            AccBox(doc, px0, y1 - 6, zPl, px1, y1, zPl + 100, rail, P);
 
             return new Point3D(px1, y0, zPl + 500);
         }
+
         /// <summary>
-        /// Supports for the horizontal duct run (floor-standing goal-post frames between E/C and wall)
+        /// Supports for the horizontal duct run (goal-post frames between E/C and wall)
         /// and a seat bracket off the wall under the bottom bend of the stack.
-        /// Horizontal duct: width dW across Y, height dH in Z, centre at cutZ.
         /// </summary>
         public void DuctRunSupports(DesignDocument doc, double ecRearX, double wallInnerX, double wallOuterX,
-                                    double legX, double legY, double dW, double dH, double cutZ,
-                                    double spacing = 2500)
+                             double legX, double legY, double dW, double dH, double cutZ,
+                             double spacing = 2500)
         {
             if (cutZ <= 0) return;
             var steel = Color.FromArgb(90, 90, 90);
+            const string S = AccSupport;
 
-            void Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            {
-                double dx = Math.Abs(x1 - x0), dy = Math.Abs(y1 - y0), dz = Math.Abs(z1 - z0);
-                if (dx < 0.1 || dy < 0.1 || dz < 0.1) return;
-                var b = Brep.CreateBox(dx, dy, dz);
-                b.Translate(Math.Min(x0, x1), Math.Min(y0, y1), Math.Min(z0, z1));
-                b.LayerName = "DuctAccessories";
-                doc.Entities.Add(b, steel);
-            }
-
-            double ductBot = cutZ - dH / 2;          // underside of the horizontal duct
-            double post = 75;                         // 75 × 75 section
-            double ya = legY - dW / 2 - 100 - post;   // post outside the duct, 100 clear
+            double ductBot = cutZ - dH / 2;          // underside of the horizontal duct = support height
+            double post = 75;
+            double ya = legY - dW / 2 - 100 - post;
             double yb = legY + dW / 2 + 100;
 
             // ── 1. goal-post frames between the E/C and the wall ──
@@ -9198,30 +9215,120 @@ namespace PaintBooth.Business
                     double x = n == 1 ? (gx0 + gx1) / 2 : gx0 + (gx1 - gx0) * i / (n - 1);
                     double xa = x - post / 2, xb = x + post / 2;
 
-                    Box(xa, ya, 0, xb, ya + post, ductBot - post);                 // post 1
-                    Box(xa, yb, 0, xb, yb + post, ductBot - post);                 // post 2
-                    Box(xa, ya, ductBot - post, xb, yb + post, ductBot);           // saddle beam under the duct
-                    Box(x - 100, ya + post / 2 - 100, 0, x + 100, ya + post / 2 + 100, 10);   // base plates
-                    Box(x - 100, yb + post / 2 - 100, 0, x + 100, yb + post / 2 + 100, 10);
-                    Box(xa, ya, 300, xb, yb + post, 300 + 50);                     // tie member near the floor
+                    AccBox(doc, xa, ya, 0, xb, ya + post, ductBot - post, steel, S);                 // post 1
+                    AccBox(doc, xa, yb, 0, xb, yb + post, ductBot - post, steel, S);                 // post 2
+                    AccBox(doc, xa, ya, ductBot - post, xb, yb + post, ductBot, steel, S);           // saddle beam
+                    AccBox(doc, x - 100, ya + post / 2 - 100, 0, x + 100, ya + post / 2 + 100, 10, steel, S);   // base plates
+                    AccBox(doc, x - 100, yb + post / 2 - 100, 0, x + 100, yb + post / 2 + 100, 10, steel, S);
+                    AccBox(doc, xa, ya, 300, xb, yb + post, 350, steel, S);                          // tie member
+
+                    Tally(S, 0, 1);
+                    CountSupport("Goal-post frame");
+                    supportFrameHeight = ductBot;                                                    // floor → top of saddle
+                    System.Diagnostics.Debug.WriteLine($"[GOALPOST] legY={legY:0} x={x:0} H={ductBot:0}");
                 }
             }
 
-            // ── 2. seat bracket off the wall under the bottom bend of the stack ──
+            // ── 2. seat bracket off the wall under the bottom bend ──
             if (wallOuterX > 0 && legX - dH / 2 > wallOuterX)
             {
-                double seatZ = ductBot - post;                     // arms sit just under the bend
+                double seatZ = ductBot - post;
                 double armEnd = legX + dH / 2 + 50;
                 foreach (double y in new[] { legY - dW / 2 + 25, legY + dW / 2 - 25 - post })
                 {
-                    Box(wallOuterX, y, seatZ, armEnd, y + post, seatZ + post);                       // arm
+                    AccBox(doc, wallOuterX, y, seatZ, armEnd, y + post, seatZ + post, steel, S);                         // arm
                     Strut(doc, new Point3D(wallOuterX, y + post / 2, seatZ - 700),
-                               new Point3D(armEnd - 50, y + post / 2, seatZ), 60, steel);             // knee brace
-                    Box(wallOuterX, y - 50, seatZ - 760, wallOuterX + 12, y + post + 50, seatZ - 640); // wall plate
+                               new Point3D(armEnd - 50, y + post / 2, seatZ), 60, steel, S);                              // knee brace
+                    AccBox(doc, wallOuterX, y - 50, seatZ - 760, wallOuterX + 12, y + post + 50, seatZ - 640, steel, S);  // wall plate
                 }
-                Box(armEnd - post, legY - dW / 2 + 25, seatZ, armEnd, legY + dW / 2 - 25, seatZ + post); // end cross member
+                AccBox(doc, armEnd - post, legY - dW / 2 + 25, seatZ, armEnd, legY + dW / 2 - 25, seatZ + post, steel, S); // end cross member
+
+                Tally(S, 0, 1);
+                CountSupport("Seat bracket");                                                        // ← ADDED
+                System.Diagnostics.Debug.WriteLine($"[SEAT] legY={legY:0} seatZ={seatZ:0}");
             }
         }
+
+        #region Duct accessory weights
+        // DuctAccessoryDetails.AccessoryType values
+        public const string AccPort = "Sampling_Port";
+        public const string AccPlatform = "Sampling_Platform";
+        public const string AccLadder = "Ladder";
+        public const string AccSupport = "Duct_Support";
+
+        private static readonly Dictionary<string, string> AccDescriptions = new()
+{
+    { AccPort,     "Sampling Port" },
+    { AccPlatform, "Sampling Platform with Handrail" },
+    { AccLadder,   "Ladder with Safety Cage" },
+    { AccSupport,  "Duct Supports" },
+};
+
+        public Dictionary<string, (double kg, int qty)> AccessoryWeights { get; } = new();
+        private readonly Dictionary<string, int> supportParts = new();
+        private double supportFrameHeight;
+
+        private void CountSupport(string part)
+        {
+            supportParts.TryGetValue(part, out int n);
+            supportParts[part] = n + 1;
+        }
+
+        public void ResetAccessoryWeights()
+        {
+            AccessoryWeights.Clear();
+            supportParts.Clear();
+            supportFrameHeight = 0;
+        }
+
+        private void Tally(string cat, double kg, int qty = 0)
+        {
+            if (string.IsNullOrEmpty(cat)) return;
+            AccessoryWeights.TryGetValue(cat, out var cur);
+            AccessoryWeights[cat] = (cur.kg + kg, cur.qty + qty);
+        }
+
+        public void DeleteOldDuctAccessoryDetails(int enquiryId)
+        {
+            var old = _DbContext.DuctAccessoryDetails.Where(x => x.EnquiryID == enquiryId).ToList();
+            _DbContext.DuctAccessoryDetails.RemoveRange(old);
+            _DbContext.SaveChanges();
+        }
+
+        /// Saves one row per accessory into DuctAccessoryDetails (old rows for this enquiry replaced).
+        public void SaveAccessoryWeights(PaintBoothModel model)
+        {
+            DeleteOldDuctAccessoryDetails(EnquiryID);
+
+            foreach (var kv in AccessoryWeights.Where(k => k.Value.kg > 0))
+            {
+                _DbContext.DuctAccessoryDetails.Add(new DuctAccessoryDetails
+                {
+                    EnquiryID = EnquiryID,
+                    SalesNo = model.SalesNO,
+                    AccessoryType = kv.Key,
+                    Description = kv.Key == AccSupport && supportParts.Count > 0
+    ? $"Duct Supports - {string.Join(", ", supportParts.Select(p => $"{p.Value} x {p.Key}"))}"
+      + (supportFrameHeight > 0 ? $" | Frame H {supportFrameHeight:0} mm" : "")
+    : (AccDescriptions.TryGetValue(kv.Key, out var d) ? d : kv.Key),
+                    Quantity = Math.Max(1, kv.Value.qty),
+                    Weight = (decimal)Math.Round(kv.Value.kg, 3),
+                    Material = Materials,
+                    CostingStatus = true,
+                    IsActive = true,
+                    CreatedDate = DateTime.Now
+                });
+            }
+            _DbContext.SaveChanges();
+        }
+
+        public List<DuctAccessoryDetails> GetDuctAccessories(int enquiryId) =>
+            _DbContext.DuctAccessoryDetails
+                      .Where(x => x.EnquiryID == enquiryId && x.IsActive)
+                      .OrderBy(x => x.AccessoryID)
+                      .ToList();
+        #endregion
+
         #endregion
 
     }

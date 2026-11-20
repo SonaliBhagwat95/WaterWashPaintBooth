@@ -124,18 +124,28 @@ namespace PaintBooth.Business
             ext["SIDE"] = (ly, lz);
             #endregion
             #region 2. Scale + layout (plan above elevation, side view right of elevation)
-            const double DIMROOM = 38;     // room for 2 dimension tiers + text on ONE side of a view
-            const double TITLEROOM = 45;   // bottom dimensions + view title under a view
+            const double DIMROOM = 38;
+            const double TITLEROOM = 45;
+
+            // room on the LEFT for side notes (duct note + accessory labels), so text never sits on the drawing
+            var sideTexts = new List<string>();
+            if (info.DuctNoteLines != null) sideTexts.AddRange(info.DuctNoteLines);
+            if (info.SamplingPortAt != null) sideTexts.Add("SAMPLING PORT");
+            if (info.PlatformAt != null) sideTexts.Add("SAMPLING PLATFORM");
+            if (info.LadderAt != null) sideTexts.Add(info.HasCage ? "LADDER WITH SAFETY CAGE" : "LADDER");
+            if (info.DuctSupportAt != null) sideTexts.Add("DUCT SUPPORT");
+            double leftRoom = sideTexts.Count > 0 ? sideTexts.Max(t => t.Length) * 2.5 * 0.8 + SIDEGAP + 8 : 0;
+
             double availW = SW - ML - MO - RCOL - 10;
             double availH = SH - 2 * MO;
             int[] std = { 5, 10, 15, 20, 25, 30, 40, 50, 75, 100 };
             scaleN = std.FirstOrDefault(n =>
-                  DIMROOM + lx / n + (2 * DIMROOM + 10) + ly / n + DIMROOM <= availW &&
+                  leftRoom + DIMROOM + lx / n + (2 * DIMROOM + 10) + ly / n + DIMROOM <= availW &&
                   TITLEROOM + lz / n + TITLEROOM + 10 + ly / n + 10 <= availH);
             if (scaleN == 0) scaleN = std[^1];
             double s = 1.0 / scaleN;
 
-            double x0 = ML + DIMROOM, y0 = MO + TITLEROOM;
+            double x0 = ML + DIMROOM + leftRoom, y0 = MO + TITLEROOM;
             Point2D elevC = new Point2D(x0 + lx * s / 2, y0 + lz * s / 2);
             Point2D planC = new Point2D(elevC.X, y0 + lz * s + TITLEROOM + 10 + ly * s / 2);
             // elevation right dims + side-view left dims never share space now
@@ -323,7 +333,7 @@ namespace PaintBooth.Business
             // ── anchor: just outside the outermost duct, but never past the frame margin ──
             double longestW = info.DuctNoteLines.Max(s => s.Length) * txt * 0.8;
             double outerX = Math.Max(Math.Max(info.DuctMaxX, legX), info.AccessoryMaxX);
-            double anchorX = P(outerX, 0).X + sgn * 6;                                   // 6 mm outside the duct
+            double anchorX = P(outerX, 0).X + sgn * SIDEGAP;                             // outside the ladder + FFL dims                                 // 6 mm outside the duct
             if (outLeft) anchorX = Math.Max(anchorX, ML + 4 + longestW);                 // stay inside the frame
             else anchorX = Math.Min(anchorX, SW - MO - RCOL - 10 - longestW);
 
@@ -924,11 +934,27 @@ namespace PaintBooth.Business
 
 
 
-            // maintenance door label (only when the door is on the wall the elevation sees)
+            // maintenance door label — two lines, sized to fit inside the door outline
             if (m.chkServiceDoor && (m.ServiceDoorLocation == "LeftSide" || m.ServiceDoorLocation == "Both Side"))
             {
+                double sc = views["ELEV"].Scale;
                 Point2D dc = P("ELEV", new Point3D(m.D + m.D3 / 2, 0, 100 + m.DoorHeight / 2));
-                Txt(dc.X, dc.Y + 3, "MAINTAINANCE DOOR", 2.2, Text.alignmentType.MiddleCenter, LText);
+
+                string[] lines = { "MAINTENANCE", "DOOR" };
+                double doorW = m.DoorWidth * sc;                                   // door width on paper
+                double doorH = m.DoorHeight * sc;
+                int longest = lines.Max(l => l.Length);
+
+                // text height so the longest line uses ~80 % of the door width (char width ≈ 0.8 × height)
+                double h = Math.Min(2.2, doorW * 0.8 / (longest * 0.8));
+                h = Math.Min(h, doorH * 0.25);                                     // and never too tall for the door
+                double gap = h * 1.5;
+
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    double y = dc.Y + gap / 2 - i * gap;                           // centred vertically on the door
+                    Txt(dc.X, y, lines[i], h, Text.alignmentType.MiddleCenter, LText);
+                }
             }
         }
 
@@ -959,7 +985,7 @@ namespace PaintBooth.Business
 
             // text column just outside the outermost accessory, kept inside the frame
             double outer = Math.Max(info.AccessoryMaxX, info.DuctMaxX);
-            double textX = P("ELEV", new Point3D(outer, 0, 0)).X + sgn * 6;
+            double textX = P("ELEV", new Point3D(outer, 0, 0)).X + sgn * SIDEGAP;
             double longest = items.Max(i => i.text.Length) * txt * 0.8;
             if (outLeft) textX = Math.Max(textX, ML + 4 + longest);
             else textX = Math.Min(textX, SW - MO - RCOL - 10 - longest);
@@ -1399,7 +1425,7 @@ namespace PaintBooth.Business
                 TV(new Point2D(xd + sgn * 1, (b0.Y + b1.Y) / 2), $"{h:0} Approx. from FFL", bodyLeft: outLeft);
             }
             if (hasCut) VDim(info.DuctCutZ, wx1, off * 2);                              // e.g. 2795
-            VDim(topH, Math.Max(info.DuctMaxX, wx1), off * 2);                          // e.g. 15000
+            VDim(topH, Math.Max(Math.Max(info.DuctMaxX, wx1), info.AccessoryMaxX), off * 2);                            // e.g. 15000
             #endregion
 
             #region horizontal dims below floor
