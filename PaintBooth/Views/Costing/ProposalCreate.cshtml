@@ -202,19 +202,19 @@
                     <ol class="prop-checklist">
                         @{
                             var items = new[] {
-                                        "Basis of Design", "Scope of Supply",
-                                        "Technical Specifications for all equipment",
-                                        "Utility Requirements for the Plant",
-                                        "Make of Components", "Exclusion List",
-                                        "Price Bid", "Terms & Conditions"
-                                        };
+                    "Basis of Design", "Scope of Supply",
+                    "Technical Specifications for all equipment",
+                    "Utility Requirements for the Plant",
+                    "Make of Components", "Exclusion List",
+                    "Price Bid", "Terms & Conditions"
+                    };
                             int idx = 0;
                             foreach (var it in items)
                             {
                                 idx++;
                                 <li>
-                                    <span>@idx. @it</span>
                                     <input type="checkbox" checked />
+                                    <span>@idx. @it</span>
                                 </li>
                             }
                         }
@@ -344,143 +344,44 @@
                 </button>
             </div>
         </div>
-
-        @* <div class="prop-section">
-            <table class="prop-table">
+        <!-- ── SCOPE OF SUPPLY ───────────────────────── -->
+        <div class="prop-section prop-no-break">
+            <table class="prop-table" id="tblScopeOfSupply">
                 <thead>
                     <tr>
                         <th colspan="4" style="text-align:center; font-size:13px; font-weight:700; color:var(--text-primary); text-transform:none; letter-spacing:0;">
-                            BASIS OF DESIGN
+                            SCOPE OF SUPPLY
                         </th>
+                    </tr>
+                    <tr>
+                        <th class="bod-chk-col"></th>
+                        <th style="width:60px; text-align:center;">Sr No.</th>
+                        <th>Description</th>
+                        <th style="width:80px; text-align:center;">Qty</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td style="width:40px; color:var(--text-muted);">1.</td>
-                        <td>Components</td>
-                        <td colspan="2">@NS(Model.ProposalDetails.Component)</td>
+                        <td class="bod-chk-col"><input type="checkbox" class="sos-chk" checked /></td>
+                        <td style="text-align:center; color:var(--text-muted);">1</td>
+                        <td>@Model.ProposalDetails.SubTypeOfDraftType @Model.ProposalDetails.DraftType @Model.ProposalDetails.Category</td>
+                        <td style="text-align:center;">1 Set</td>
                     </tr>
                     <tr>
-                        <td style="color:var(--text-muted);">2.</td>
-                        <td>M.O.C. of components</td>
-                        <td colspan="2">@NS(Model.ProposalDetails.MaterialOfConstruction)</td>
+                        <td class="bod-chk-col"><input type="checkbox" class="sos-chk" checked /></td>
+                        <td style="text-align:center; color:var(--text-muted);">2</td>
+                        <td>Exhaust Ducting with Angle Supports</td>
+                        <td style="text-align:center;">1 Set</td>
                     </tr>
                     <tr>
-                        <td style="color:var(--text-muted);">3.</td>
-                        <td>Image/Photo/Drawing</td>
-                        <td colspan="2">
-                            @if (isPicture)
-                            {
-                                <img src="@imgPath" alt="Component image"
-                                     style="max-height:120px; max-width:100%; object-fit:contain;" />
-                            }
-                            else if (hasImg)
-                            {
-                                <span>Provided (attached separately)</span>
-                            }
-                            else
-                            {
-                                <span>Not Specified</span>
-                            }
-                        </td>
+                        <td class="bod-chk-col"><input type="checkbox" class="sos-chk" checked /></td>
+                        <td style="text-align:center; color:var(--text-muted);">3</td>
+                        <td>Electrical Control Panel and Cable Trays for Paint Booth</td>
+                        <td style="text-align:center;">1 Set</td>
                     </tr>
-                    <tr>
-                        <td style="color:var(--text-muted);">4.</td>
-                        <td>No. of shifts per day</td>
-                        <td colspan="2">@NS(Model.ProposalDetails.NumberofShifts)</td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted);">5.</td>
-                        <td>Effective working hrs.</td>
-                        <td colspan="2">@NS(Model.ProposalDetails.EffectiveWorking)</td>
-                    </tr>
-                    <tr>
-                        <td style="color:var(--text-muted);">6.</td>
-                        <td>Required Space in Mtr/ Shed drawing</td>
-                        <td colspan="2">Not Specified</td>   @* replace with @NS(...) if enquiry captures it *@
-                    @* </tr>
-                    <tr>
-                        <td style="color:var(--text-muted);">7.</td>
-                        <td>Component Dimension in mm</td>
-                        <td colspan="2">
-                            @NSDim(Model.ProposalDetails.Length,
-                            Model.ProposalDetails.WidthSize,
-                                                Model.ProposalDetails.HeightSize)
-                    </td>
-                </tr>
-                <tr>
-                    <td style="color:var(--text-muted);">8.</td>
-                    <td>Production</td>
-                    <td colspan="2">@NS(Model.ProposalDetails.ProductionRequirement)</td>
-                </tr>
-                <tr>
-                    <td style="color:var(--text-muted);">9.</td>
-                    <td>Paint Consumption per day</td>
-                    <td colspan="2">@NS(Model.ProposalDetails.Paint)</td>
-                </tr>
-                <tr>
-                    <td style="color:var(--text-muted);">10.</td>
-                    <td>Material Handling</td>
-                    <td colspan="2">@NS(Model.ProposalDetails.ComponentHandling)</td>
-                </tr>
-                <tr>
-                    <td style="color:var(--text-muted);">11.</td>
-                    <td>Component Paint Drying</td>
-                    <td colspan="2">Not Specified</td>
-                </tr>
-                <tr>
-                    <td style="color:var(--text-muted);">12.</td>
-                    <td>Temperature</td>
-                    <td colspan="2">Ambient 10 – 35 Deg C (Natural drying)</td>
-                </tr>
-            </tbody>
-            <tfoot>
-                <tr>
-                    <td colspan="4" style="font-size:12px; color:var(--text-muted); padding-top:10px; border-top:1px solid var(--border);">
-                        <strong>Note: The Basis of Design is as per Customers submitted RFQ.</strong>
-                    </td>
-                </tr>
-            </tfoot>
-        </table>
-    </div> *@ 
-    <!-- ── SCOPE OF SUPPLY ───────────────────────── -->
-    <div class="prop-section prop-no-break">
-        <table class="prop-table">
-            <thead>
-                <tr>
-                    <th colspan="4" style="text-align:center; font-size:13px; font-weight:700; color:var(--text-primary); text-transform:none; letter-spacing:0;">
-                        SCOPE OF SUPPLY
-                    </th>
-                </tr>
-                <tr>
-                    <th style="width:60px; text-align:center;">Sr No.</th>
-                    <th>Description</th>
-                    <th style="width:60px; text-align:center;"></th>
-                    <th style="width:80px; text-align:center;">Qty</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>1</td>
-                    <td>@Model.ProposalDetails.SubTypeOfDraftType @Model.ProposalDetails.DraftType @Model.ProposalDetails.Category</td>
-                    <td style="text-align:center;"><input type="checkbox" checked /></td>
-                    <td>1 Set</td>
-                </tr>
-                <tr>
-                    <td>2</td>
-                    <td>Exhaust Ducting with Angle Supports</td>
-                    <td style="text-align:center;"><input type="checkbox" checked /></td>
-                    <td>1 Set</td>
-                </tr>
-                <tr>
-                    <td>3</td>
-                    <td>Electrical Control Panel and Cable Trays for Paint Booth</td>
-                    <td style="text-align:center;"><input type="checkbox" checked /></td>
-                    <td>1 Set</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+                </tbody>
+            </table>
+        </div>
     <!-- ── TECHNICAL SPECIFICATION ───────────────── -->
     <div class="prop-section prop-break">
         <table class="prop-table">
@@ -1378,7 +1279,7 @@
                 <tbody>
                     <tr>
                         <td style="text-align:center;">1.</td>
-                        <td>Dry Type Paint Booth</td>
+                        <td>@Model.ProposalDetails.SubTypeOfDraftType @Model.ProposalDetails.DraftType @Model.ProposalDetails.Category</td>
                         <td>1 Set</td>
                         <td>8424 2000</td>
                         <td style="text-align:right;">

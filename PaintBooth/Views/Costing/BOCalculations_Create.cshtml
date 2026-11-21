@@ -4,6 +4,22 @@
     ViewBag.ActivePage = "BO Calculations";
     // Show data sections if enquiry code is present — data may exist even if one list is empty
     bool hasData = !string.IsNullOrWhiteSpace(Model.EnquiryCode);
+
+    var savedRatesJson = System.Text.Json.JsonSerializer.Serialize(
+        (Model.SavedRates ?? new List<PaintBooth.Database.BOItemRate>())
+        .Select(x => new
+        {
+            itemType = x.ItemType,
+            rowIndex = x.RowIndex,
+            itemCode = x.ItemCode,
+            rate = x.Rate,
+            quantity = x.Quantity,
+            cost = x.Cost
+        }),
+        new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+        });
 }
 
 @section Styles {
@@ -25,7 +41,6 @@
 @if (TempData["Success"] != null)
 {
     <div class="pb-alert pb-alert-success mb-3" data-auto-dismiss>
-        <i class="bi bi-check-circle-fill"></i> @TempData["Success"]
         <i class="bi bi-check-circle-fill"></i> @TempData["Success"]
     </div>
 }
@@ -69,42 +84,27 @@
 ══════════════════════════════════════════════════════ -->
 <div id="divBOData" style="@(hasData ? "" : "display:none;")">
 
+    @* novalidate → no silent browser bubbles; validation is done in JS with PB.toast *@
     <form asp-action="SavePriceDetails"
           asp-controller="Costing"
           method="post"
-          id="boForm">
-        @Html.AntiForgeryToken()
+          id="boForm"
+          novalidate>
+        @* anti-forgery token is added automatically by the form tag helper *@
         <input type="hidden" asp-for="EnquiryCode" id="hiddenEnquiryCode" />
-   
+
         <input type="hidden" id="hiddenItemRates" name="ItemRatesJson" />
         <input type="hidden" id="hAddBOWeight" name="AddBOWeight"
                value="@Model.AddBOWeight.ToString("F0")" />
         <input type="hidden" id="hAddBOCost" name="AddBOCost"
                value="@Model.AddBOCost.ToString("F0")" />
-        @{
-            var savedRatesJson = System.Text.Json.JsonSerializer.Serialize(
-            (Model.SavedRates ?? new List<PaintBooth.Database.BOItemRate>())
-            .Select(x => new
-            {
-                itemType = x.ItemType,
-                rowIndex = x.RowIndex,
-                itemCode = x.ItemCode,   // ← NEW
-                rate = x.Rate,
-                quantity = x.Quantity,
-                cost = x.Cost
-            }),
-            new System.Text.Json.JsonSerializerOptions
-            {
-                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
-            }
-            );
-        }
+
         <script>
-            window._savedBORates = @Html.Raw(savedRatesJson);
+            window['_savedBORates'] = @Html.Raw(savedRatesJson);
         </script>
-        
+
         <!-- ══════════════════════════════════════════════
-             SECTION 2 — LIGHT CALCULATIONS
+             SECTION 2 — LIGHT CALCULATIONS (8 columns)
         ══════════════════════════════════════════════ -->
         <div class="mb-2">
             <div class="bo-section-header" id="hdrLight">
@@ -126,7 +126,6 @@
                                 <th style="width:54px;">Sr.</th>
                                 <th>Item</th>
                                 <th>Item Code<span class="req-star">*</span></th>
-
                                 <th>Lux Level</th>
                                 <th>Lumens</th>
                                 <th>Rate (₹)</th>
@@ -138,7 +137,7 @@
                             @if (Model.TubeLightDetails == null || !Model.TubeLightDetails.Any())
                             {
                                 <tr>
-                                    <td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">
+                                    <td colspan="8" style="text-align:center; padding:24px; color:var(--text-muted);">
                                         No light data available
                                     </td>
                                 </tr>
@@ -152,7 +151,11 @@
                                     <tr>
                                         <td>@i</td>
                                         <td>@item.LightTypes (@item.LightSubTypes)</td>
-                                        <td><input type="text" class="additional-item-code" placeholder="Enter Item Code.." required/></td>
+                                        <td>
+                                            <input type="text" class="pb-input additional-item-code"
+                                                   placeholder="Enter Item Code.." autocomplete="off" />
+                                            <div class="rate-status" style="display:none;"></div>
+                                        </td>
                                         <td>
                                             <input type="text" class="bo-cell-input"
                                                    value="@((int)item.LuxLevel)" readonly />
@@ -162,10 +165,6 @@
                                                    value="@((int)item.Lumens)" readonly />
                                         </td>
                                         <td>
-                                           @*  <input type="text"
-                                                   id="txtLightRate_@i"
-                                                   class="bo-cell-input rate-input"
-                                                   placeholder="0.00" /> *@
                                             <input type="number" class="additional-rate bo-cell-input rate-input" readonly />
                                         </td>
                                         <td>
@@ -190,7 +189,7 @@
         </div>
 
         <!-- ══════════════════════════════════════════════
-             SECTION 3 — EXHAUST SYSTEM
+             SECTION 3 — EXHAUST SYSTEM (7 columns)
         ══════════════════════════════════════════════ -->
         <div class="mb-2">
             <div class="bo-section-header" id="hdrExhaust">
@@ -212,7 +211,7 @@
                                 <th style="width:54px;">Sr.</th>
                                 <th>Item</th>
                                 <th>Item Code<span class="req-star">*</span></th>
-                                <th>Capacity (m³/Hr)</th>
+                                <th>Capacity</th>
                                 <th>Rate (₹)</th>
                                 <th>Quantity</th>
                                 <th>Cost (₹)</th>
@@ -222,7 +221,7 @@
                             @if (Model.PaintBooth == null || !Model.PaintBooth.Any())
                             {
                                 <tr>
-                                    <td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">
+                                    <td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">
                                         No blower data available
                                     </td>
                                 </tr>
@@ -233,24 +232,22 @@
                                 foreach (var item in Model.PaintBooth)
                                 {
                                     i++;
-                                    double capacity = item.CapacityofBlowerRoundOf > 0
-                                    ? item.CapacityofBlowerRoundOf
-                                    : item.CapacityofBlowerinH;
-
                                     <!-- Row 1: Centrifugal Blower -->
                                     <tr>
                                         <td>@i</td>
                                         <td>Centrifugal Blower</td>
-                                        <td><input type="text" class="additional-item-code" placeholder="Enter Item Code.." required/></td>
                                         <td>
-                                            <input type="text" class="bo-cell-input"
-                                                   value="@(item.CapacityofEachBlower)" readonly />
+                                            <input type="text" class="pb-input additional-item-code"
+                                                   placeholder="Enter Item Code.." autocomplete="off" />
+                                            <div class="rate-status" style="display:none;"></div>
                                         </td>
                                         <td>
-                                           @*  <input type="text"
-                                                   id="txtBlowerRate_@i"
-                                                   class="bo-cell-input rate-input"
-                                                   placeholder="0.00" /> *@
+                                            @* value stays numeric — applySuctionFilterQty() in bo.js reads it *@
+                                            <input type="text" class="bo-cell-input"
+                                                   value="@(item.CapacityofEachBlower)" readonly
+                                                   title="m³/Hr per blower" />
+                                        </td>
+                                        <td>
                                             <input type="number" class="additional-rate bo-cell-input rate-input" readonly />
                                         </td>
                                         <td>
@@ -268,33 +265,33 @@
                                     </tr>
 
                                     i++;
-                                    <!-- Row 2: Electric Motor -->
+                                    <!-- Row 2: Electric Motor — one per blower -->
                                     <tr>
                                         <td>@i</td>
                                         <td>Electric Motor — NLP/FLP</td>
-                                        <td><input type="text" class="additional-item-code" placeholder="Enter Item Code.." required/></td>
                                         <td>
-                                            <input type="text" class="bo-cell-input"
-                                                   value="@item.RatedOutputHP" readonly />
+                                            <input type="text" class="pb-input additional-item-code"
+                                                   placeholder="Enter Item Code.." autocomplete="off" />
+                                            <div class="rate-status" style="display:none;"></div>
                                         </td>
                                         <td>
-                                            @* <input type="text"
-                                                   id="txtMotorRate_@i"
-                                                   class="bo-cell-input rate-input"
-                                                   placeholder="0.00" /> *@
+                                            <input type="text" class="bo-cell-input"
+                                                   value="@item.RatedOutputHP HP" readonly />
+                                        </td>
+                                        <td>
                                             <input type="number" class="additional-rate bo-cell-input rate-input" readonly />
                                         </td>
                                         <td>
                                             <input type="text"
                                                    id="txtMotorQty_@i"
                                                    class="bo-cell-input quantity-input"
-                                                   value="1" />
+                                                   value="@(item.NoOfBlowers)" readonly />
                                         </td>
                                         <td>
                                             <input type="text"
                                                    id="txtMotorCost_@i"
                                                    class="bo-cell-input cost-input cost-field"
-                                                   value="0.00" readonly />
+                                                   value="0" readonly />
                                         </td>
                                     </tr>
                                 }
@@ -306,7 +303,7 @@
         </div>
 
         <!-- ══════════════════════════════════════════════
-             SECTION 4 — PAINT ARRESTED FILTER
+             SECTION 4 — PAINT ARRESTED FILTER (9 columns)
         ══════════════════════════════════════════════ -->
         <div class="mb-2">
             <div class="bo-section-header" id="hdrFilter">
@@ -340,7 +337,7 @@
                             @if (Model.FrameDetails == null || !Model.FrameDetails.Any())
                             {
                                 <tr>
-                                    <td colspan="8" style="text-align:center; padding:24px; color:var(--text-muted);">
+                                    <td colspan="9" style="text-align:center; padding:24px; color:var(--text-muted);">
                                         No filter frame data available
                                     </td>
                                 </tr>
@@ -354,7 +351,11 @@
                                     <tr>
                                         <td>@i</td>
                                         <td>Paint Arrested Filter</td>
-                                        <td><input type="text" class="additional-item-code" placeholder="Enter Item Code.." required/></td>
+                                        <td>
+                                            <input type="text" class="pb-input additional-item-code"
+                                                   placeholder="Enter Item Code.." autocomplete="off" />
+                                            <div class="rate-status" style="display:none;"></div>
+                                        </td>
                                         <td>
                                             <input type="text" class="bo-cell-input"
                                                    value="@item.Width" readonly />
@@ -365,7 +366,7 @@
                                         </td>
                                         <td>
                                             <input type="text" class="bo-cell-input"
-                                                   value="@item.Quantity.ToString("G29")" readonly  />
+                                                   value="@item.Quantity.ToString("G29")" readonly />
                                         </td>
                                         <td>
                                             <input type="text"
@@ -374,17 +375,13 @@
                                                    readonly />
                                         </td>
                                         <td>
-                                           @*  <input type="text"
-                                                   id="txtFilterRate_@i"
-                                                   class="bo-cell-input rate-input"
-                                                   placeholder="0.00" /> *@
                                             <input type="number" class="additional-rate bo-cell-input rate-input" readonly />
                                         </td>
                                         <td>
                                             <input type="text"
                                                    id="txtFilterCost_@i"
                                                    class="bo-cell-input cost-input cost-field"
-                                                   value="0.00" readonly />
+                                                   value="0" readonly />
                                         </td>
                                     </tr>
                                 }
@@ -395,7 +392,10 @@
             </div>
         </div>
 
-        <!-- ── SECTION: ADDITIONAL BOUGHT-OUT ITEMS ───────────────── -->
+        <!-- ══════════════════════════════════════════════
+             ADDITIONAL BOUGHT-OUT ITEMS (7 columns)
+             Item | Description | Item Code | Qty | Rate | Amount | Action
+        ══════════════════════════════════════════════ -->
         <div class="pb-card mb-3">
             <div class="form-section-title d-flex justify-content-between align-items-center">
                 <span>
@@ -416,10 +416,8 @@
                         <tr>
                             <th style="width:44px;">Item</th>
                             <th>Description</th>
-                            <th>Item Code</th>            <!-- ← NEW -->
+                            <th>Item Code</th>
                             <th class="num">Qty / Sq.M</th>
-                            @* <th class="num">Unit Weight (kg)</th>
-                            <th class="num">Total Weight (kg)</th> *@
                             <th class="num">Rate</th>
                             <th class="num">Amount (₹)</th>
                             <th style="width:36px;">Action</th>
@@ -429,7 +427,7 @@
                         @if (Model.AdditionalBOList == null || !Model.AdditionalBOList.Any())
                         {
                             <tr id="boCompEmptyRow">
-                                <td colspan="9">
+                                <td colspan="7">
                                     <div class="cost-empty">
                                         <i class="bi bi-inbox"></i>
                                         No additional bought-out items added
@@ -444,15 +442,26 @@
                             foreach (var item in Model.AdditionalBOList)
                             {
                                 i++;
+                                @* saved rows render as editable inputs (same as seeded rows) so rate can be re-fetched *@
                                 <tr data-row="@i">
                                     <td>@i</td>
                                     <td>@item.Description</td>
-                                    <td>@item.ItemCode</td>          <!-- ← NEW -->
-                                    <td class="num">@item.Qty.ToString("F0")</td>
-                                    @* <td class="num">@item.UnitWeight.ToString("F2")</td>
-                                    <td class="num">@item.TotalWeight.ToString("F0")</td> *@
-                                    <td class="num">@item.Rate.ToString("F0")</td>
-                                    <td class="num">@item.Amount.ToString("N0")</td>
+                                    <td>
+                                        <input type="text" class="pb-input rm-inline additional-item-code" data-f="itemcode"
+                                               value="@item.ItemCode" placeholder="Item Code" autocomplete="off" />
+                                    </td>
+                                    <td class="num">
+                                        <input type="number" class="pb-input rm-inline" data-f="qty"
+                                               value="@item.Qty.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
+                                               placeholder="0" min="0" step="0.01" />
+                                    </td>
+                                    <td class="num">
+                                        <input type="number" class="pb-input rm-inline additional-rate" data-f="rate"
+                                               value="@item.Rate.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
+                                               placeholder="0" min="0" step="0.01" />
+                                        <div class="rate-status" style="display:none;"></div>
+                                    </td>
+                                    <td class="num rm-amt">@item.Amount.ToString("N0")</td>
                                     <td>
                                         <button type="button" class="btn-bo-comp-del"
                                                 data-row="@i" title="Remove">
@@ -466,14 +475,12 @@
                     <tfoot id="boCompFooter"
                            style="@(Model.AdditionalBOList != null && Model.AdditionalBOList.Any() ? "" : "display:none;")">
                         <tr>
-                            <td colspan="5" style="text-align:right;">Total</td>
-                            <td class="num" id="boCompTotalWeight">
-                                @Model.AddBOWeight.ToString("F0")
+                            <td colspan="4" style="text-align:right;">Total</td>
+                            <td>
+                                @* kept hidden so older JS that writes to it does not break *@
+                                <span id="boCompTotalWeight" style="display:none;">@Model.AddBOWeight.ToString("F0")</span>
                             </td>
-                            <td></td>
-                            <td class="num" id="boCompTotalAmount">
-                                @Model.AddBOCost.ToString("N0")
-                            </td>
+                            <td class="num" id="boCompTotalAmount">@Model.AddBOCost.ToString("N0")</td>
                             <td></td>
                         </tr>
                     </tfoot>
@@ -481,7 +488,7 @@
             </div>
         </div>
 
-        <!-- ── ADD BO ITEM MODAL ────────────────────────────────────── -->
+        <!-- ── ADD BO ITEM MODAL (Qty × Rate, no weight) ───────────── -->
         <div id="addBOComponentModal" class="cost-modal-backdrop">
             <div class="cost-modal">
                 <div class="cost-modal-header">
@@ -497,51 +504,41 @@
                 <div class="pb-form-group">
                     <label class="pb-label">Description</label>
                     <input type="text" class="pb-input" id="boCompDesc"
-                           placeholder="e.g. MS Plate 8mm, MS Angle 50×50×5"
+                           placeholder="e.g. Sampling Port, Manometer, Damper"
                            autocomplete="off" />
                     <div class="cost-field-err" id="boErrDesc">Description is required</div>
-                </div>
-
-                <div class="row g-3 mb-3">
-                    <div class="col-6">
-                        <div class="pb-form-group mb-0">
-                            <label class="pb-label">Quantity</label>
-                            <input type="number" class="pb-input" id="boCompQty"
-                                   placeholder="0" min="0" step="1" />
-                            <div class="cost-field-err" id="boErrQty">Enter a valid quantity</div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="pb-form-group mb-0">
-                            <label class="pb-label">Unit Weight (kg)</label>
-                            <input type="number" class="pb-input" id="boCompUnitWeight"
-                                   placeholder="0.00" min="0" step="0.01" />
-                            <div class="cost-field-err" id="boErrUW">Enter a valid weight</div>
-                        </div>
-                    </div>
                 </div>
 
                 <div class="pb-form-group">
                     <label class="pb-label">Item Code</label>
                     <input type="text" class="pb-input additional-item-code" id="boCompItemCode"
-                           placeholder="Enter Item Code" autocomplete="off"/>
+                           placeholder="Enter Item Code" autocomplete="off" />
                     <div class="cost-field-err" id="boErrItemCode">Enter a valid Item Code</div>
                     <div class="rate-status" style="display:none;"></div>
                 </div>
-                <div class="pb-form-group">
-                    <label class="pb-label">Rate (₹ per kg)</label>
-                    <input type="number" class="pb-input additional-rate" id="boCompRate"
-                           placeholder="0.00" min="0" step="0.01" readonly />
-                    <div class="cost-field-err" id="boErrRate">Enter a valid rate</div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <div class="pb-form-group mb-0">
+                            <label class="pb-label">Quantity / Sq.M</label>
+                            <input type="number" class="pb-input" id="boCompQty"
+                                   placeholder="0" min="0" step="0.01" />
+                            <div class="cost-field-err" id="boErrQty">Enter a valid quantity</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="pb-form-group mb-0">
+                            <label class="pb-label">Rate (₹ per unit)</label>
+                            <input type="number" class="pb-input additional-rate" id="boCompRate"
+                                   placeholder="0.00" min="0" step="0.01" readonly />
+                            <div class="cost-field-err" id="boErrRate">Enter a valid rate</div>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="boCompCalcPreview" class="cost-calc-preview" style="display:none;">
                     <span class="ccp-label">Calculated</span>
                     <div class="ccp-values">
-                        <div class="ccp-group">
-                            <span class="ccp-sub">Total weight</span>
-                            <span class="ccp-val" id="boPrevWeight">0.00 kg</span>
-                        </div>
                         <div class="ccp-group">
                             <span class="ccp-sub">Amount</span>
                             <span class="ccp-val" id="boPrevAmount">₹0</span>
@@ -559,6 +556,7 @@
                 </div>
             </div>
         </div>
+
         <!-- ══════════════════════════════════════════════
              SECTION 5 — SUMMARY + SAVE
         ══════════════════════════════════════════════ -->
@@ -568,21 +566,6 @@
                 Cost Summary
             </div>
 
-            <!-- Summary totals -->
-           @*  <div class="bo-totals-grid mb-4">
-                <div class="bo-total-card">
-                    <div class="bt-label">Total Cost of RM (₹)</div>
-                    <div class="bt-value" id="dispTotalRM">
-                        @Model.TotalPriceOfFrame.ToString("N2")
-                    </div>
-                </div>
-                <div class="bo-total-card accent">
-                    <div class="bt-label">Total Cost of BO (₹)</div>
-                    <div class="bt-value" id="dispTotalBO">0.00</div>
-                </div>
-            </div> *@
-
-            <!-- Bought Out total (editable) -->
             <div class="row g-3 mb-3">
                 <div class="col-md-3">
                     <div class="pb-form-group">
@@ -596,7 +579,6 @@
                 </div>
             </div>
 
-            <!-- Approve checkbox -->
             <div class="bo-approve-wrap mb-3">
                 <input type="checkbox" asp-for="IsBOApproved"
                        id="approvePriceBid" />
@@ -608,7 +590,6 @@
                 </div>
             </div>
 
-            <!-- Save button -->
             <div class="form-btn-row">
                 <button type="submit" id="btnSave"
                         class="btn-pb-primary" disabled>
@@ -630,18 +611,23 @@
 
 @section Scripts {
     <script src="~/js/bo.js" asp-append-version="true"></script>
+
     <script>
-        // ── Auto-fetch rate when user types an Item Code (grid rows + Add BO modal) ──
+        // Razor writes plain values only — keeps the JS checker happy
+        var boPage = {
+            isEdit: @Json.Serialize(hasData),
+            isApproved: @Json.Serialize(Model.IsBOApproved),
+            rateUrl: '@Url.Action("GetItemRate", "Costing")'
+        };
+
+        // ── Item Code → fetch rate (grid rows, additional BO rows and the Add BO modal) ──
         $(document).on('blur', '.additional-item-code', function () {
             var $input = $(this);
-            var itemCode = $input.val().trim();
-            if (!itemCode) return;
+            var itemCode = $.trim($input.val());
 
             var $row = $input.closest('tr');
-            var isModal = $row.length === 0; // no <tr> ancestor → modal context
+            var isModal = $row.length === 0;          // no <tr> ancestor → modal
 
-            // Find the matching rate field: within the row for grids,
-            // within the modal form-group siblings for the modal
             var $rateInput = isModal
                 ? $input.closest('.cost-modal').find('.additional-rate')
                 : $row.find('.additional-rate');
@@ -650,32 +636,41 @@
                 ? $input.closest('.pb-form-group').find('.rate-status')
                 : $row.find('.rate-status');
 
+            // item code cleared → clear rate + cost
+            if (!itemCode) {
+                $rateInput.val('');
+                $statusEl.text('').hide();
+                $input.removeClass('rate-fallback-warning');
+                if (!isModal) $row.find('.cost-input').val('0');
+                $rateInput.trigger('input');
+                if (typeof updateTotalBO === 'function') updateTotalBO();
+                return;
+            }
+
             var lastKnownRate = parseFloat($rateInput.data('last-rate')) || 0;
 
-            $.getJSON('@Url.Action("GetItemRate", "Costing")',
-                { itemCode: itemCode },
-                function (res) {
+            $.getJSON(boPage.rateUrl, { itemCode: itemCode })
+                .done(function (res) {
                     if (res.success) {
                         $rateInput.val(res.rate.toFixed(2));
-                        $input.removeClass('rate-fallback-warning');
                         $rateInput.data('last-rate', res.rate);
+                        $input.removeClass('rate-fallback-warning');
                         $statusEl.text('').hide();
                     } else {
                         $rateInput.val(isModal ? '' : lastKnownRate.toFixed(2));
                         $input.addClass('rate-fallback-warning');
                         $statusEl.text('⚠ ' + (res.message || 'Item not found — using last saved rate')).show();
                     }
+                    $rateInput.trigger('input');       // bo.js recalculates row cost + totals
+                })
+                .fail(function () {
+                    $rateInput.val(isModal ? '' : lastKnownRate.toFixed(2));
+                    $input.addClass('rate-fallback-warning');
+                    $statusEl.text('⚠ API unreachable — using last saved rate').show();
                     $rateInput.trigger('input');
-                }
-            ).fail(function () {
-                $rateInput.val(isModal ? '' : lastKnownRate.toFixed(2));
-                $input.addClass('rate-fallback-warning');
-                $statusEl.text('⚠ API unreachable — using last saved rate').show();
-                $rateInput.trigger('input');
-            });
+                });
         });
-    </script>
-    <script>
+
         $(function () {
             initAutocomplete('@Url.Action("SearchEnquiryCode", "Costing")');
             initSearch('@Url.Action("BOCalculations_Create", "Costing")');
@@ -684,51 +679,27 @@
             initApproveCheckbox();
             initSave();
             initAlerts();
-             initBOComponents();   // ← add this
+            initBOComponents();
 
-                   @if (!string.IsNullOrWhiteSpace(Model.EnquiryCode))
-        {
-                <text>
+            if (boPage.isEdit) {
                 $('#divBOData').show();
 
-                // ── STEP 1: Check hidden field value ──────────────────
-                console.log('STEP 1 - hiddenSavedRates raw value:',
-                    $('#hiddenSavedRates').val());
-
-                // ── Open ALL sections ─────────────────────────────────
-                if (!$('#hdrLight').hasClass('active'))   $('#hdrLight').trigger('click');
+                // open all sections
+                if (!$('#hdrLight').hasClass('active')) $('#hdrLight').trigger('click');
                 if (!$('#hdrExhaust').hasClass('active')) $('#hdrExhaust').trigger('click');
-                if (!$('#hdrFilter').hasClass('active'))  $('#hdrFilter').trigger('click');
+                if (!$('#hdrFilter').hasClass('active')) $('#hdrFilter').trigger('click');
 
-                
-                // ── STEP 3: Parse JSON manually ───────────────────────
-                var rawJson = $('#hiddenSavedRates').val() || '[]';
-                var parsedRates = [];
-                try {
-                    parsedRates = JSON.parse(rawJson);
-                    console.log('STEP 3 - Parsed rates count:', parsedRates.length);
-                    console.log('STEP 3 - Parsed rates:', parsedRates);
-                    if (parsedRates.length > 0) {
-                        console.log('STEP 3 - First rate keys:', Object.keys(parsedRates[0]));
-                        console.log('STEP 3 - First rate values:', parsedRates[0]);
-                    }
-                } catch(e) {
-                    console.error('STEP 3 - JSON parse failed:', e);
-                }
-
-                restoreSavedRates();
-                    updateTotalBO();
-                
+                restoreSavedRates();                  // reads window._savedBORates
+                updateTotalBO();
 
                 $('#txtEnquiryCode').prop('readonly', true);
                 $('#btnSearch').prop('disabled', true);
 
-                if (@(Model.IsBOApproved.ToString().ToLower())) {
+                if (boPage.isApproved) {
                     $('#approvePriceBid').prop('checked', true);
                     $('#btnSave').prop('disabled', false);
                 }
-                </text>
-        }
+            }
         });
     </script>
 }

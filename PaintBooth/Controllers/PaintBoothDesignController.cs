@@ -864,6 +864,15 @@ namespace PaintBooth.Controllers
                 string clientGaPath = new ClientGADrawing(_configuration).Build(gaModel, model, gaInfo);
                 AllFilesPath.Add(clientGaPath);
 
+                // ── Duct accessories guide image (only when accessories are in this design) ──
+                if (service.designdictionary.ContainsKey("DuctAccessories"))
+                {
+                    string guideImg = Path.Combine(_configuration["StpFilePathConfig:DrawingPath"] ?? "",
+                                                   "Duct_Accessories_Guide.png");
+                    if (System.IO.File.Exists(guideImg))
+                        AllFilesPath.Add(guideImg);
+                }
+
                 #endregion
 
                 // Store the values needed for FilterFrameCalculations in session

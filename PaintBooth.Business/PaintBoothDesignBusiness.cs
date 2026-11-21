@@ -8987,23 +8987,11 @@ namespace PaintBooth.Business
 
 
         #endregion
-        /// Square bar from a to b (a and b share the same Y), 'size' × 'size' section.
-        private static void Strut(DesignDocument doc, Point3D a, Point3D b, double size, Color color)
-        {
-            double dx = b.X - a.X, dz = b.Z - a.Z;
-            double len = Math.Sqrt(dx * dx + dz * dz);
-            if (len < 1) return;
-
-            var bar = Brep.CreateBox(len, size, size);
-            bar.Translate(0, -size / 2, -size / 2);                       // centre the section on the X axis
-            bar.Rotate(-Math.Atan2(dz, dx), Vector3D.AxisY, Point3D.Origin); // tilt from +X towards the target
-            bar.Translate(a.X, a.Y, a.Z);
-            bar.LayerName = "DuctAccessories";
-            doc.Entities.Add(bar, color);
-        }
+       
 
         #region Duct accessories (sampling port, platform + ladder, supports)
 
+     
         #region Weighted part helpers (Eyeshot GetMass)
         /// Box for the 3D model + its weight (GetMass), added to accessory 'cat'.
         private void AccBox(DesignDocument doc, double x0, double y0, double z0, double x1, double y1, double z1,
@@ -9018,7 +9006,7 @@ namespace PaintBooth.Business
             Material mat = new Material(Materials);
             b.Regen(0.1);
             double mass = b.GetMass(mat, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double _);
-            Tally(cat, Math.Round(Math.Abs(mass), 3));
+            Tally(cat, Math.Round(Math.Abs(mass), 3), cat.StartsWith("Support_") ? 1 : 0);   // ← CHANGED
 
             b.LayerName = "DuctAccessories";
             doc.Entities.Add(b, c);
@@ -9039,7 +9027,7 @@ namespace PaintBooth.Business
             Material mat = new Material(Materials);
             bar.Regen(0.1);
             double mass = bar.GetMass(mat, linearUnitsType.Millimeters, massUnitsType.Kilograms, out double _);
-            Tally(cat, Math.Round(Math.Abs(mass), 3));
+            Tally(cat, Math.Round(Math.Abs(mass), 3), cat.StartsWith("Support_") ? 1 : 0);   // ← CHANGED
 
             bar.LayerName = "DuctAccessories";
             doc.Entities.Add(bar, color);
@@ -9059,6 +9047,7 @@ namespace PaintBooth.Business
             doc.Layers.Add(new Layer("DuctAccessories", Color.Goldenrod));
 
             var steel = Color.FromArgb(90, 90, 90);
+            const string Hz = AccSupHorizontal;
 
             double hx = sizeX / 2, hy = sizeY / 2;
             double outX = legX + hx;                         // outer face of the duct (away from the wall)
@@ -9069,31 +9058,31 @@ namespace PaintBooth.Business
             double zPort = Math.Max(zBottom + 1500, zTop - 2 * De);
             AccBox(doc, outX, legY - 50, zPort - 50, outX + 150, legY + 50, zPort + 50, steel, AccPort);         // nozzle
             AccBox(doc, outX + 150, legY - 80, zPort - 80, outX + 162, legY + 80, zPort + 80, steel, AccPort);   // flange + cap
-            Tally(AccPort, 0, 1);                                                                                 // qty +1
+            Tally(AccPort, 0, 1);                                                                                 // 1 set
             var portAt = new Point3D(outX + 160, legY, zPort);
 
-            // ── 2. Duct supports: collar + 2 arms back to the wall, every 2.5 m ──
+            // ── 2. Stack collars + arms to the wall, every 2.5 m → Horizontal Structure ──
             Point3D supportAt = null;
             double t = 50;
             for (double z = zBottom + 600; z < zTop - 400; z += 2500)
             {
-                AccBox(doc, inX - t, legY - hy - t, z, outX + t, legY - hy, z + t, steel, AccSupport);
-                AccBox(doc, inX - t, legY + hy, z, outX + t, legY + hy + t, z + t, steel, AccSupport);
-                AccBox(doc, inX - t, legY - hy, z, inX, legY + hy, z + t, steel, AccSupport);
-                AccBox(doc, outX, legY - hy, z, outX + t, legY + hy, z + t, steel, AccSupport);
+                AccBox(doc, inX - t, legY - hy - t, z, outX + t, legY - hy, z + t, steel, Hz);
+                AccBox(doc, inX - t, legY + hy, z, outX + t, legY + hy + t, z + t, steel, Hz);
+                AccBox(doc, inX - t, legY - hy, z, inX, legY + hy, z + t, steel, Hz);
+                AccBox(doc, outX, legY - hy, z, outX + t, legY + hy, z + t, steel, Hz);
 
                 if (wallOuterX > 0 && inX - t > wallOuterX)
                 {
-                    AccBox(doc, wallOuterX, legY - hy - t, z, inX - t, legY - hy, z + t, steel, AccSupport);
-                    AccBox(doc, wallOuterX, legY + hy, z, inX - t, legY + hy + t, z + t, steel, AccSupport);
+                    AccBox(doc, wallOuterX, legY - hy - t, z, inX - t, legY - hy, z + t, steel, Hz);
+                    AccBox(doc, wallOuterX, legY + hy, z, inX - t, legY + hy + t, z + t, steel, Hz);
                 }
-                Tally(AccSupport, 0, 1);               // ← inside the for, outside the if
-                CountSupport("Stack collar");          // ← same place
+
+                CountSupport("Stack collar");                                   // description breakdown only
                 System.Diagnostics.Debug.WriteLine($"[COLLAR] z={z:0}  stack {zBottom:0}→{zTop:0}");
                 supportAt ??= new Point3D(inX - t / 2, legY - hy - t / 2, z + t / 2);
             }
 
-            // ── 3. Platform + handrail + ladder ──
+            // ── 3. Platform + railing + ladder ──
             Point3D platformAt = null;
             if (withPlatform)
                 platformAt = PlatformAndLadder(doc, outX, legY - 600, legY + 600, zPort, legY, cageAboveClimb);
@@ -9192,19 +9181,19 @@ namespace PaintBooth.Business
         /// and a seat bracket off the wall under the bottom bend of the stack.
         /// </summary>
         public void DuctRunSupports(DesignDocument doc, double ecRearX, double wallInnerX, double wallOuterX,
-                             double legX, double legY, double dW, double dH, double cutZ,
-                             double spacing = 2500)
+                               double legX, double legY, double dW, double dH, double cutZ,
+                               double spacing = 2500)
         {
             if (cutZ <= 0) return;
             var steel = Color.FromArgb(90, 90, 90);
-            const string S = AccSupport;
+            const string V = AccSupVertical, Hz = AccSupHorizontal, B = AccSupBracing;
 
-            double ductBot = cutZ - dH / 2;          // underside of the horizontal duct = support height
+            double ductBot = cutZ - dH / 2;
             double post = 75;
             double ya = legY - dW / 2 - 100 - post;
             double yb = legY + dW / 2 + 100;
 
-            // ── 1. goal-post frames between the E/C and the wall ──
+            // ── 1. goal-post frames ──
             double gx0 = ecRearX + 300;
             double gx1 = (wallInnerX > 0 ? wallInnerX : legX - dH / 2) - 300;
             if (gx1 > gx0)
@@ -9215,54 +9204,45 @@ namespace PaintBooth.Business
                     double x = n == 1 ? (gx0 + gx1) / 2 : gx0 + (gx1 - gx0) * i / (n - 1);
                     double xa = x - post / 2, xb = x + post / 2;
 
-                    AccBox(doc, xa, ya, 0, xb, ya + post, ductBot - post, steel, S);                 // post 1
-                    AccBox(doc, xa, yb, 0, xb, yb + post, ductBot - post, steel, S);                 // post 2
-                    AccBox(doc, xa, ya, ductBot - post, xb, yb + post, ductBot, steel, S);           // saddle beam
-                    AccBox(doc, x - 100, ya + post / 2 - 100, 0, x + 100, ya + post / 2 + 100, 10, steel, S);   // base plates
-                    AccBox(doc, x - 100, yb + post / 2 - 100, 0, x + 100, yb + post / 2 + 100, 10, steel, S);
-                    AccBox(doc, xa, ya, 300, xb, yb + post, 350, steel, S);                          // tie member
+                    AccBox(doc, xa, ya, 0, xb, ya + post, ductBot - post, steel, V);                 // post 1
+                    AccBox(doc, xa, yb, 0, xb, yb + post, ductBot - post, steel, V);                 // post 2
+                    AccBox(doc, x - 100, ya + post / 2 - 100, 0, x + 100, ya + post / 2 + 100, 10, steel, V);   // base plates
+                    AccBox(doc, x - 100, yb + post / 2 - 100, 0, x + 100, yb + post / 2 + 100, 10, steel, V);
+                    AccBox(doc, xa, ya, ductBot - post, xb, yb + post, ductBot, steel, Hz);          // saddle beam
+                    AccBox(doc, xa, ya, 300, xb, yb + post, 350, steel, Hz);                         // tie member
 
-                    Tally(S, 0, 1);
                     CountSupport("Goal-post frame");
-                    supportFrameHeight = ductBot;                                                    // floor → top of saddle
-                    System.Diagnostics.Debug.WriteLine($"[GOALPOST] legY={legY:0} x={x:0} H={ductBot:0}");
+                    supportFrameHeight = ductBot;
                 }
             }
 
-            // ── 2. seat bracket off the wall under the bottom bend ──
+            // ── 2. seat bracket under the bottom bend ──
             if (wallOuterX > 0 && legX - dH / 2 > wallOuterX)
             {
                 double seatZ = ductBot - post;
                 double armEnd = legX + dH / 2 + 50;
                 foreach (double y in new[] { legY - dW / 2 + 25, legY + dW / 2 - 25 - post })
                 {
-                    AccBox(doc, wallOuterX, y, seatZ, armEnd, y + post, seatZ + post, steel, S);                         // arm
+                    AccBox(doc, wallOuterX, y, seatZ, armEnd, y + post, seatZ + post, steel, Hz);                        // arm
                     Strut(doc, new Point3D(wallOuterX, y + post / 2, seatZ - 700),
-                               new Point3D(armEnd - 50, y + post / 2, seatZ), 60, steel, S);                              // knee brace
-                    AccBox(doc, wallOuterX, y - 50, seatZ - 760, wallOuterX + 12, y + post + 50, seatZ - 640, steel, S);  // wall plate
+                               new Point3D(armEnd - 50, y + post / 2, seatZ), 60, steel, B);                             // knee brace
+                    AccBox(doc, wallOuterX, y - 50, seatZ - 760, wallOuterX + 12, y + post + 50, seatZ - 640, steel, B); // wall plate
                 }
-                AccBox(doc, armEnd - post, legY - dW / 2 + 25, seatZ, armEnd, legY + dW / 2 - 25, seatZ + post, steel, S); // end cross member
-
-                Tally(S, 0, 1);
-                CountSupport("Seat bracket");                                                        // ← ADDED
-                System.Diagnostics.Debug.WriteLine($"[SEAT] legY={legY:0} seatZ={seatZ:0}");
+                AccBox(doc, armEnd - post, legY - dW / 2 + 25, seatZ, armEnd, legY + dW / 2 - 25, seatZ + post, steel, Hz); // end cross member
+                CountSupport("Seat bracket");
             }
         }
 
         #region Duct accessory weights
-        // DuctAccessoryDetails.AccessoryType values
-        public const string AccPort = "Sampling_Port";
-        public const string AccPlatform = "Sampling_Platform";
-        public const string AccLadder = "Ladder";
-        public const string AccSupport = "Duct_Support";
+        public const string AccPort = DuctAccessoryNames.Port;
+        public const string AccPlatform = DuctAccessoryNames.Platform;
+        public const string AccRailing = DuctAccessoryNames.Railing;
+        public const string AccLadder = DuctAccessoryNames.Ladder;
+        public const string AccSupVertical = DuctAccessoryNames.SupVertical;
+        public const string AccSupHorizontal = DuctAccessoryNames.SupHorizontal;
+        public const string AccSupBracing = DuctAccessoryNames.SupBracing;
 
-        private static readonly Dictionary<string, string> AccDescriptions = new()
-{
-    { AccPort,     "Sampling Port" },
-    { AccPlatform, "Sampling Platform with Handrail" },
-    { AccLadder,   "Ladder with Safety Cage" },
-    { AccSupport,  "Duct Supports" },
-};
+        public static readonly Dictionary<string, string> AccDescriptions = DuctAccessoryNames.RmRow;
 
         public Dictionary<string, (double kg, int qty)> AccessoryWeights { get; } = new();
         private readonly Dictionary<string, int> supportParts = new();
@@ -9307,10 +9287,10 @@ namespace PaintBooth.Business
                     EnquiryID = EnquiryID,
                     SalesNo = model.SalesNO,
                     AccessoryType = kv.Key,
-                    Description = kv.Key == AccSupport && supportParts.Count > 0
-    ? $"Duct Supports - {string.Join(", ", supportParts.Select(p => $"{p.Value} x {p.Key}"))}"
-      + (supportFrameHeight > 0 ? $" | Frame H {supportFrameHeight:0} mm" : "")
-    : (AccDescriptions.TryGetValue(kv.Key, out var d) ? d : kv.Key),
+                    Description = kv.Key == AccSupVertical && supportParts.Count > 0                                   // ← CHANGED
+                        ? $"Vertical Straight Structure - {string.Join(", ", supportParts.Select(p => $"{p.Value} x {p.Key}"))}"
+                          + (supportFrameHeight > 0 ? $" | H {supportFrameHeight:0} mm" : "")
+                        : (AccDescriptions.TryGetValue(kv.Key, out var d) ? d : kv.Key),
                     Quantity = Math.Max(1, kv.Value.qty),
                     Weight = (decimal)Math.Round(kv.Value.kg, 3),
                     Material = Materials,

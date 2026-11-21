@@ -1074,4 +1074,25 @@ thead {
 .pdf-export [data-ph]:empty::before {
     content: "" !important;
 }
+/* Contents list — checkbox first, like Basis of Design */
+.prop-checklist li {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+}
 
+    .prop-checklist li input[type="checkbox"] {
+        flex: 0 0 auto;
+        margin: 0;
+        accent-color: var(--accent);
+    }
+/* Scope of Supply — same checkbox look as Basis of Design */
+#tblScopeOfSupply .sos-chk,
+.prop-checklist input[type="checkbox"] {
+    accent-color: var(--accent);
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    cursor: pointer;
+}

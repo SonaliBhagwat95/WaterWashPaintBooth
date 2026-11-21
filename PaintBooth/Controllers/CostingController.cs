@@ -4,6 +4,7 @@ using ClosedXML.Excel;
 using DocumentFormat.OpenXml.Office.CustomUI;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PaintBooth.Business;
 using PaintBooth.Database;
 using PaintBooth.Model;
 using PaintBooth.Models;
@@ -285,6 +286,23 @@ namespace PaintBooth.Controllers
                 return BadRequest("Export failed: " + ex.Message);
             }
         }
+
+        [HttpGet]
+        public JsonResult GetDuctAccessoryWeights(string salesNo)
+        {
+            try
+            {
+                var rows = _repo.GetDuctAccessoryWeights(salesNo);
+                return Json(new { success = true, rows });
+            }
+            catch (Exception ex)
+            {
+                _Ex.SaveException("RMCostingController", "GetDuctAccessoryWeights", ex.Message, userId);
+                return Json(new { success = false, message = "Something went wrong. Please try again." });
+            }
+        }
+
+
         #endregion
 
         #region BO Calculations

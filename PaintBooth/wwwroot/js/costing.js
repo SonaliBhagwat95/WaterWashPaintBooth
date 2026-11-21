@@ -445,16 +445,55 @@ function initComponents() {
 
         updateGrandTotal();
     }
-    //function updateGrandTotal() {
-    //    var panelCost = parseFloat(($('#hTotalPriceofPanels').val() || '0').replace(/,/g, '')) || 0;
-    //    var frameCost = parseFloat(($('#hTotalPriceofFrame').val() || '0').replace(/,/g, '')) || 0;
-    //    var addRMCost = parseFloat(($('#hAddRMCost').val() || '0').replace(/,/g, '')) || 0;
+    /* ════════════════════════════════════════════════════════
+   DUCT ACCESSORY WEIGHTS → fill matching inline RM rows
+════════════════════════════════════════════════════════ */
+    /* ════════════════════════════════════════════════════════
+       DUCT ACCESSORY WEIGHTS → fill matching inline RM rows
+    ════════════════════════════════════════════════════════ */
+    function getCostingSalesNo() {
+        return $.trim(
+            $('#txtEnquiryCode').val() ||                 // create page (search box)
+            $('#SalesNo').val() ||                        // asp-for="SalesNo" hidden / readonly input
+            $('#hSalesNo').val() ||                       // any hidden field you keep it in
+            $('[name="SalesNo"]').val() ||
+            $('#costingForm').data('salesno') || ''       // <form data-salesno="@Model.SalesNo">
+        );
+    }
 
-    //    var grandTotal = panelCost + frameCost + addRMCost;
+    function loadDuctAccessoryWeights() {
+        var salesNo = getCostingSalesNo();
+        console.log('[DuctAcc] salesNo =', salesNo);
+        if (!salesNo) { console.warn('[DuctAcc] no SalesNo on page → skipped'); return; }
 
-    //    $('#dispTotalRM').text(Math.round(grandTotal).toLocaleString('en-IN'));
-    //    $('#hTotalCostOfRawMaterials').val(Math.round(grandTotal));
-    //}
+        $.get('/Costing/GetDuctAccessoryWeights', { salesNo: salesNo })
+            .done(function (res) {
+                console.log('[DuctAcc] response', res);
+                if (!res || !res.success || !res.rows) return;
+
+                res.rows.forEach(function (acc) {
+                    var $tr = $('#componentTableBody tr[data-row]').filter(function () {
+                        return $.trim($('td', this).eq(1).text()).toLowerCase() === acc.name.toLowerCase();
+                    }).first();
+
+                    if (!$tr.length) { console.warn('[DuctAcc] no row for', acc.name); return; }
+
+                    var $qty = $tr.find('[data-f="qty"]');
+                    var $uw = $tr.find('[data-f="uw"]');
+                    var $tw = $tr.find('[data-f="tw"]');
+
+                    if (!$qty.length) { console.warn('[DuctAcc] row has no inputs (saved text row):', acc.name); return; }
+                    if ((parseFloat($qty.val()) || 0) > 0) { console.log('[DuctAcc] kept user value:', acc.name); return; }
+
+                    $qty.val(acc.qty);
+                    $uw.val(Number(acc.unitWeight).toFixed(2));
+                    $tw.val(Number(acc.totalWeight).toFixed(0)).trigger('input');
+                });
+            })
+            .fail(function (xhr) {
+                console.error('[DuctAcc] request failed', xhr.status, this.url);
+            });
+    }
     function updateGrandTotal() {
         // strip all commas before parsing — handles Indian number format 64,89,674
         function cleanNum(id) {
@@ -491,37 +530,7 @@ function initComponents() {
     }
     // Always ensure the 2 default inline rows, plus any existing rows
     seedDefaultRows();
-    //if ($('#componentTableBody tr[data-row]').length > 0) {
-    //    $('#compEmptyRow').hide();
-    //    $('#compFooter').show();
-    //    recalcTotals();
-    //    updateCompCount();
-    //} else {
-    //    seedDefaultRows();
-    //}
-
-
-    //-------------..//
-    // ── Re-init when search loads new enquiry ───────────
-    //$(document).on('comp:reload', function () {
-    //    rowIndex = $('#componentTableBody tr[data-row]').length;
-
-    //    if (rowIndex > 0) {
-    //        $('#compEmptyRow').hide();
-    //        $('#compFooter').show();
-    //        recalcTotals();
-    //        updateCompCount();
-    //    } else {
-    //        $('#compEmptyRow').show();
-    //        $('#compFooter').hide();
-    //        $('#dispAddRMWeight').text('0');
-    //        $('#dispAddRMCost').text('0');
-    //        $('#hAddRMWeight').val('0');
-    //        $('#hAddRMCost').val('0');
-    //        updateCompCount();
-    //        seedDefaultRows();     
-    //    }
-    //});
+    loadDuctAccessoryWeights();          // ← NEW
 
     $(document).on('comp:reload', function () {
         rowIndex = $('#componentTableBody tr[data-row]').length;
@@ -541,6 +550,7 @@ function initComponents() {
             updateCompCount();
         }
         seedDefaultRows();          // ← ensure defaults after any reload
+        loadDuctAccessoryWeights();      // ← NEW
     });
 }
 /* ════════════════════════════════════════════════════════

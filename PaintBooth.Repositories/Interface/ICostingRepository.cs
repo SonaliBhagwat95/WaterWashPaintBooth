@@ -82,6 +82,6 @@ namespace PaintBooth.Repositories.Interface
         string AddBasisOfDesignItem(int enquiryId);
         void DeleteBasisOfDesignItem(int enquiryId, string rowKey);
         ControlPanelDetails GetControlPanelDetails(int enquiryId);
-
+        List<DuctAccessoryWeightDto> GetDuctAccessoryWeights(string salesNo);
     }
 }

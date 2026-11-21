@@ -1241,5 +1241,24 @@ namespace PaintBooth.Repositories.Repositories
             return _db.ControlPanelDetails
                 .FirstOrDefault(x => x.EnquiryID == enquiryId && x.IsActive);
         }
+
+        public List<DuctAccessoryWeightDto> GetDuctAccessoryWeights(string salesNo)
+        {
+            if (string.IsNullOrWhiteSpace(salesNo)) return new List<DuctAccessoryWeightDto>();
+
+            return _db.DuctAccessoryDetails
+               .Where(x => x.SalesNo == salesNo && x.IsActive
+         && x.AccessoryType != DuctAccessoryNames.Port)      // ← bought-out, not RM
+                .OrderBy(x => x.AccessoryID)
+                .AsEnumerable()                                   // dictionary lookup runs in memory
+                .Select(x => new DuctAccessoryWeightDto
+                {
+                    Name = DuctAccessoryNames.RmRow.TryGetValue(x.AccessoryType, out var d) ? d : x.AccessoryType,
+                    Qty = x.Quantity,
+                    UnitWeight = x.Quantity > 0 ? Math.Round(x.Weight / x.Quantity, 3) : x.Weight,
+                    TotalWeight = x.Weight
+                })
+                .ToList();
+        }
     }
 }
